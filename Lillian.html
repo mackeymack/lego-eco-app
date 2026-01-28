@@ -87,6 +87,18 @@
       white-space: pre-wrap;
       background: #fff;
     }
+
+    /* --- Ecoregion tooltip styling --- */
+    .leaflet-tooltip.eco-tooltip {
+      border-radius: 10px;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+      font-size: 13px;
+    }
+    .ecoTipTitle { font-weight: 700; margin-bottom: 2px; }
+    .ecoTipMeta { font-size: 12px; color: #444; }
+    .ecoTipMeta b { font-weight: 700; }
   </style>
 </head>
 
@@ -227,6 +239,10 @@
   let selectedL3Key = null;
   let selectedL3Name = null;
 
+  // Ecoregion layer refs (for hover tooltips + click highlight)
+  let ecoregionsLayer = null;
+  let lastSelectedLayer = null;
+
   const elSelected = document.getElementById('selectedRegion');
   const elTypeFilter = document.getElementById('plantTypeFilter');
   const elSearch = document.getElementById('searchBox');
@@ -283,6 +299,121 @@
       plantsByL3.get(p.l3Key).push(p);
     }
     logDebug('✅ indexed plantsByL3', { keys: plantsByL3.size });
+  }
+
+
+  // ============================================================
+  // Hover tooltip + click highlight helpers
+  // ============================================================
+  function keysMatch(a, b) {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    return normalizeKey(a) === normalizeKey(b);
+  }
+
+  function getPlantCountForL3Key(l3Key) {
+    if (!l3Key) return 0;
+    // Exact match first
+    const exact = plantsByL3.get(l3Key);
+    if (exact) return exact.length;
+
+    const trimmed = String(l3Key).trim();
+    const tMatch = plantsByL3.get(trimmed);
+    if (tMatch) return tMatch.length;
+
+    // Fuzzy fallback (normalized)
+    const nk = normalizeKey(trimmed);
+    for (const [k, arr] of plantsByL3.entries()) {
+      if (normalizeKey(k) === nk) return arr.length;
+    }
+    return 0;
+  }
+
+  function getL3Code(props) {
+    const code = props?.US_L3CODE || props?.NA_L3CODE;
+    if (code) return String(code).trim();
+    const k = props?.L3_KEY ? String(props.L3_KEY).trim() : '';
+    return k ? k.split(/\s+/)[0] : '—';
+  }
+
+  function getL3Name(props) {
+    const name = props?.US_L3NAME || props?.NA_L3NAME;
+    if (name) return String(name).trim();
+    // fallback: try to strip leading code from "L3_KEY"
+    const k = props?.L3_KEY ? String(props.L3_KEY).trim() : '';
+    if (!k) return 'Unknown';
+    return k.replace(/^\S+\s+/, '').trim() || k;
+  }
+
+  function tooltipHTML(props) {
+    const l3Key = props?.L3_KEY || '';
+    const code = getL3Code(props);
+    const name = getL3Name(props);
+    const countKnown = plants.length > 0; // after CSV loads
+    const count = countKnown ? getPlantCountForL3Key(l3Key) : null;
+
+    const countText = countKnown ? `${count.toLocaleString()} plant${count === 1 ? '' : 's'}` : 'Loading…';
+
+    return `
+      <div class="ecoTipTitle">${code} — ${name}</div>
+      <div class="ecoTipMeta">
+        L3 Key: <b>${String(l3Key || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</b><br/>
+        Plant Count: <b>${countText}</b>
+      </div>
+    `;
+  }
+
+  const STYLE_BASE = { color: '#3388ff', weight: 1, fillOpacity: 0.20 };
+  const STYLE_DIM = { color: '#999', weight: 1, fillOpacity: 0.06 };
+  const STYLE_SELECTED = { color: '#111', weight: 3, fillOpacity: 0.35 };
+  const STYLE_HOVER = { weight: 2, fillOpacity: 0.28 };
+
+  function applyBaseOrSelectionStyle(layer) {
+    const k = layer?.feature?.properties?.L3_KEY;
+    if (!selectedL3Key) {
+      layer.setStyle(STYLE_BASE);
+      return;
+    }
+    if (keysMatch(k, selectedL3Key)) layer.setStyle(STYLE_SELECTED);
+    else layer.setStyle(STYLE_DIM);
+  }
+
+  function updateSelectionStyles() {
+    if (!ecoregionsLayer) return;
+
+    lastSelectedLayer = null;
+
+    ecoregionsLayer.eachLayer((layer) => {
+      applyBaseOrSelectionStyle(layer);
+      const k = layer?.feature?.properties?.L3_KEY;
+      if (selectedL3Key && keysMatch(k, selectedL3Key)) lastSelectedLayer = layer;
+    });
+
+    if (lastSelectedLayer && lastSelectedLayer.bringToFront) {
+      lastSelectedLayer.bringToFront();
+    }
+  }
+
+  function applyHoverStyle(layer) {
+    if (!layer) return;
+
+    const k = layer?.feature?.properties?.L3_KEY;
+
+    // If selected exists, keep the selected region strongly highlighted.
+    if (selectedL3Key && keysMatch(k, selectedL3Key)) {
+      layer.setStyle({ weight: 4, fillOpacity: 0.40 });
+    } else if (selectedL3Key) {
+      // Hovering a dimmed region: make it a little easier to see.
+      layer.setStyle({ weight: 2, fillOpacity: 0.12, color: '#666' });
+    } else {
+      layer.setStyle(STYLE_HOVER);
+    }
+
+    if (layer.bringToFront) layer.bringToFront();
+  }
+
+  function restoreAfterHover() {
+    updateSelectionStyles();
   }
 
   function renderResults() {
@@ -377,6 +508,9 @@
     indexPlantsByL3();
     rebuildTypeDropdown();
     setStatus(`Loaded ${plants.length.toLocaleString()} rows from CSV.`);
+
+    // Refresh selection/tooltip counts now that plantsByL3 is available
+    updateSelectionStyles();
   }
 
   // ============================================================
@@ -395,22 +529,63 @@
     logDebug('✅ GeoJSON parsed', { type: geojson.type, features: geojson.features?.length });
 
     function onEachFeature(feature, layer) {
+      const p = feature.properties || {};
+
+      // Hover tooltip: L3 code + name + plant count
+      layer.bindTooltip(() => tooltipHTML(p), {
+        sticky: true,
+        direction: 'auto',
+        className: 'eco-tooltip'
+      });
+
+      layer.on('mouseover', () => {
+        try { layer.openTooltip(); } catch {}
+        applyHoverStyle(layer);
+      });
+
+      layer.on('mouseout', () => {
+        try { layer.closeTooltip(); } catch {}
+        restoreAfterHover();
+      });
+
+      // Click select + highlight (dim others)
       layer.on('click', () => {
-        const p = feature.properties || {};
-        selectedL3Key = p.L3_KEY || null;
-        selectedL3Name = p.US_L3NAME || p.NA_L3NAME || null;
+        const props = feature.properties || {};
+        const clickedKey = props.L3_KEY || null;
+
+        // Optional: click same region again to clear selection
+        if (selectedL3Key && clickedKey && keysMatch(clickedKey, selectedL3Key)) {
+          selectedL3Key = null;
+          selectedL3Name = null;
+          elSelected.textContent = 'None';
+          logDebug('🗺️ region cleared');
+          updateSelectionStyles();
+          renderResults();
+          return;
+        }
+
+        selectedL3Key = clickedKey;
+        selectedL3Name = props.US_L3NAME || props.NA_L3NAME || null;
 
         elSelected.textContent = selectedL3Key
           ? (selectedL3Name ? `${selectedL3Key} — ${selectedL3Name}` : selectedL3Key)
           : 'Unknown region';
 
         logDebug('🗺️ region clicked', { selectedL3Key, selectedL3Name });
+
+        updateSelectionStyles();
         renderResults();
       });
     }
 
-    L.geoJSON(geojson, { onEachFeature }).addTo(map);
-    setStatus('Map loaded. Click an ecoregion!');
+    // Skip null geometries (this file contains some)
+    ecoregionsLayer = L.geoJSON(geojson, {
+      filter: (feature) => !!(feature && feature.geometry && feature.geometry.type),
+      style: STYLE_BASE,
+      onEachFeature
+    }).addTo(map);
+
+    setStatus('Map loaded. Hover for details, click to select!');
   }
 
   // UI events
