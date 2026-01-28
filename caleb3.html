@@ -54,8 +54,11 @@
     label { font-weight: bold; font-size: 0.8em; display: block; margin-bottom: 4px; color: #4b4b4b; }
     select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.85em; }
     
-    #selected-region { font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.9em; }
-    
+    .region-display-container { display: flex; align-items: center; gap: 8px; }
+    #selected-region { flex-grow: 1; font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #clear-selection-btn { background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75em; transition: background 0.2s; }
+    #clear-selection-btn:hover { background: #c0392b; }
+
     .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; }
     .plant-card h4 { margin: 0 0 5px; color: #2d3436; font-size: 1.1em; }
     .plant-card p { margin: 5px 0; font-size: 0.9em; }
@@ -114,7 +117,10 @@
 
     <div class="row">
       <label>Target Excavation Ecoregion</label>
-      <div id="selected-region">Click map or use location</div>
+      <div class="region-display-container">
+        <div id="selected-region">Click map or use location</div>
+        <button id="clear-selection-btn" onclick="resetSelection()">Clear</button>
+      </div>
     </div>
 
     <div class="row">
@@ -163,7 +169,7 @@
 
 <script>
   let plantData = null;
-  let currentFilteredItems = []; // Tracking only filtered results for export
+  let currentFilteredItems = []; 
   let selectedL3Key = null;
   let regionCounts = {};
   let displayLimit = 10;
@@ -200,6 +206,49 @@
     });
   }
 
+  function highlightRegion(key) {
+    if (!geoLayer) return;
+    geoLayer.eachLayer(layer => {
+      if (layer.feature.properties.L3_KEY === key) {
+        layer.setStyle({
+          fillOpacity: 0.6,
+          weight: 3,
+          color: '#1a5d1a',
+          opacity: 1
+        });
+        layer.bringToFront();
+      } else {
+        layer.setStyle({
+          fillOpacity: 0.05,
+          weight: 1,
+          color: '#27ae60',
+          opacity: 0.3
+        });
+      }
+    });
+  }
+
+  function resetSelection() {
+    selectedL3Key = null;
+    document.getElementById('selected-region').textContent = "Click map or use location";
+    document.getElementById('zip-input').value = "";
+    document.getElementById('status').textContent = "Selection cleared.";
+    
+    if (geoLayer) {
+      geoLayer.eachLayer(layer => {
+        layer.setStyle({
+          fillOpacity: 0.1,
+          weight: 1,
+          color: '#27ae60',
+          opacity: 1
+        });
+      });
+    }
+    
+    map.setView([37.8, -96], 4);
+    renderResults(true);
+  }
+
   function renderResults(resetLimit = true) {
     if (!plantData) return;
     if (resetLimit) displayLimit = 10;
@@ -219,7 +268,6 @@
       chalky: document.getElementById('chalky-filter').value
     };
 
-    // Update global list of filtered items
     currentFilteredItems = plantData.filter(p => {
       if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
       if (f.type !== 'all' && !(p['Plant Type'] || '').includes(f.type)) return false;
@@ -246,11 +294,9 @@
     currentFilteredItems.slice(0, displayLimit).forEach((p, index) => {
       const card = document.createElement('div');
       card.className = 'plant-card';
-      
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
       const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
 
-      // Format Soil Info
       let soils = [];
       if(p['CLAY_SOIL'] === 'Yes') soils.push('Clay');
       if(p['SAND_SOIL'] === 'Yes') soils.push('Sand');
@@ -285,7 +331,6 @@
     });
   }
 
-  // EXPORT FUNCTIONS
   function exportExcel() {
     if (currentFilteredItems.length === 0) return alert("No plants match your filters to export.");
     const ws = XLSX.utils.json_to_sheet(currentFilteredItems);
@@ -349,6 +394,7 @@
       selectedL3Key = f.properties.L3_KEY;
       document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME || "Region"}`;
       map.setView([lat, lng], 8);
+      highlightRegion(selectedL3Key);
       renderResults(true);
       status.textContent = `📍 Located: ${f.properties.US_L3NAME}`;
     } else {
@@ -387,11 +433,16 @@
           const count = regionCounts[key] || 0;
           l.bindTooltip(`Region ${key}: ${f.properties.US_L3NAME || "Unknown"}<br/>${count} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
           l.on({
-            mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
-            mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
+            mouseover: (e) => {
+              if (selectedL3Key !== key) e.target.setStyle({ fillOpacity: 0.4 });
+            },
+            mouseout: (e) => {
+              if (selectedL3Key !== key) e.target.setStyle({ fillOpacity: 0.1 });
+            },
             click: (e) => {
               selectedL3Key = key;
               document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME || "Region"}`;
+              highlightRegion(key);
               renderResults(true);
             }
           });
