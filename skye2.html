@@ -1,0 +1,788 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Skye's S.P.A.D.E.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #wrap { display: grid; grid-template-columns: 400px 1fr; height: 100vh; }
+    #sidebar { padding: 12px; border-right: 1px solid #ddd; overflow: auto; background:#fff; }
+    #map { height: 100vh; }
+
+    h2 { margin: 8px 0 6px; }
+    .small { color:#666; font-size: 12px; }
+    .pill { display:inline-block; padding:6px 10px; border:1px solid #ddd; border-radius:999px; margin-top:6px; background:#fafafa; }
+    .row { margin: 12px 0; }
+    label { display:block; font-weight:700; margin: 0 0 6px; }
+
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button { cursor: pointer; background: #111; color: #fff; border: 1px solid #111; }
+    button.secondary { background:#fff; color:#111; border: 1px solid #ccc; }
+    button.danger { background:#b91c1c; border-color:#b91c1c; }
+
+    .filtersHeader {
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:8px;
+    }
+    .filtersHeader > div { flex: 1; }
+    .filtersHeader button { width:auto; padding:8px 12px; }
+
+    .filterRow {
+      border:1px solid #eee;
+      border-radius: 12px;
+      padding: 10px;
+      margin: 10px 0;
+      background:#fff;
+    }
+    .filterRow .grid {
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .filterRow .inline {
+      display:flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .filterRow .inline button { width:auto; padding:8px 12px; }
+
+    .plant {
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 10px;
+      margin: 10px 0;
+      background:#fff;
+    }
+    .plant b { display:block; margin-bottom: 3px; font-size: 16px; }
+    .kv { margin-top: 6px; }
+    .kv div { font-size: 12px; color:#333; margin: 2px 0; }
+    .kv span.key { color:#666; }
+    code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
+
+    /* Debug */
+    #debugFab {
+      position: fixed; right: 14px; bottom: 14px; z-index: 9999;
+      padding: 10px 12px; border-radius: 999px; border: 1px solid #333;
+      background: #111; color: #fff; cursor: pointer; font-size: 14px;
+      width: auto;
+    }
+    #debugModalBackdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9998; display: none; }
+    #debugModal {
+      position: fixed; right: 14px; bottom: 62px;
+      width: min(560px, calc(100vw - 28px));
+      height: min(420px, calc(100vh - 90px));
+      background: #fff; border: 1px solid #ddd; border-radius: 14px;
+      z-index: 9999; display: none; overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    #debugModalHeader {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-bottom: 1px solid #eee; background: #f7f7f7;
+    }
+    #debugModalHeader .btnRow { display: flex; gap: 8px; }
+    .debugBtn { width:auto; padding: 6px 10px; border-radius: 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 12px; color:#111; }
+    #debugLogArea {
+      height: calc(100% - 46px); padding: 10px 12px; overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px; white-space: pre-wrap; background: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="sidebar">
+      <h2>🐢🔥Skye's S.P.A.D.E.</h2>
+      <div class="small">Click an ecoregion → then filter by any traits/categories from your spreadsheet.</div>
+
+      <div class="row">
+        <label>Selected Ecoregion</label>
+        <div id="selectedRegion" class="pill">(None)</div>
+        <div class="small" style="margin-top:6px;">Tip: filters use AND logic (must match all).</div>
+      </div>
+
+      <div class="row">
+        <label>Search (Common or Scientific name)</label>
+        <input id="searchBox" placeholder="type to filter…" />
+      </div>
+
+      <div class="row">
+        <div class="filtersHeader">
+          <div>
+            <label style="margin:0;">Trait Filters</label>
+            <div class="small">Add as many traits as you want (soil, sun, moisture, root type, etc.).</div>
+          </div>
+          <button id="addFilterBtn" class="secondary" type="button">+ Add Filter</button>
+        </div>
+        <div id="filters"></div>
+        <button id="clearFiltersBtn" class="secondary" type="button">Clear All Filters</button>
+      </div>
+
+      <div class="row">
+        <label>Results <span class="small" id="resultCount"></span></label>
+        <div id="results"></div>
+      </div>
+
+      <hr/>
+      <div class="small" id="status">Loading…</div>
+      <div class="small" id="colInfo"></div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <button id="debugFab" title="Open debug log">Debug</button>
+  <div id="debugModalBackdrop"></div>
+  <div id="debugModal">
+    <div id="debugModalHeader">
+      <b>Debug Log</b>
+      <div class="btnRow">
+        <button class="debugBtn" id="debugCopyBtn">Copy</button>
+        <button class="debugBtn" id="debugClearBtn">Clear</button>
+        <button class="debugBtn" id="debugCloseBtn">Close</button>
+      </div>
+    </div>
+    <div id="debugLogArea">(No logs yet)</div>
+  </div>
+
+<script>
+  // ============================================================
+  // FILES IN /assets/
+  // ============================================================
+  const ECOREGIONS_URL = '/assets/us_eco_l3_state_boundaries.json';
+  const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv';
+
+  // ============================================================
+  // Debug logger
+  // ============================================================
+  const DEBUG_LOG_MAX_LINES = 300;
+  let debugLines = [];
+  function logDebug(message, data) {
+    const ts = new Date().toISOString().replace('T',' ').replace('Z','');
+    let line = `[${ts}] ${message}`;
+    if (data !== undefined) {
+      try { line += ` | ${typeof data === 'string' ? data : JSON.stringify(data)}`; }
+      catch { line += ` | (unstringifiable data)`; }
+    }
+    debugLines.push(line);
+    if (debugLines.length > DEBUG_LOG_MAX_LINES) debugLines = debugLines.slice(-DEBUG_LOG_MAX_LINES);
+    const area = document.getElementById('debugLogArea');
+    if (area) area.textContent = debugLines.length ? debugLines.join('\n') : '(No logs yet)';
+  }
+  function openDebug(){ document.getElementById('debugModalBackdrop').style.display='block'; document.getElementById('debugModal').style.display='block'; }
+  function closeDebug(){ document.getElementById('debugModalBackdrop').style.display='none'; document.getElementById('debugModal').style.display='none'; }
+  window.addEventListener('error', (e)=>logDebug('❌ window.error', { message:e.message, filename:e.filename, lineno:e.lineno, colno:e.colno }));
+  window.addEventListener('unhandledrejection', (e)=>logDebug('❌ unhandledrejection', { reason:String(e.reason) }));
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('debugFab').addEventListener('click', openDebug);
+    document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
+    document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
+    document.getElementById('debugClearBtn').addEventListener('click', () => { debugLines=[]; logDebug('🧹 Log cleared'); });
+    document.getElementById('debugCopyBtn').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(debugLines.join('\n')); logDebug('✅ Copied log to clipboard'); }
+      catch(err){ logDebug('❌ Copy failed', String(err)); alert('Copy blocked. Please manually select and copy.'); }
+    });
+    logDebug('✅ Debug UI ready');
+  });
+
+  // ============================================================
+  // Map
+  // ============================================================
+  const map = L.map('map').setView([39.5, -98.35], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // ============================================================
+  // UI refs
+  // ============================================================
+  const elSelected = document.getElementById('selectedRegion');
+  const elSearch = document.getElementById('searchBox');
+  const elResults = document.getElementById('results');
+  const elCount = document.getElementById('resultCount');
+  const elStatus = document.getElementById('status');
+  const elColInfo = document.getElementById('colInfo');
+
+  const elFilters = document.getElementById('filters');
+  const elAddFilterBtn = document.getElementById('addFilterBtn');
+  const elClearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+  function setStatus(msg){ elStatus.textContent = msg; logDebug('ℹ️ status', msg); }
+
+  function normalizeKey(s){ return String(s ?? '').toLowerCase().replace(/[\s_\-]+/g,''); }
+  function normText(s){ return String(s ?? '').toLowerCase().trim(); }
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"]/g, (ch)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[ch])); }
+
+  // ============================================================
+  // App state
+  // ============================================================
+  let plants = []; // { l3Raw, l3Norm, l3Code, commonName, scientificName, raw }
+  let plantsByL3Raw = new Map();   // raw L3_KEY string -> plants
+  let plantsByL3Norm = new Map();  // normalized L3_KEY -> plants
+  let plantsByCode = new Map();    // code string -> plants
+
+  let selectedProps = null;        // geojson props for selected region
+  let ecoregionsLayer = null;
+
+  let csvHeaders = [];
+  let colL3Key = null;
+  let colCommon = null;
+  let colScientific = null;
+
+  // Columns we do NOT use for trait dropdowns
+  function excludedTraitColumns(){
+    return new Set([colL3Key, colCommon, colScientific].filter(Boolean));
+  }
+
+  function isMostlyEmptyColumn(colName){
+    let nonEmpty = 0;
+    const sample = plants.slice(0, 400);
+    for (const p of sample) {
+      const v = p.raw?.[colName];
+      if (String(v ?? '').trim() !== '') nonEmpty++;
+    }
+    return nonEmpty < Math.max(3, Math.floor(sample.length * 0.02));
+  }
+
+  function tokenizeCell(cell){
+    const s = String(cell ?? '').trim();
+    if (!s) return [];
+    // split on common delimiters
+    const parts = s.split(/[,;|\/]+/g).map(x => x.trim()).filter(Boolean);
+    if (parts.length >= 2) return parts;
+    return [s];
+  }
+
+  function matchesTrait(cell, selectedValue){
+    const v = String(selectedValue ?? '').trim();
+    if (!v) return true;
+
+    const cellStr = String(cell ?? '').trim();
+    if (!cellStr) return false;
+
+    const vN = normText(v);
+    const tokens = tokenizeCell(cellStr);
+
+    // If multi-values exist, match exact token (case-insensitive)
+    if (tokens.length >= 2) {
+      return tokens.some(t => normText(t) === vN);
+    }
+
+    // Otherwise: allow "contains" (handles things like "Full Sun to Part Shade")
+    return normText(cellStr).includes(vN);
+  }
+
+  // ============================================================
+  // Index plants so counts + selection work even if keys differ
+  // ============================================================
+  function addToMapList(mapObj, key, item){
+    if (!key) return;
+    if (!mapObj.has(key)) mapObj.set(key, []);
+    mapObj.get(key).push(item);
+  }
+
+  function extractLeadingCode(text){
+    const s = String(text ?? '').trim();
+    const m = s.match(/^(\d{1,3})\b/);
+    return m ? m[1] : '';
+  }
+
+  function indexPlants(){
+    plantsByL3Raw = new Map();
+    plantsByL3Norm = new Map();
+    plantsByCode = new Map();
+
+    for (const p of plants) {
+      addToMapList(plantsByL3Raw, p.l3Raw, p);
+      addToMapList(plantsByL3Norm, p.l3Norm, p);
+      if (p.l3Code) addToMapList(plantsByCode, p.l3Code, p);
+    }
+
+    logDebug('✅ indexed plants', {
+      rawKeys: plantsByL3Raw.size,
+      normKeys: plantsByL3Norm.size,
+      codes: plantsByCode.size
+    });
+  }
+
+  function getPlantsForRegionProps(props){
+    if (!props) return [];
+    const rawKey = String(props.L3_KEY ?? '').trim();
+    const normKey = normalizeKey(rawKey);
+    const code = String(props.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+
+    // Try best matches in order
+    if (rawKey && plantsByL3Raw.has(rawKey)) return plantsByL3Raw.get(rawKey);
+    if (normKey && plantsByL3Norm.has(normKey)) return plantsByL3Norm.get(normKey);
+    if (code && plantsByCode.has(code)) return plantsByCode.get(code);
+
+    return [];
+  }
+
+  function getPlantCountForRegionProps(props){
+    return getPlantsForRegionProps(props).length;
+  }
+
+  // ============================================================
+  // Tooltip + selection styling
+  // ============================================================
+  function buildTooltipHtml(props){
+    const rawKey = String(props?.L3_KEY ?? '').trim();
+    const code = String(props?.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+    const name = props?.US_L3NAME || props?.NA_L3NAME || '';
+    const count = getPlantCountForRegionProps(props);
+
+    return `
+      <div style="font-size:12px; line-height:1.25;">
+        <div><b>${escapeHtml(code || rawKey || 'Unknown')}</b>${name ? ` — ${escapeHtml(name)}` : ''}</div>
+        <div style="color:#555;">Plants in CSV: <b>${count.toLocaleString()}</b></div>
+      </div>
+    `;
+  }
+
+  function styleForFeature(){ return { color:'#555', weight:1, opacity:0.8, fillColor:'#4f46e5', fillOpacity:0.15 }; }
+  function styleForDimmed(){ return { color:'#777', weight:1, opacity:0.25, fillColor:'#999', fillOpacity:0.05 }; }
+  function styleForSelected(){ return { color:'#111', weight:3, opacity:1, fillColor:'#f59e0b', fillOpacity:0.45 }; }
+
+  function applySelectionStyles(){
+    if (!ecoregionsLayer) return;
+    ecoregionsLayer.eachLayer((layer)=>{
+      const p = layer?.feature?.properties || {};
+      const key = String(p.L3_KEY ?? '').trim();
+      const selKey = String(selectedProps?.L3_KEY ?? '').trim();
+
+      if (!selectedProps) {
+        layer.setStyle(styleForFeature());
+        return;
+      }
+      if (key && selKey && key === selKey) {
+        layer.setStyle(styleForSelected());
+        try { layer.bringToFront(); } catch {}
+      } else {
+        layer.setStyle(styleForDimmed());
+      }
+    });
+  }
+
+  function refreshAllTooltips(){
+    if (!ecoregionsLayer) return;
+    ecoregionsLayer.eachLayer((layer)=>{
+      const p = layer?.feature?.properties || {};
+      const tt = layer.getTooltip ? layer.getTooltip() : null;
+      if (tt && tt.setContent) tt.setContent(buildTooltipHtml(p));
+    });
+  }
+
+  // ============================================================
+  // Filters UI (dynamic, uses ALL CSV columns)
+  // ============================================================
+  function getTraitColumns(){
+    const excluded = excludedTraitColumns();
+    const cols = csvHeaders
+      .filter(h => h && h.trim() && !excluded.has(h))
+      .filter(h => !isMostlyEmptyColumn(h));
+
+    // Sort, but pin common ones to the top if they exist
+    const pin = [
+      'Plant Type', 'ROOT_TYPE', 'ROOT_DEPTH',
+      'GRAVEL_SOIL', 'SAND_SOIL', 'LOAM_SOIL', 'SILT_SOIL', 'CLAY_SOIL', 'PEAT_SOIL', 'CHALKY_SOIL'
+    ];
+    const pinned = [];
+    for (const p of pin) {
+      const found = cols.find(h => normalizeKey(h) === normalizeKey(p));
+      if (found && !pinned.includes(found)) pinned.push(found);
+    }
+    const rest = cols.filter(h => !pinned.includes(h)).sort((a,b)=>a.localeCompare(b));
+    return [...pinned, ...rest];
+  }
+
+  function buildValueOptionsForColumn(col){
+    const list = selectedProps ? getPlantsForRegionProps(selectedProps) : plants;
+    const values = new Set();
+    for (const p of list) {
+      const cell = String(p.raw?.[col] ?? '').trim();
+      if (!cell) continue;
+      // explode multi-values so dropdown is useful
+      tokenizeCell(cell).forEach(t => values.add(t));
+    }
+    return [...values].sort((a,b)=>a.localeCompare(b));
+  }
+
+  function createFilterRow(initialCol = '', initialVal = ''){
+    const row = document.createElement('div');
+    row.className = 'filterRow';
+
+    const cols = getTraitColumns();
+    const colDefault = initialCol || cols[0] || '';
+
+    row.innerHTML = `
+      <div class="grid">
+        <div>
+          <label style="font-size:13px;">Category</label>
+          <select class="filterCol"></select>
+        </div>
+        <div>
+          <label style="font-size:13px;">Value</label>
+          <select class="filterVal">
+            <option value="">(Any)</option>
+          </select>
+        </div>
+        <div class="inline">
+          <button class="secondary removeBtn" type="button">Remove</button>
+        </div>
+      </div>
+    `;
+
+    const selCol = row.querySelector('.filterCol');
+    const selVal = row.querySelector('.filterVal');
+    const removeBtn = row.querySelector('.removeBtn');
+
+    // Populate category dropdown
+    selCol.innerHTML = '';
+    cols.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      selCol.appendChild(opt);
+    });
+    selCol.value = colDefault;
+
+    // Populate values dropdown
+    function rebuildValues(){
+      const col = selCol.value;
+      const opts = buildValueOptionsForColumn(col);
+
+      const keep = String(selVal.value ?? '').trim();
+      selVal.innerHTML = '<option value="">(Any)</option>';
+      opts.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        selVal.appendChild(opt);
+      });
+
+      // Keep selection if possible
+      if (keep && opts.includes(keep)) selVal.value = keep;
+      else selVal.value = initialVal || '';
+    }
+
+    rebuildValues();
+
+    selCol.addEventListener('change', () => {
+      initialVal = '';
+      rebuildValues();
+      renderResults();
+    });
+    selVal.addEventListener('change', renderResults);
+
+    removeBtn.addEventListener('click', () => {
+      row.remove();
+      renderResults();
+    });
+
+    row._rebuildValues = rebuildValues;
+    return row;
+  }
+
+  function rebuildAllFilterValueDropdowns(){
+    const rows = [...elFilters.querySelectorAll('.filterRow')];
+    rows.forEach(r => {
+      if (typeof r._rebuildValues === 'function') r._rebuildValues();
+    });
+  }
+
+  // ============================================================
+  // Rendering results: filter by all selected traits
+  // ============================================================
+  function getActiveTraitFilters(){
+    const filters = [];
+    const rows = [...elFilters.querySelectorAll('.filterRow')];
+    rows.forEach(r => {
+      const col = r.querySelector('.filterCol')?.value || '';
+      const val = r.querySelector('.filterVal')?.value || '';
+      if (col && val) filters.push({ col, val });
+    });
+    return filters;
+  }
+
+  function renderResults(){
+    elResults.innerHTML = '';
+    elCount.textContent = '';
+
+    if (!selectedProps) {
+      elResults.innerHTML = '<div class="small">Click an ecoregion to see plants.</div>';
+      return;
+    }
+
+    const baseList = getPlantsForRegionProps(selectedProps);
+    const q = normText(elSearch.value);
+    const filters = getActiveTraitFilters();
+
+    const filtered = baseList.filter(p => {
+      // Search
+      if (q) {
+        const ok = normText(p.commonName).includes(q) || normText(p.scientificName).includes(q);
+        if (!ok) return false;
+      }
+
+      // Trait filters (AND)
+      for (const f of filters) {
+        const cell = p.raw?.[f.col];
+        if (!matchesTrait(cell, f.val)) return false;
+      }
+      return true;
+    });
+
+    const shown = filtered.slice(0, 80);
+    elCount.textContent = `(${filtered.length} matches${filtered.length > shown.length ? `, showing first ${shown.length}` : ''})`;
+
+    // Show a small summary of active filters
+    if (filters.length) {
+      const div = document.createElement('div');
+      div.className = 'small';
+      div.style.margin = '6px 0 10px';
+      div.innerHTML = `<b>Active filters:</b> ` + filters.map(f => `${escapeHtml(f.col)} = <code>${escapeHtml(f.val)}</code>`).join(' &nbsp; ');
+      elResults.appendChild(div);
+    }
+
+    // Pick a few key columns to display always (if present)
+    const plantTypeCol = csvHeaders.find(h => normalizeKey(h) === normalizeKey('Plant Type'));
+    const rootTypeCol  = csvHeaders.find(h => normalizeKey(h) === normalizeKey('ROOT_TYPE'));
+    const rootDepthCol = csvHeaders.find(h => normalizeKey(h) === normalizeKey('ROOT_DEPTH'));
+
+    for (const p of shown) {
+      const card = document.createElement('div');
+      card.className = 'plant';
+
+      const lines = [];
+      if (plantTypeCol) {
+        const v = String(p.raw?.[plantTypeCol] ?? '').trim();
+        if (v) lines.push(`<div><span class="key">${escapeHtml(plantTypeCol)}:</span> ${escapeHtml(v)}</div>`);
+      }
+      if (rootTypeCol) {
+        const v = String(p.raw?.[rootTypeCol] ?? '').trim();
+        if (v) lines.push(`<div><span class="key">${escapeHtml(rootTypeCol)}:</span> ${escapeHtml(v)}</div>`);
+      }
+      if (rootDepthCol) {
+        const v = String(p.raw?.[rootDepthCol] ?? '').trim();
+        if (v) lines.push(`<div><span class="key">${escapeHtml(rootDepthCol)}:</span> ${escapeHtml(v)}</div>`);
+      }
+
+      // Also show the chosen trait values (so users see WHY it matched)
+      const active = filters.map(f => {
+        const cell = String(p.raw?.[f.col] ?? '').trim();
+        return cell ? `<div><span class="key">${escapeHtml(f.col)}:</span> ${escapeHtml(cell)}</div>` : '';
+      }).filter(Boolean);
+
+      card.innerHTML = `
+        <b>${escapeHtml(p.commonName || '(no common name)')}</b>
+        <div class="small"><i>${escapeHtml(p.scientificName || '(no scientific name)')}</i></div>
+        <div class="kv">
+          ${lines.join('')}
+          ${active.length ? `<hr style="border:none;border-top:1px solid #eee;margin:8px 0;">${active.join('')}` : ''}
+        </div>
+      `;
+      elResults.appendChild(card);
+    }
+
+    if (!shown.length) {
+      const msg = document.createElement('div');
+      msg.className = 'small';
+      msg.textContent = 'No plants match those traits for this ecoregion. Try removing a filter or choosing a different value.';
+      elResults.appendChild(msg);
+    }
+  }
+
+  // ============================================================
+  // Load CSV
+  // ============================================================
+  function findColumn(headers, wanted){
+    const w = normalizeKey(wanted);
+    for (const h of headers) if (normalizeKey(h) === w) return h;
+
+    const alts = {
+      l3_key: ['l3key','l3','ecoregionkey'],
+      common_name: ['commonname','name'],
+      scientific_name: ['scientificname','sciname','botanicalname','scientific'],
+    }[w] || [];
+
+    for (const alt of alts) for (const h of headers) if (normalizeKey(h) === alt) return h;
+    return null;
+  }
+
+  async function loadPlantDatabaseCSV(){
+    setStatus('Loading plant database CSV…');
+    logDebug('➡️ fetch CSV', DATABASE_CSV_URL);
+
+    const res = await fetch(DATABASE_CSV_URL, { cache:'no-store' });
+    logDebug('⬅️ CSV status', res.status);
+    if (!res.ok) throw new Error(`Failed to load CSV: ${res.status}`);
+
+    const text = await res.text();
+    const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
+    if (parsed.errors?.length) logDebug('⚠️ CSV parse errors (first 5)', parsed.errors.slice(0,5));
+
+    const rows = parsed.data || [];
+    if (!rows.length) throw new Error('CSV loaded but has 0 rows.');
+
+    csvHeaders = Object.keys(rows[0] || {});
+    colL3Key = findColumn(csvHeaders, 'L3_KEY');
+    colCommon = findColumn(csvHeaders, 'Common Name') || findColumn(csvHeaders, 'COMMON_NAME');
+    colScientific = findColumn(csvHeaders, 'Scientific Name') || findColumn(csvHeaders, 'SCIENTIFIC_NAME');
+
+    elColInfo.innerHTML = `
+      <div class="small">
+        CSV columns used:
+        <br/>L3_KEY = <code>${colL3Key || 'NOT FOUND'}</code>
+        <br/>Common Name = <code>${colCommon || 'NOT FOUND'}</code>
+        <br/>Scientific Name = <code>${colScientific || 'NOT FOUND'}</code>
+        <br/>Trait filters include <b>all other columns</b> with data.
+      </div>
+    `;
+    logDebug('🧾 detected CSV columns', { colL3Key, colCommon, colScientific, headerCount: csvHeaders.length });
+
+    plants = rows.map(r => {
+      const l3Raw = colL3Key ? String(r[colL3Key] ?? '').trim() : '';
+      const l3Norm = normalizeKey(l3Raw);
+      const l3Code = extractLeadingCode(l3Raw);
+      return {
+        l3Raw,
+        l3Norm,
+        l3Code,
+        commonName: colCommon ? String(r[colCommon] ?? '').trim() : '',
+        scientificName: colScientific ? String(r[colScientific] ?? '').trim() : '',
+        raw: r
+      };
+    });
+
+    indexPlants();
+    refreshAllTooltips();
+
+    setStatus(`Loaded ${plants.length.toLocaleString()} rows from CSV.`);
+  }
+
+  // ============================================================
+  // Load map GeoJSON
+  // ============================================================
+  async function loadEcoregionsGeoJSON(){
+    setStatus('Loading ecoregion map…');
+    logDebug('➡️ fetch GeoJSON', ECOREGIONS_URL);
+
+    const res = await fetch(ECOREGIONS_URL, { cache:'no-store' });
+    logDebug('⬅️ GeoJSON status', res.status);
+    if (!res.ok) throw new Error(`Failed to load map JSON: ${res.status}`);
+
+    const geojson = await res.json();
+    logDebug('✅ GeoJSON parsed', { type: geojson.type, features: geojson.features?.length });
+
+    if (ecoregionsLayer) { try { map.removeLayer(ecoregionsLayer); } catch {} }
+
+    function onEachFeature(feature, layer){
+      const p = feature.properties || {};
+
+      layer.bindTooltip(buildTooltipHtml(p), { sticky:true, direction:'auto', opacity:0.95 });
+
+      layer.on('mouseover', ()=>{
+        const tt = layer.getTooltip ? layer.getTooltip() : null;
+        if (tt && tt.setContent) tt.setContent(buildTooltipHtml(p));
+        layer.setStyle({ weight: 2, opacity: 1, fillOpacity: 0.30 });
+      });
+
+      layer.on('mouseout', ()=>{
+        if (!selectedProps) layer.setStyle(styleForFeature());
+        else {
+          const key = String(p.L3_KEY ?? '').trim();
+          const selKey = String(selectedProps?.L3_KEY ?? '').trim();
+          if (key && selKey && key === selKey) layer.setStyle(styleForSelected());
+          else layer.setStyle(styleForDimmed());
+        }
+      });
+
+      layer.on('click', ()=>{
+        selectedProps = p;
+
+        const rawKey = String(p.L3_KEY ?? '').trim();
+        const code = String(p.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+        const name = p.US_L3NAME || p.NA_L3NAME || '';
+
+        elSelected.textContent = rawKey
+          ? (name ? `${code || rawKey} — ${name}` : (code || rawKey))
+          : '(Unknown)';
+
+        logDebug('🗺️ region clicked', { L3_KEY: rawKey, US_L3CODE: p.US_L3CODE, name });
+
+        applySelectionStyles();
+
+        // Make filters values relevant to this region
+        rebuildAllFilterValueDropdowns();
+
+        renderResults();
+      });
+    }
+
+    ecoregionsLayer = L.geoJSON(geojson, { style: styleForFeature, onEachFeature }).addTo(map);
+    setStatus('Map loaded. Hover for details; click to select an ecoregion.');
+  }
+
+  // ============================================================
+  // Filter controls
+  // ============================================================
+  elAddFilterBtn.addEventListener('click', ()=>{
+    const row = createFilterRow();
+    elFilters.appendChild(row);
+    renderResults();
+  });
+
+  elClearFiltersBtn.addEventListener('click', ()=>{
+    elFilters.innerHTML = '';
+    renderResults();
+  });
+
+  elSearch.addEventListener('input', renderResults);
+
+  // ============================================================
+  // Boot
+  // ============================================================
+  (async function start(){
+    try {
+      logDebug('🚀 App starting', { ECOREGIONS_URL, DATABASE_CSV_URL });
+
+      await loadEcoregionsGeoJSON();
+      await loadPlantDatabaseCSV();
+
+      // Add one default filter row to get you started
+      const defaultRow = createFilterRow(
+        // Prefer "Plant Type" if present
+        (getTraitColumns().find(h => normalizeKey(h) === normalizeKey('Plant Type')) || getTraitColumns()[0] || ''),
+        ''
+      );
+      elFilters.appendChild(defaultRow);
+
+      renderResults();
+      logDebug('✅ App ready');
+    } catch (err) {
+      logDebug('❌ App start error', String(err));
+      setStatus('ERROR: ' + err.message);
+      openDebug();
+    }
+  })();
+</script>
+</body>
+</html>
