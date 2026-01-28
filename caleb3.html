@@ -21,6 +21,7 @@
     
     #debug-trigger { cursor: default; user-select: none; }
 
+    /* Header Styles */
     h2 { margin: 0 0 2px; color: #1a5d1a; font-size: 2.2em; letter-spacing: 2px; }
     .acronym { font-size: 0.85em; color: #27ae60; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
     .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
@@ -39,14 +40,14 @@
     #zip-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; }
     #zip-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-    /* New Export Buttons Style */
-    .export-container { display: flex; gap: 8px; margin: 15px 0; }
+    /* Export Buttons Styling */
+    .export-row { display: flex; gap: 10px; margin: 15px 0; }
     .export-btn { 
-      flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ddd; 
-      font-size: 0.75em; font-weight: bold; cursor: pointer; background: #fff;
-      display: flex; align-items: center; justify-content: center; gap: 5px;
+      flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #27ae60; 
+      background: white; color: #27ae60; font-weight: bold; cursor: pointer; font-size: 0.75em;
+      transition: all 0.2s;
     }
-    .export-btn:hover { background: #f8f9fa; }
+    .export-btn:hover { background: #27ae60; color: white; }
 
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .row { margin-bottom: 12px; }
@@ -143,9 +144,9 @@
     <div id="status">System starting...</div>
     <div id="results-count"></div>
 
-    <div class="export-container">
-      <button class="export-btn" onclick="exportToExcel()">📊 Export to Excel</button>
-      <button class="export-btn" onclick="exportToSheets()">☁️ Export for Sheets</button>
+    <div class="export-row">
+      <button class="export-btn" onclick="exportExcel()">Export to Excel</button>
+      <button class="export-btn" onclick="exportSheets()">Export for Sheets</button>
     </div>
 
     <div id="results-list"></div>
@@ -162,7 +163,7 @@
 
 <script>
   let plantData = null;
-  let filteredList = []; // Track currently filtered items for export
+  let currentFilteredItems = []; // Tracking only filtered results for export
   let selectedL3Key = null;
   let regionCounts = {};
   let displayLimit = 10;
@@ -218,8 +219,8 @@
       chalky: document.getElementById('chalky-filter').value
     };
 
-    // Filter the full data set based on user selections
-    filteredList = plantData.filter(p => {
+    // Update global list of filtered items
+    currentFilteredItems = plantData.filter(p => {
       if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
       if (f.type !== 'all' && !(p['Plant Type'] || '').includes(f.type)) return false;
       if (f.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(f.root)) return false;
@@ -236,18 +237,20 @@
       return true;
     });
 
-    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, filteredList.length)} of ${filteredList.length} matches`;
-    document.getElementById('show-more-container').style.display = (filteredList.length > displayLimit) ? 'block' : 'none';
+    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, currentFilteredItems.length)} of ${currentFilteredItems.length} matches`;
+    document.getElementById('show-more-container').style.display = (currentFilteredItems.length > displayLimit) ? 'block' : 'none';
 
     const list = document.getElementById('results-list');
     list.innerHTML = '';
     
-    filteredList.slice(0, displayLimit).forEach((p, index) => {
+    currentFilteredItems.slice(0, displayLimit).forEach((p, index) => {
       const card = document.createElement('div');
       card.className = 'plant-card';
+      
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
       const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
 
+      // Format Soil Info
       let soils = [];
       if(p['CLAY_SOIL'] === 'Yes') soils.push('Clay');
       if(p['SAND_SOIL'] === 'Yes') soils.push('Sand');
@@ -282,24 +285,23 @@
     });
   }
 
-  // Export to Excel (.xlsx)
-  function exportToExcel() {
-    if (filteredList.length === 0) return alert("No results to export.");
-    const worksheet = XLSX.utils.json_to_sheet(filteredList);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "SPADE_Site_Plan");
-    XLSX.writeFile(workbook, "SPADE_Site_Plan.xlsx");
+  // EXPORT FUNCTIONS
+  function exportExcel() {
+    if (currentFilteredItems.length === 0) return alert("No plants match your filters to export.");
+    const ws = XLSX.utils.json_to_sheet(currentFilteredItems);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "SPADE_Results");
+    XLSX.writeFile(wb, "SPADE_Site_Plan.xlsx");
   }
 
-  // Export to CSV (Best for Google Sheets)
-  function exportToSheets() {
-    if (filteredList.length === 0) return alert("No results to export.");
-    const csv = Papa.unparse(filteredList);
+  function exportSheets() {
+    if (currentFilteredItems.length === 0) return alert("No plants match your filters to export.");
+    const csv = Papa.unparse(currentFilteredItems);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "SPADE_Import_For_Sheets.csv");
+    link.setAttribute("download", "SPADE_For_Google_Sheets.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -313,7 +315,7 @@
     const zip = document.getElementById('zip-input').value;
     const status = document.getElementById('status');
     if (!/^\d{5}$/.test(zip)) {
-      status.textContent = "Enter a valid 5-digit ZIP.";
+      status.textContent = "Please enter a 5-digit ZIP code.";
       return;
     }
     status.textContent = `🔍 Searching ZIP ${zip}...`;
