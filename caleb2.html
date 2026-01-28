@@ -207,20 +207,22 @@
       const pt = turf.point([lng, lat]);
       let found = allGeoJSON.features.find(feature => turf.booleanPointInPolygon(pt, feature));
       
-      // Update Marker
+      // Update Marker at coordinates
       if (userMarker) map.removeLayer(userMarker);
-      userMarker = L.circleMarker([lat, lng], { color: 'red', radius: 8, fillOpacity: 0.8 }).addTo(map).bindPopup("Current Site Location").openPopup();
+      userMarker = L.circleMarker([lat, lng], { color: 'red', radius: 8, fillOpacity: 0.8 }).addTo(map).bindPopup("Current GPS Location").openPopup();
+      map.setView([lat, lng], 11);
 
       if (found) {
         selectedL3Key = found.properties.L3_KEY.toString();
         const name = found.properties.US_L3NAME || "Local Site";
         document.getElementById('selected-region').textContent = `${selectedL3Key}: ${name}`;
         sysLog(`INSTANT MATCH: Site identified in Region ${selectedL3Key} (${name})`);
-        map.setView([lat, lng], 11);
         renderResults(true);
       } else {
-        alert("Found location, but no ecoregion match. Check debug log.");
-        sysLog("Site location is outside of surveyed ecoregion polygons.");
+        sysLog("ALERT: Found your coordinates, but you are outside the surveyed ecoregion polygons in the JSON file.");
+        document.getElementById('selected-region').textContent = "Outside Survey Area";
+        selectedL3Key = null;
+        renderResults(true);
       }
     }, (err) => {
       alert("Location error: " + err.message);
