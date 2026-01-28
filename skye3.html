@@ -1,0 +1,560 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Skye's S.P.A.D.E.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; }
+    #wrap { display:grid; grid-template-columns: 420px 1fr; height:100vh; }
+    #sidebar { padding:12px; border-right:1px solid #ddd; overflow:auto; }
+    #map { height:100vh; }
+    h2 { margin: 8px 0 6px; }
+    .small { color:#666; font-size:12px; }
+    .pill { display:inline-block; padding:6px 10px; border:1px solid #ddd; border-radius:999px; margin-top:6px; background:#fafafa; }
+    .row { margin:12px 0; }
+    label { display:block; font-weight:700; margin:0 0 6px; }
+    input, select { width:100%; padding:8px; box-sizing:border-box; border-radius:10px; border:1px solid #ccc; }
+    .plant { border:1px solid #eee; border-radius:12px; padding:10px; margin:10px 0; background:#fff; }
+    .plant b { display:block; margin-bottom:3px; font-size:16px; }
+    .kv { margin-top:6px; }
+    .kv div { font-size:12px; color:#333; margin:2px 0; }
+    .kv span.key { color:#666; }
+    code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
+
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+
+    #debugFab { position:fixed; right:14px; bottom:14px; z-index:9999; padding:10px 12px; border-radius:999px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; font-size:14px; width:auto; }
+    #debugModalBackdrop { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9998; display:none; }
+    #debugModal { position:fixed; right:14px; bottom:62px; width:min(560px, calc(100vw - 28px)); height:min(420px, calc(100vh - 90px)); background:#fff; border:1px solid #ddd; border-radius:14px; z-index:9999; display:none; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.25); }
+    #debugModalHeader { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #eee; background:#f7f7f7; }
+    #debugModalHeader .btnRow { display:flex; gap:8px; }
+    .debugBtn { width:auto; padding:6px 10px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:12px; color:#111; }
+    #debugLogArea { height:calc(100% - 46px); padding:10px 12px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; white-space:pre-wrap; background:#fff; }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="sidebar">
+      <h2>🐢🔥Skye's S.P.A.D.E.</h2>
+      <div class="small">Click an ecoregion → then use separate filters below.</div>
+
+      <div class="row">
+        <label>Selected Ecoregion</label>
+        <div id="selectedRegion" class="pill">(None)</div>
+      </div>
+
+      <div class="row">
+        <label>Search (Common or Scientific name)</label>
+        <input id="searchBox" placeholder="type to filter…" />
+      </div>
+
+      <div class="row">
+        <label>Plant Filters</label>
+        <div class="grid2">
+          <div>
+            <div class="small" style="margin-bottom:6px;">Plant Type</div>
+            <select id="plantTypeFilter"></select>
+          </div>
+          <div>
+            <div class="small" style="margin-bottom:6px;">Root Type</div>
+            <select id="rootTypeFilter"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Soil Filters (separate)</label>
+        <div class="grid3">
+          <div><div class="small" style="margin-bottom:6px;">Gravel</div><select id="soil_gravel"></select></div>
+          <div><div class="small" style="margin-bottom:6px;">Sand</div><select id="soil_sand"></select></div>
+          <div><div class="small" style="margin-bottom:6px;">Loam</div><select id="soil_loam"></select></div>
+          <div><div class="small" style="margin-bottom:6px;">Silt</div><select id="soil_silt"></select></div>
+          <div><div class="small" style="margin-bottom:6px;">Clay</div><select id="soil_clay"></select></div>
+          <div><div class="small" style="margin-bottom:6px;">Peat</div><select id="soil_peat"></select></div>
+          <div><div class="small" style="margin-bottom:6px;">Chalky</div><select id="soil_chalky"></select></div>
+        </div>
+        <div class="small" style="margin-top:8px;">Choose “Yes” to require that soil type, “No” to require it is NOT supported, or “Any”.</div>
+      </div>
+
+      <div class="row">
+        <label>Results <span class="small" id="resultCount"></span></label>
+        <div id="results"></div>
+      </div>
+
+      <hr/>
+      <div class="small" id="status">Loading…</div>
+      <div class="small" id="colInfo"></div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <button id="debugFab">Debug</button>
+  <div id="debugModalBackdrop"></div>
+  <div id="debugModal">
+    <div id="debugModalHeader">
+      <b>Debug Log</b>
+      <div class="btnRow">
+        <button class="debugBtn" id="debugCopyBtn">Copy</button>
+        <button class="debugBtn" id="debugClearBtn">Clear</button>
+        <button class="debugBtn" id="debugCloseBtn">Close</button>
+      </div>
+    </div>
+    <div id="debugLogArea">(No logs yet)</div>
+  </div>
+
+<script>
+  const ECOREGIONS_URL = '/assets/us_eco_l3_state_boundaries.json';
+  const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv';
+
+  // --- Debug ---
+  const DEBUG_LOG_MAX_LINES = 300;
+  let debugLines = [];
+  function logDebug(message, data){
+    const ts = new Date().toISOString().replace('T',' ').replace('Z','');
+    let line = `[${ts}] ${message}`;
+    if (data !== undefined) { try { line += ` | ${typeof data === 'string' ? data : JSON.stringify(data)}`; } catch { line += ` | (unstringifiable)`; } }
+    debugLines.push(line);
+    if (debugLines.length > DEBUG_LOG_MAX_LINES) debugLines = debugLines.slice(-DEBUG_LOG_MAX_LINES);
+    const area = document.getElementById('debugLogArea');
+    if (area) area.textContent = debugLines.length ? debugLines.join('\n') : '(No logs yet)';
+  }
+  function openDebug(){ document.getElementById('debugModalBackdrop').style.display='block'; document.getElementById('debugModal').style.display='block'; }
+  function closeDebug(){ document.getElementById('debugModalBackdrop').style.display='none'; document.getElementById('debugModal').style.display='none'; }
+  window.addEventListener('DOMContentLoaded', ()=>{
+    document.getElementById('debugFab').addEventListener('click', openDebug);
+    document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
+    document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
+    document.getElementById('debugClearBtn').addEventListener('click', ()=>{ debugLines=[]; logDebug('🧹 Log cleared'); });
+    document.getElementById('debugCopyBtn').addEventListener('click', async ()=>{
+      try { await navigator.clipboard.writeText(debugLines.join('\n')); logDebug('✅ Copied log'); }
+      catch(err){ logDebug('❌ Copy failed', String(err)); alert('Copy blocked. Select text and copy manually.'); }
+    });
+    logDebug('✅ Debug UI ready');
+  });
+
+  function setStatus(msg){ document.getElementById('status').textContent = msg; logDebug('ℹ️ status', msg); }
+  function normalizeKey(s){ return String(s ?? '').toLowerCase().replace(/[\s_\-]+/g,''); }
+  function normText(s){ return String(s ?? '').toLowerCase().trim(); }
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+
+  // --- Map ---
+  const map = L.map('map').setView([39.5, -98.35], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
+
+  let ecoregionsLayer = null;
+  let selectedProps = null;
+
+  // --- CSV ---
+  let csvHeaders = [];
+  let plants = []; // { l3Raw, l3Norm, l3Code, commonName, scientificName, raw }
+  let plantsByL3Raw = new Map();
+  let plantsByL3Norm = new Map();
+  let plantsByCode = new Map();
+
+  let colL3Key = null;
+  let colCommon = null;
+  let colScientific = null;
+
+  // --- Filter column names (auto-detect) ---
+  let colPlantType = null;
+  let colRootType = null;
+  let colRootDepth = null;
+
+  let colGravel = null, colSand = null, colLoam = null, colSilt = null, colClay = null, colPeat = null, colChalky = null;
+
+  function findColumn(headers, wanted){
+    const w = normalizeKey(wanted);
+    for (const h of headers) if (normalizeKey(h) === w) return h;
+    const alts = {
+      l3_key: ['l3key','l3','ecoregionkey'],
+      common_name: ['commonname','name'],
+      scientific_name: ['scientificname','sciname','botanicalname','scientific'],
+      planttype: ['planttype','type','category'],
+      roottype: ['root_type','roottype'],
+      rootdepth: ['root_depth','rootdepth','maturerootdepth','maximumrootdepth','maxrootdepth'],
+      gravel_soil: ['gravelsoil','gravel'],
+      sand_soil: ['sandsoil','sand'],
+      loam_soil: ['loamsoil','loam'],
+      silt_soil: ['siltsoil','silt'],
+      clay_soil: ['claysoil','clay'],
+      peat_soil: ['peatsoil','peat'],
+      chalky_soil: ['chalkysoil','chalky']
+    }[w] || [];
+    for (const alt of alts) for (const h of headers) if (normalizeKey(h) === alt) return h;
+    return null;
+  }
+
+  function extractLeadingCode(text){
+    const s = String(text ?? '').trim();
+    const m = s.match(/^(\d{1,3})\b/);
+    return m ? m[1] : '';
+  }
+
+  function addTo(mapObj, key, item){
+    if (!key) return;
+    if (!mapObj.has(key)) mapObj.set(key, []);
+    mapObj.get(key).push(item);
+  }
+
+  function indexPlants(){
+    plantsByL3Raw = new Map(); plantsByL3Norm = new Map(); plantsByCode = new Map();
+    for (const p of plants) {
+      addTo(plantsByL3Raw, p.l3Raw, p);
+      addTo(plantsByL3Norm, p.l3Norm, p);
+      if (p.l3Code) addTo(plantsByCode, p.l3Code, p);
+    }
+    logDebug('✅ indexed plants', { rawKeys: plantsByL3Raw.size, normKeys: plantsByL3Norm.size, codes: plantsByCode.size });
+  }
+
+  function getPlantsForRegion(props){
+    if (!props) return [];
+    const rawKey = String(props.L3_KEY ?? '').trim();
+    const normKey = normalizeKey(rawKey);
+    const code = String(props.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+
+    if (rawKey && plantsByL3Raw.has(rawKey)) return plantsByL3Raw.get(rawKey);
+    if (normKey && plantsByL3Norm.has(normKey)) return plantsByL3Norm.get(normKey);
+    if (code && plantsByCode.has(code)) return plantsByCode.get(code);
+    return [];
+  }
+
+  function getCountForRegion(props){ return getPlantsForRegion(props).length; }
+
+  function buildTooltipHtml(props){
+    const rawKey = String(props?.L3_KEY ?? '').trim();
+    const code = String(props?.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+    const name = props?.US_L3NAME || props?.NA_L3NAME || '';
+    const count = getCountForRegion(props);
+    return `
+      <div style="font-size:12px; line-height:1.25;">
+        <div><b>${escapeHtml(code || rawKey || 'Unknown')}</b>${name ? ` — ${escapeHtml(name)}` : ''}</div>
+        <div style="color:#555;">Plants in CSV: <b>${count.toLocaleString()}</b></div>
+      </div>
+    `;
+  }
+
+  function styleForFeature(){ return { color:'#555', weight:1, opacity:0.8, fillColor:'#4f46e5', fillOpacity:0.15 }; }
+  function styleForDimmed(){ return { color:'#777', weight:1, opacity:0.25, fillColor:'#999', fillOpacity:0.05 }; }
+  function styleForSelected(){ return { color:'#111', weight:3, opacity:1, fillColor:'#f59e0b', fillOpacity:0.45 }; }
+
+  function applySelectionStyles(){
+    if (!ecoregionsLayer) return;
+    ecoregionsLayer.eachLayer((layer)=>{
+      const p = layer?.feature?.properties || {};
+      if (!selectedProps) { layer.setStyle(styleForFeature()); return; }
+      const key = String(p.L3_KEY ?? '').trim();
+      const selKey = String(selectedProps.L3_KEY ?? '').trim();
+      if (key && selKey && key === selKey) { layer.setStyle(styleForSelected()); try { layer.bringToFront(); } catch {} }
+      else layer.setStyle(styleForDimmed());
+    });
+  }
+
+  function refreshAllTooltips(){
+    if (!ecoregionsLayer) return;
+    ecoregionsLayer.eachLayer((layer)=>{
+      const p = layer?.feature?.properties || {};
+      const tt = layer.getTooltip ? layer.getTooltip() : null;
+      if (tt && tt.setContent) tt.setContent(buildTooltipHtml(p));
+    });
+  }
+
+  // --- Filter UI helpers ---
+  function setSelectOptions(selectEl, values, includeAny=true, anyLabel="(Any)"){
+    const current = String(selectEl.value ?? '');
+    selectEl.innerHTML = '';
+    if (includeAny) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = anyLabel;
+      selectEl.appendChild(opt);
+    }
+    values.forEach(v=>{
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      selectEl.appendChild(opt);
+    });
+    // keep if still available
+    const has = [...selectEl.options].some(o => o.value === current);
+    selectEl.value = has ? current : '';
+  }
+
+  function uniqueValues(list, col){
+    const set = new Set();
+    if (!col) return [];
+    for (const p of list) {
+      const v = String(p.raw?.[col] ?? '').trim();
+      if (v) set.add(v);
+    }
+    return [...set].sort((a,b)=>a.localeCompare(b));
+  }
+
+  function soilNormalize(v){
+    const s = normText(v);
+    if (!s) return '';
+    if (['yes','y','true','1','supported','ok'].includes(s)) return 'Yes';
+    if (['no','n','false','0','not supported'].includes(s)) return 'No';
+    // if spreadsheet contains other text, keep it (but dropdown will still show it)
+    return v.trim();
+  }
+
+  function matchesSoil(cell, want){
+    if (!want) return true; // Any
+    const got = soilNormalize(cell);
+    if (!got) return false;
+    // Exact match Yes/No (or contains if descriptive)
+    if (want === 'Yes' || want === 'No') return got === want;
+    return normText(got).includes(normText(want));
+  }
+
+  function matchesTextCell(cell, want){
+    if (!want) return true;
+    const cellStr = String(cell ?? '').trim();
+    if (!cellStr) return false;
+    // accept "contains" so filters work with combined text
+    return normText(cellStr).includes(normText(want));
+  }
+
+  function rebuildAllFilterDropdowns(){
+    const list = selectedProps ? getPlantsForRegion(selectedProps) : plants;
+
+    // Plant / root dropdowns
+    setSelectOptions(document.getElementById('plantTypeFilter'), uniqueValues(list, colPlantType), true, '(Any)');
+    setSelectOptions(document.getElementById('rootTypeFilter'), uniqueValues(list, colRootType), true, '(Any)');
+
+    // Soil dropdowns (force to Any/Yes/No if those exist)
+    const soilAnyYesNo = ['Yes','No'];
+    setSelectOptions(document.getElementById('soil_gravel'), ['Yes','No'], true, '(Any)');
+    setSelectOptions(document.getElementById('soil_sand'),   ['Yes','No'], true, '(Any)');
+    setSelectOptions(document.getElementById('soil_loam'),   ['Yes','No'], true, '(Any)');
+    setSelectOptions(document.getElementById('soil_silt'),   ['Yes','No'], true, '(Any)');
+    setSelectOptions(document.getElementById('soil_clay'),   ['Yes','No'], true, '(Any)');
+    setSelectOptions(document.getElementById('soil_peat'),   ['Yes','No'], true, '(Any)');
+    setSelectOptions(document.getElementById('soil_chalky'), ['Yes','No'], true, '(Any)');
+  }
+
+  function renderResults(){
+    const elResults = document.getElementById('results');
+    const elCount = document.getElementById('resultCount');
+    elResults.innerHTML = '';
+    elCount.textContent = '';
+
+    if (!selectedProps) {
+      elResults.innerHTML = '<div class="small">Click an ecoregion to see plants.</div>';
+      return;
+    }
+
+    const base = getPlantsForRegion(selectedProps);
+    const q = normText(document.getElementById('searchBox').value);
+
+    const plantTypeWant = document.getElementById('plantTypeFilter').value;
+    const rootTypeWant  = document.getElementById('rootTypeFilter').value;
+
+    const gravelWant = document.getElementById('soil_gravel').value;
+    const sandWant   = document.getElementById('soil_sand').value;
+    const loamWant   = document.getElementById('soil_loam').value;
+    const siltWant   = document.getElementById('soil_silt').value;
+    const clayWant   = document.getElementById('soil_clay').value;
+    const peatWant   = document.getElementById('soil_peat').value;
+    const chalkyWant = document.getElementById('soil_chalky').value;
+
+    const filtered = base.filter(p => {
+      if (q) {
+        const ok = normText(p.commonName).includes(q) || normText(p.scientificName).includes(q);
+        if (!ok) return false;
+      }
+      if (plantTypeWant && !matchesTextCell(p.raw?.[colPlantType], plantTypeWant)) return false;
+      if (rootTypeWant  && !matchesTextCell(p.raw?.[colRootType],  rootTypeWant)) return false;
+
+      if (gravelWant && !matchesSoil(p.raw?.[colGravel], gravelWant)) return false;
+      if (sandWant   && !matchesSoil(p.raw?.[colSand], sandWant)) return false;
+      if (loamWant   && !matchesSoil(p.raw?.[colLoam], loamWant)) return false;
+      if (siltWant   && !matchesSoil(p.raw?.[colSilt], siltWant)) return false;
+      if (clayWant   && !matchesSoil(p.raw?.[colClay], clayWant)) return false;
+      if (peatWant   && !matchesSoil(p.raw?.[colPeat], peatWant)) return false;
+      if (chalkyWant && !matchesSoil(p.raw?.[colChalky], chalkyWant)) return false;
+
+      return true;
+    });
+
+    const shown = filtered.slice(0, 80);
+    elCount.textContent = `(${filtered.length} matches${filtered.length > shown.length ? `, showing first ${shown.length}` : ''})`;
+
+    // Show key details always
+    for (const p of shown) {
+      const card = document.createElement('div');
+      card.className = 'plant';
+
+      const pt = colPlantType ? String(p.raw?.[colPlantType] ?? '').trim() : '';
+      const rt = colRootType ? String(p.raw?.[colRootType] ?? '').trim() : '';
+      const rd = colRootDepth ? String(p.raw?.[colRootDepth] ?? '').trim() : '';
+
+      card.innerHTML = `
+        <b>${escapeHtml(p.commonName || '(no common name)')}</b>
+        <div class="small"><i>${escapeHtml(p.scientificName || '(no scientific name)')}</i></div>
+        <div class="kv">
+          ${pt ? `<div><span class="key">${escapeHtml(colPlantType)}:</span> ${escapeHtml(pt)}</div>` : ''}
+          ${rt ? `<div><span class="key">${escapeHtml(colRootType)}:</span> ${escapeHtml(rt)}</div>` : ''}
+          ${rd ? `<div><span class="key">${escapeHtml(colRootDepth)}:</span> ${escapeHtml(rd)}</div>` : ''}
+        </div>
+      `;
+      document.getElementById('results').appendChild(card);
+    }
+
+    if (!shown.length) {
+      const msg = document.createElement('div');
+      msg.className = 'small';
+      msg.textContent = 'No plants match these separate filters in this ecoregion. Try setting some filters back to (Any).';
+      elResults.appendChild(msg);
+    }
+  }
+
+  async function loadPlantDatabaseCSV(){
+    setStatus('Loading plant database CSV…');
+    logDebug('➡️ fetch CSV', DATABASE_CSV_URL);
+
+    const res = await fetch(DATABASE_CSV_URL, { cache:'no-store' });
+    logDebug('⬅️ CSV status', res.status);
+    if (!res.ok) throw new Error(`Failed to load CSV: ${res.status}`);
+
+    const text = await res.text();
+    const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
+    const rows = parsed.data || [];
+    if (!rows.length) throw new Error('CSV loaded but has 0 rows.');
+
+    csvHeaders = Object.keys(rows[0] || {});
+    colL3Key = findColumn(csvHeaders, 'L3_KEY');
+    colCommon = findColumn(csvHeaders, 'Common Name');
+    colScientific = findColumn(csvHeaders, 'Scientific Name');
+
+    colPlantType = findColumn(csvHeaders, 'Plant Type');
+    colRootType  = findColumn(csvHeaders, 'ROOT_TYPE');
+    colRootDepth = findColumn(csvHeaders, 'ROOT_DEPTH');
+
+    colGravel = findColumn(csvHeaders, 'GRAVEL_SOIL');
+    colSand   = findColumn(csvHeaders, 'SAND_SOIL');
+    colLoam   = findColumn(csvHeaders, 'LOAM_SOIL');
+    colSilt   = findColumn(csvHeaders, 'SILT_SOIL');
+    colClay   = findColumn(csvHeaders, 'CLAY_SOIL');
+    colPeat   = findColumn(csvHeaders, 'PEAT_SOIL');
+    colChalky = findColumn(csvHeaders, 'CHALKY_SOIL');
+
+    document.getElementById('colInfo').innerHTML = `
+      <div class="small">
+        Columns detected:
+        <br/>L3_KEY: <code>${colL3Key || 'NOT FOUND'}</code>
+        <br/>Plant Type: <code>${colPlantType || 'NOT FOUND'}</code>
+        <br/>ROOT_TYPE: <code>${colRootType || 'NOT FOUND'}</code>
+        <br/>ROOT_DEPTH: <code>${colRootDepth || 'NOT FOUND'}</code>
+        <br/>Soils: <code>${[colGravel,colSand,colLoam,colSilt,colClay,colPeat,colChalky].filter(Boolean).join(', ') || 'NOT FOUND'}</code>
+      </div>
+    `;
+
+    plants = rows.map(r => {
+      const l3Raw = colL3Key ? String(r[colL3Key] ?? '').trim() : '';
+      return {
+        l3Raw,
+        l3Norm: normalizeKey(l3Raw),
+        l3Code: extractLeadingCode(l3Raw),
+        commonName: colCommon ? String(r[colCommon] ?? '').trim() : '',
+        scientificName: colScientific ? String(r[colScientific] ?? '').trim() : '',
+        raw: r
+      };
+    });
+
+    indexPlants();
+    refreshAllTooltips();
+
+    // Init dropdowns with blank options until a region is selected
+    document.getElementById('plantTypeFilter').innerHTML = '<option value="">(Any)</option>';
+    document.getElementById('rootTypeFilter').innerHTML = '<option value="">(Any)</option>';
+
+    ['soil_gravel','soil_sand','soil_loam','soil_silt','soil_clay','soil_peat','soil_chalky'].forEach(id=>{
+      document.getElementById(id).innerHTML = '<option value="">(Any)</option><option value="Yes">Yes</option><option value="No">No</option>';
+    });
+
+    setStatus(`Loaded ${plants.length.toLocaleString()} rows from CSV.`);
+  }
+
+  async function loadEcoregionsGeoJSON(){
+    setStatus('Loading ecoregion map…');
+    logDebug('➡️ fetch GeoJSON', ECOREGIONS_URL);
+
+    const res = await fetch(ECOREGIONS_URL, { cache:'no-store' });
+    logDebug('⬅️ GeoJSON status', res.status);
+    if (!res.ok) throw new Error(`Failed to load map JSON: ${res.status}`);
+
+    const geojson = await res.json();
+    logDebug('✅ GeoJSON parsed', { type: geojson.type, features: geojson.features?.length });
+
+    if (ecoregionsLayer) { try { map.removeLayer(ecoregionsLayer); } catch {} }
+
+    function onEachFeature(feature, layer){
+      const p = feature.properties || {};
+      layer.bindTooltip(buildTooltipHtml(p), { sticky:true, direction:'auto', opacity:0.95 });
+
+      layer.on('mouseover', ()=>{
+        const tt = layer.getTooltip ? layer.getTooltip() : null;
+        if (tt && tt.setContent) tt.setContent(buildTooltipHtml(p));
+        layer.setStyle({ weight:2, opacity:1, fillOpacity:0.30 });
+      });
+
+      layer.on('mouseout', ()=>{
+        if (!selectedProps) layer.setStyle(styleForFeature());
+        else {
+          const key = String(p.L3_KEY ?? '').trim();
+          const selKey = String(selectedProps.L3_KEY ?? '').trim();
+          if (key && selKey && key === selKey) layer.setStyle(styleForSelected());
+          else layer.setStyle(styleForDimmed());
+        }
+      });
+
+      layer.on('click', ()=>{
+        selectedProps = p;
+        const rawKey = String(p.L3_KEY ?? '').trim();
+        const code = String(p.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+        const name = p.US_L3NAME || p.NA_L3NAME || '';
+        document.getElementById('selectedRegion').textContent = rawKey ? `${code || rawKey} — ${name || rawKey}` : '(Unknown)';
+        logDebug('🗺️ region clicked', { rawKey, code, name });
+
+        applySelectionStyles();
+        rebuildAllFilterDropdowns();
+        renderResults();
+      });
+    }
+
+    ecoregionsLayer = L.geoJSON(geojson, { style: styleForFeature, onEachFeature }).addTo(map);
+    setStatus('Map loaded. Hover for details; click to select an ecoregion.');
+  }
+
+  // Filter events
+  document.getElementById('searchBox').addEventListener('input', renderResults);
+  ['plantTypeFilter','rootTypeFilter','soil_gravel','soil_sand','soil_loam','soil_silt','soil_clay','soil_peat','soil_chalky'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', renderResults);
+  });
+
+  (async function start(){
+    try {
+      logDebug('🚀 App starting', { ECOREGIONS_URL, DATABASE_CSV_URL });
+      await loadEcoregionsGeoJSON();
+      await loadPlantDatabaseCSV();
+      renderResults();
+      logDebug('✅ App ready');
+    } catch (err) {
+      logDebug('❌ App start error', String(err));
+      setStatus('ERROR: ' + err.message);
+      openDebug();
+    }
+  })();
+</script>
+</body>
+</html>
