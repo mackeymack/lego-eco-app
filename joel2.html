@@ -16,7 +16,7 @@
     body { margin: 0; font-family: Arial, sans-serif; }
     #wrap { display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
     #sidebar { padding: 12px; border-right: 1px solid #ddd; overflow: auto; background:#fff; }
-    #map { height: 100vh; background:#f4f4f4; }
+    #map { height: 100vh; background:#f4f4f4; position: relative; } /* IMPORTANT so toolbar can sit on the map */
     h2 { margin: 8px 0 6px; }
     .row { margin: 12px 0; }
     input, select { width: 100%; padding: 8px; box-sizing: border-box; }
@@ -64,9 +64,11 @@
       box-shadow: 0 0 0 3px rgba(122,167,255,0.25);
     }
 
-    /* Demo / toolbar floating controls */
+    /* Demo / toolbar floating controls
+       NOTE: We will move this element into #map so it never covers the sidebar title.
+    */
     #demoToolbar{
-      position: fixed;
+      position: absolute;   /* anchored to #map */
       left: 12px;
       top: 12px;
       z-index: 9997;
@@ -81,6 +83,7 @@
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
       user-select: none;
+      pointer-events: auto;
     }
 
     .demoBtn{
@@ -175,9 +178,8 @@
       body.sidebar-open #sidebar{ transform: translateX(0); }
       body.sidebar-open #sidebarBackdrop{ display: block; }
       body.panel-hidden #sidebar{ width: min(420px, 86vw); padding: 12px; border-right:1px solid #ddd; }
-    }
 
-    @media (max-width: 980px){
+      /* Keep toolbar snug on smaller screens */
       #demoToolbar{ left: 10px; top: 10px; }
     }
 
@@ -304,9 +306,15 @@
     #floatingHint b{ font-weight: 800; }
     body.demo-mode #floatingHint{ display: block; }
 
-    /* Debug fully hidden by default. Enable via ?debug=1 */
-    #debugFab, #debugModalBackdrop, #debugModal{ display: none; }
-    body.debug-enabled #debugFab{ display: block; }
+    /* ============================================================
+       Debug UI (secret reveal via triple-click 🐢)
+       - Always logs everything
+       - Hidden by default
+       - "Hide" hides the button again
+       ============================================================ */
+
+    #debugFab, #debugModalBackdrop, #debugModal { display: none; }
+    body.debug-visible #debugFab { display: block; }
 
     #debugFab{
       position: fixed;
@@ -326,19 +334,17 @@
       inset: 0;
       background: rgba(0,0,0,0.55);
       z-index: 9998;
-      display: none;
     }
     #debugModal{
       position: fixed;
       right: 14px;
       bottom: 62px;
-      width: min(560px, calc(100vw - 28px));
-      height: min(420px, calc(100vh - 90px));
+      width: min(620px, calc(100vw - 28px));
+      height: min(460px, calc(100vh - 90px));
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 14px;
       z-index: 9999;
-      display: none;
       overflow: hidden;
       box-shadow: 0 8px 30px rgba(0,0,0,0.25);
     }
@@ -368,27 +374,30 @@
       white-space: pre-wrap;
       background: #fff;
     }
+
+    /* Make the turtle look tappable */
+    #turtleTapTarget{
+      cursor: pointer;
+      user-select: none;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    #turtleTapTarget:hover{
+      background: #f3f3f3;
+    }
   </style>
 </head>
 
 <body>
-  <!-- Presentation controls -->
-  <div id="demoToolbar" aria-label="Presentation controls">
-    <button class="demoBtn secondary" id="panelToggleBtn" type="button" title="Show/Hide the left panel">☰ Panel</button>
-
-    <div class="switch" id="demoToggle" role="button" tabindex="0" aria-pressed="false" title="Toggle big, competition-ready UI">
-      <span class="switchDot" aria-hidden="true"></span>
-      <span><b>Demo Mode</b></span>
-    </div>
-
-    <button class="demoBtn secondary" id="resetBtn" type="button" title="Reset selection and filters">↺ Reset</button>
-  </div>
-
   <div id="sidebarBackdrop" aria-hidden="true"></div>
 
   <div id="wrap">
     <div id="sidebar">
-      <h2>🐢🔥 Joel's S.P.A.D.E.</h2>
+      <h2>
+        <span id="turtleTapTarget" title="(Secret) Tap 3 times to show Debug">🐢</span>
+        🔥 Joel's S.P.A.D.E.
+      </h2>
+
       <div class="small">Click an ecoregion on the map → see matching plants from your CSV.</div>
 
       <div class="demoGuide" aria-label="Demo guide">
@@ -430,14 +439,26 @@
       <div class="small" id="colInfo"></div>
     </div>
 
-    <div id="map"></div>
+    <div id="map">
+      <!-- Presentation controls (will live ON the map, not over the sidebar) -->
+      <div id="demoToolbar" aria-label="Presentation controls">
+        <button class="demoBtn secondary" id="panelToggleBtn" type="button" title="Show/Hide the left panel">☰ Panel</button>
+
+        <div class="switch" id="demoToggle" role="button" tabindex="0" aria-pressed="false" title="Toggle big, competition-ready UI">
+          <span class="switchDot" aria-hidden="true"></span>
+          <span><b>Demo Mode</b></span>
+        </div>
+
+        <button class="demoBtn secondary" id="resetBtn" type="button" title="Reset selection and filters">↺ Reset</button>
+      </div>
+    </div>
   </div>
 
   <div id="floatingHint">
     <b>Tip:</b> Tap <b>☰ Panel</b> to open filters • Tap a region to see plants
   </div>
 
-  <!-- Debug UI (hidden; enable with ?debug=1) -->
+  <!-- Secret Debug UI -->
   <button id="debugFab" title="Open debug log">Debug</button>
   <div id="debugModalBackdrop"></div>
   <div id="debugModal">
@@ -446,6 +467,7 @@
       <div class="btnRow">
         <button class="debugBtn" id="debugCopyBtn">Copy</button>
         <button class="debugBtn" id="debugClearBtn">Clear</button>
+        <button class="debugBtn" id="debugHideBtn">Hide</button>
         <button class="debugBtn" id="debugCloseBtn">Close</button>
       </div>
     </div>
@@ -457,16 +479,13 @@
   const ECOREGIONS_URL = '/assets/us_eco_l3_state_boundaries.json';
   const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv';
 
-  // Debug (disabled unless ?debug=1)
-  const urlParams = new URLSearchParams(window.location.search);
-  const debugEnabled = urlParams.get('debug') === '1';
+  // ============================================================
+  // Debug logging (ALWAYS ON; UI is secret)
+  // ============================================================
+  const DEBUG_LOG_MAX_LINES = 1500;
   let debugLines = [];
-  const DEBUG_LOG_MAX_LINES = 300;
-
-  if (debugEnabled) document.body.classList.add('debug-enabled');
 
   function logDebug(message, data) {
-    if (!debugEnabled) return;
     const ts = new Date().toISOString().replace('T',' ').replace('Z','');
     let line = `[${ts}] ${message}`;
     if (data !== undefined) {
@@ -475,26 +494,39 @@
     }
     debugLines.push(line);
     if (debugLines.length > DEBUG_LOG_MAX_LINES) debugLines = debugLines.slice(-DEBUG_LOG_MAX_LINES);
+
+    // If the modal is open, live-update it
     const area = document.getElementById('debugLogArea');
-    if (area) area.textContent = debugLines.length ? debugLines.join('\\n') : '(No logs yet)';
+    if (area && document.getElementById('debugModal').style.display === 'block') {
+      area.textContent = debugLines.join('\n');
+      area.scrollTop = area.scrollHeight;
+    }
   }
+
   function openDebug() {
-    if (!debugEnabled) return;
+    document.body.classList.add('debug-visible');
     document.getElementById('debugModalBackdrop').style.display = 'block';
     document.getElementById('debugModal').style.display = 'block';
+    const area = document.getElementById('debugLogArea');
+    area.textContent = debugLines.length ? debugLines.join('\n') : '(No logs yet)';
+    area.scrollTop = area.scrollHeight;
+    logDebug('🪲 Debug opened');
   }
   function closeDebug() {
-    if (!debugEnabled) return;
     document.getElementById('debugModalBackdrop').style.display = 'none';
     document.getElementById('debugModal').style.display = 'none';
+    logDebug('🪲 Debug closed (button remains visible)');
+  }
+  function hideDebugCompletely() {
+    document.getElementById('debugModalBackdrop').style.display = 'none';
+    document.getElementById('debugModal').style.display = 'none';
+    document.body.classList.remove('debug-visible');
+    logDebug('🪲 Debug hidden (secret mode)');
   }
 
-  if (debugEnabled) {
-    window.addEventListener('error', (e) => logDebug('❌ window.error', { message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno }));
-    window.addEventListener('unhandledrejection', (e) => logDebug('❌ unhandledrejection', { reason: String(e.reason) }));
-  }
-
+  // ============================================================
   // Presentation UI helpers
+  // ============================================================
   const LS_DEMO_KEY = 'spade_demoMode';
   const LS_PANEL_KEY = 'spade_panelState';
 
@@ -506,7 +538,7 @@
     const m = window.__spadeMap;
     if (!m) return;
     requestAnimationFrame(() => m.invalidateSize());
-    setTimeout(() => m.invalidateSize(), 210);
+    setTimeout(() => m.invalidateSize(), 220);
     setTimeout(() => m.invalidateSize(), 520);
   }
 
@@ -515,6 +547,7 @@
     document.getElementById('demoToggle').setAttribute('aria-pressed', on ? 'true' : 'false');
     try { localStorage.setItem(LS_DEMO_KEY, on ? '1' : '0'); } catch {}
     safelyInvalidateMap();
+    logDebug('🎤 Demo Mode set', { on });
   }
 
   function setPanelOpen(open) {
@@ -525,7 +558,9 @@
       document.body.classList.toggle('panel-hidden', !open);
       document.body.classList.remove('sidebar-open');
     }
+    try { localStorage.setItem(LS_PANEL_KEY, open ? 'open' : 'closed'); } catch {}
     safelyInvalidateMap();
+    logDebug('📁 Panel set', { open, mobile: isMobileLayout() });
   }
 
   function getPanelOpen() {
@@ -535,16 +570,23 @@
 
   function togglePanel() {
     setPanelOpen(!getPanelOpen());
-    try { localStorage.setItem(LS_PANEL_KEY, getPanelOpen() ? 'open' : 'closed'); } catch {}
   }
 
+  // ============================================================
   // Map setup (Leaflet)
+  // ============================================================
   const map = L.map('map', { zoomControl: false }).setView([39.5, -98.35], 4);
   window.__spadeMap = map;
-  L.control.zoom({ position: 'topright' }).addTo(map);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
 
+  L.control.zoom({ position: 'topright' }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // ============================================================
   // App state
+  // ============================================================
   let plants = [];
   let plantsByL3 = new Map();
   let selectedL3Key = null;
@@ -558,8 +600,8 @@
   const elStatus = document.getElementById('status');
   const elColInfo = document.getElementById('colInfo');
 
-  function setStatus(msg) { elStatus.textContent = msg; logDebug('ℹ️ status', msg); }
-  function normalizeKey(s) { return String(s ?? '').toLowerCase().replace(/[\\s_\\-]+/g, ''); }
+  function setStatus(msg) { elStatus.textContent = msg; logDebug('ℹ️ Status', msg); }
+  function normalizeKey(s) { return String(s ?? '').toLowerCase().replace(/[\s_\-]+/g, ''); }
   function normText(s) { return String(s ?? '').toLowerCase().trim(); }
 
   function findColumn(headers, wanted) {
@@ -586,6 +628,7 @@
       opt.textContent = t;
       elTypeFilter.appendChild(opt);
     });
+    logDebug('🧾 Type dropdown rebuilt', { typeCount: types.size });
   }
 
   function indexPlantsByL3() {
@@ -595,7 +638,7 @@
       if (!plantsByL3.has(p.l3Key)) plantsByL3.set(p.l3Key, []);
       plantsByL3.get(p.l3Key).push(p);
     }
-    logDebug('✅ indexed plantsByL3', { keys: plantsByL3.size });
+    logDebug('📚 Plants indexed by L3', { keys: plantsByL3.size });
   }
 
   function fmt(v, fallback='—') {
@@ -609,6 +652,7 @@
 
     if (!selectedL3Key) {
       elResults.innerHTML = '<div class="small">Click an ecoregion to see plants.</div>';
+      logDebug('🧪 Results render', { selected: null });
       return;
     }
 
@@ -649,6 +693,14 @@
       `;
       elResults.appendChild(div);
     }
+
+    logDebug('🧪 Results render', {
+      l3: selectedL3Key,
+      typeFilter: typeFilter || '(all)',
+      query: q || '(none)',
+      totalMatches: list.length,
+      shown: shown.length
+    });
   }
 
   function resetAppForDemo() {
@@ -659,22 +711,55 @@
     elTypeFilter.value = '';
     elSearch.value = '';
     renderResults();
-    logDebug('↺ Reset pressed');
 
     if (isMobileLayout()) setPanelOpen(false);
+    logDebug('↺ Reset pressed');
   }
 
-  // Init presentation UI once DOM is ready (and map exists)
+  // ============================================================
+  // Secret turtle triple-click reveal (works even if Debug is hidden)
+  // ============================================================
+  (function initTurtleSecret() {
+    const turtle = document.getElementById('turtleTapTarget');
+    let clicks = 0;
+    let timer = null;
+    const WINDOW_MS = 900;
+
+    function registerTap() {
+      clicks += 1;
+      if (timer) clearTimeout(timer);
+
+      timer = setTimeout(() => { clicks = 0; }, WINDOW_MS);
+
+      logDebug('🐢 Turtle tap', { count: clicks });
+
+      if (clicks >= 3) {
+        clicks = 0;
+        clearTimeout(timer);
+        document.body.classList.add('debug-visible');
+        logDebug('🪲 Debug revealed via turtle x3');
+      }
+    }
+
+    turtle.addEventListener('click', registerTap);
+    turtle.addEventListener('touchend', (e) => { e.preventDefault(); registerTap(); }, { passive: false });
+  })();
+
+  // ============================================================
+  // Init UI events
+  // ============================================================
   window.addEventListener('DOMContentLoaded', () => {
     const demoToggle = document.getElementById('demoToggle');
     const panelToggleBtn = document.getElementById('panelToggleBtn');
     const resetBtn = document.getElementById('resetBtn');
     const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
+    // Restore demo mode
     let demoOn = false;
     try { demoOn = localStorage.getItem(LS_DEMO_KEY) === '1'; } catch {}
     setDemoMode(demoOn);
 
+    // Restore panel state
     if (isMobileLayout()) {
       setPanelOpen(false);
     } else {
@@ -683,43 +768,76 @@
       setPanelOpen(panelOpen);
     }
 
-    panelToggleBtn.addEventListener('click', togglePanel);
-    sidebarBackdrop.addEventListener('click', () => setPanelOpen(false));
+    panelToggleBtn.addEventListener('click', () => { logDebug('🖱️ Panel button clicked'); togglePanel(); });
+    sidebarBackdrop.addEventListener('click', () => { logDebug('🖱️ Sidebar backdrop clicked (close)'); setPanelOpen(false); });
 
     demoToggle.addEventListener('click', () => {
       const on = !document.body.classList.contains('demo-mode');
+      logDebug('🖱️ Demo toggle clicked', { next: on });
       setDemoMode(on);
     });
     demoToggle.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); demoToggle.click(); }
     });
 
-    resetBtn.addEventListener('click', resetAppForDemo);
+    resetBtn.addEventListener('click', () => { logDebug('🖱️ Reset clicked'); resetAppForDemo(); });
 
+    // Close sidebar drawer when tapping map on mobile
     document.getElementById('map').addEventListener('click', () => {
+      logDebug('🗺️ Map clicked');
       if (isMobileLayout() && document.body.classList.contains('sidebar-open')) setPanelOpen(false);
     });
 
-    safelyInvalidateMap();
+    // Debug UI buttons (work only if revealed)
+    document.getElementById('debugFab').addEventListener('click', openDebug);
+    document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
+    document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
+    document.getElementById('debugHideBtn').addEventListener('click', hideDebugCompletely);
 
-    if (debugEnabled) {
-      document.getElementById('debugFab').addEventListener('click', openDebug);
-      document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
-      document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
-      document.getElementById('debugClearBtn').addEventListener('click', () => { debugLines = []; logDebug('🧹 Log cleared'); });
-      document.getElementById('debugCopyBtn').addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(debugLines.join('\\n')); logDebug('✅ Copied'); }
-        catch { alert('Copy blocked by browser.'); }
-      });
-    }
+    document.getElementById('debugClearBtn').addEventListener('click', () => {
+      debugLines = [];
+      document.getElementById('debugLogArea').textContent = '(No logs yet)';
+      logDebug('🧹 Log cleared');
+    });
+
+    document.getElementById('debugCopyBtn').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(debugLines.join('\n'));
+        logDebug('📋 Debug copied to clipboard');
+      } catch {
+        alert('Copy blocked by browser.');
+        logDebug('❌ Copy failed');
+      }
+    });
+
+    // Log input interactions (every change)
+    elTypeFilter.addEventListener('change', () => {
+      logDebug('🎚️ Type filter changed', { value: elTypeFilter.value || '(all)' });
+      renderResults();
+    });
+
+    elSearch.addEventListener('input', () => {
+      logDebug('⌨️ Search input', { value: elSearch.value });
+      renderResults();
+    });
+
+    safelyInvalidateMap();
+    logDebug('✅ DOM ready');
   });
 
+  // ============================================================
   // Load GeoJSON
+  // ============================================================
   async function loadEcoregionsGeoJSON() {
     setStatus('Loading ecoregion map…');
+    logDebug('➡️ Fetch GeoJSON', ECOREGIONS_URL);
+
     const res = await fetch(ECOREGIONS_URL, { cache: 'no-store' });
+    logDebug('⬅️ GeoJSON status', res.status);
     if (!res.ok) throw new Error(`Failed to load map JSON: ${res.status}`);
+
     const geojson = await res.json();
+    logDebug('✅ GeoJSON loaded', { features: geojson.features?.length || 0 });
 
     function onEachFeature(feature, layer) {
       layer.on('click', () => {
@@ -731,10 +849,14 @@
           ? `<b>${selectedL3Key}</b>${selectedL3Name ? `&nbsp;—&nbsp;${selectedL3Name}` : ''}`
           : '<b>Unknown region</b>';
 
+        logDebug('🗺️ Region clicked', { selectedL3Key, selectedL3Name });
         renderResults();
 
         // Demo behavior: on iPad/mobile, auto-open panel after selecting a region
-        if (isMobileLayout() && document.body.classList.contains('demo-mode')) setPanelOpen(true);
+        if (isMobileLayout() && document.body.classList.contains('demo-mode')) {
+          logDebug('📌 Auto-open panel after region click (demo mode)');
+          setPanelOpen(true);
+        }
       });
     }
 
@@ -743,14 +865,22 @@
     safelyInvalidateMap();
   }
 
+  // ============================================================
   // Load CSV
+  // ============================================================
   async function loadPlantDatabaseCSV() {
     setStatus('Loading plant database CSV…');
+    logDebug('➡️ Fetch CSV', DATABASE_CSV_URL);
+
     const res = await fetch(DATABASE_CSV_URL, { cache: 'no-store' });
+    logDebug('⬅️ CSV status', res.status);
     if (!res.ok) throw new Error(`Failed to load CSV: ${res.status}`);
 
     const text = await res.text();
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+
+    if (parsed.errors?.length) logDebug('⚠️ CSV parse errors (first 5)', parsed.errors.slice(0, 5));
+
     const rows = parsed.data || [];
     if (!rows.length) throw new Error('CSV loaded but has 0 rows.');
 
@@ -773,6 +903,7 @@
         <br/>ROOT_DEPTH = <code>${cRD || 'NOT FOUND'}</code>
       </div>
     `;
+    logDebug('🧾 Detected CSV columns', { cL3, cType, cSci, cCom, cRT, cRD, rows: rows.length });
 
     plants = rows.map(r => ({
       l3Key: cL3 ? String(r[cL3]).trim() : '',
@@ -786,23 +917,29 @@
     indexPlantsByL3();
     rebuildTypeDropdown();
     setStatus(`Loaded ${plants.length.toLocaleString()} rows from CSV.`);
+    logDebug('✅ CSV loaded & indexed');
   }
 
-  // Events
-  elTypeFilter.addEventListener('change', renderResults);
-  elSearch.addEventListener('input', renderResults);
-
+  // ============================================================
   // Boot
+  // ============================================================
   (async function start() {
     try {
+      logDebug('🚀 App starting', { ECOREGIONS_URL, DATABASE_CSV_URL });
+
       await loadEcoregionsGeoJSON();
-      try { await loadPlantDatabaseCSV(); }
-      catch (e) { setStatus('ERROR loading CSV: ' + e.message); if (debugEnabled) openDebug(); }
+      await loadPlantDatabaseCSV();
+
       renderResults();
       safelyInvalidateMap();
+
+      logDebug('✅ App ready');
     } catch (err) {
       setStatus('ERROR: ' + err.message);
-      if (debugEnabled) openDebug();
+      logDebug('❌ App error', String(err));
+      // If something breaks, reveal Debug so you can see logs without the secret.
+      document.body.classList.add('debug-visible');
+      openDebug();
     }
   })();
 </script>
