@@ -16,9 +16,15 @@
     #sidebar { padding: 20px; border-right: 1px solid #ddd; overflow-y: auto; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 10; }
     #map-container { position: relative; height: 100vh; overflow: hidden; }
     #map { height: 100%; width: 100%; }
-    
-    #debug-trigger { cursor: default; user-select: none; }
 
+    /* GPS Button Styling */
+    #gps-btn { 
+      margin-top: 10px; width: 100%; padding: 10px; background: #27ae60; color: white; 
+      border: none; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold; 
+      transition: background 0.2s; 
+    }
+    #gps-btn:hover { background: #1e8449; }
+    
     h2 { margin: 0 0 2px; color: #1a5d1a; font-size: 2.2em; letter-spacing: 2px; }
     .acronym { font-size: 0.85em; color: #27ae60; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
     .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; }
@@ -31,70 +37,29 @@
     select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.85em; }
     
     #selected-region { font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.9em; }
-    
     .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; }
     .plant-card h4 { margin: 0 0 5px; color: #2d3436; font-size: 1.1em; }
-    .plant-card p { margin: 5px 0; font-size: 0.9em; }
-    
-    .card-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-
-    .source-link { display: inline-block; color: #27ae60; text-decoration: none; font-weight: bold; font-size: 0.8em; border: 1px solid #27ae60; padding: 4px 10px; border-radius: 4px; }
-    .source-link:hover { background: #27ae60; color: white; }
-
-    .more-info-btn { 
-      background: #f1f3f5; border: 1px solid #dee2e6; color: #495057; padding: 4px 10px; 
-      border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; 
-    }
-    .more-info-btn:hover { background: #e9ecef; }
-
-    .details-pane { display: none; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; font-size: 0.8em; color: #444; }
-    .details-pane.active { display: block; }
-    .details-pane div { margin: 4px 0; border-bottom: 1px solid #f9f9f9; padding-bottom: 2px; }
-    .details-pane strong { color: #1a5d1a; text-transform: uppercase; font-size: 0.75em; display: inline-block; width: 130px; }
-
-    #show-more-container { text-align: center; margin: 20px 0; display: none; }
-    #show-more-btn { 
-      background: #27ae60; color: white; border: none; padding: 10px 20px; 
-      border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9em; width: 100%;
-    }
-    #show-more-btn:hover { background: #1e8449; }
-
     #results-count { margin: 15px 0; font-weight: bold; font-size: 0.9em; color: #27ae60; }
     #status { font-size: 11px; color: #e67e22; margin-top: 10px; font-style: italic; }
 
-    #debug-overlay {
-      display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%;
-      background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 20px; z-index: 10000;
-      border: 2px solid #333; border-radius: 8px; flex-direction: column;
+    .leaflet-tooltip-custom {
+      background: rgba(26, 93, 26, 0.9); color: white; border: none; font-weight: bold; 
+      font-size: 12px; border-radius: 4px; padding: 5px 10px;
     }
-    #debug-content { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; font-size: 12px; }
-    .debug-btn { background: #444; color: white; border: none; padding: 5px 12px; cursor: pointer; border-radius: 4px; }
-
-    .leaflet-tooltip-custom { background: rgba(26, 93, 26, 0.9); color: white; border: none; font-weight: bold; padding: 5px 10px; border-radius: 4px; }
   </style>
 </head>
 <body>
 
-<div id="debug-overlay">
-  <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px;">
-    <span>S.P.A.D.E. SYSTEM LOG</span>
-    <div>
-      <button class="debug-btn" onclick="document.getElementById('debug-content').innerHTML = ''">Clear</button>
-      <button class="debug-btn" onclick="toggleDebug()">Close</button>
-    </div>
-  </div>
-  <div id="debug-content"></div>
-</div>
-
 <div id="wrap">
   <div id="sidebar">
-    <h2><span id="debug-trigger" onclick="toggleDebug()">S</span>.P.A.D.E.</h2>
+    <h2>S.P.A.D.E.</h2>
     <div class="acronym">SITE PRESERVATION AND DIRT EROSION-CONTROL</div>
     <div class="subtitle">by blazing turtles</div>
     
     <div class="row">
       <label>Target Excavation Ecoregion</label>
       <div id="selected-region">Click an area on the map</div>
+      <button id="gps-btn" onclick="useGPS()">Use GPS Location</button>
     </div>
 
     <div class="row">
@@ -124,10 +89,6 @@
     <div id="status">System starting...</div>
     <div id="results-count"></div>
     <div id="results-list"></div>
-    
-    <div id="show-more-container">
-      <button id="show-more-btn" onclick="showMore()">Show More Results</button>
-    </div>
   </div>
 
   <div id="map-container">
@@ -139,28 +100,11 @@
   let plantData = null;
   let selectedL3Key = null;
   let regionCounts = {};
-  let displayLimit = 10; // Starts at 10
-  const increment = 10;   // Adds 10 more
+  let map = null;
+  let allGeoJSON = null;
 
   const ECO_URL = 'assets/us_eco_l3_state_boundaries.json'; 
   const CSV_URL = 'assets/Database-Deleted-Categories.csv';
-
-  function sysLog(msg) {
-    const content = document.getElementById('debug-content');
-    content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-    content.scrollTop = content.scrollHeight;
-  }
-
-  function toggleDebug() {
-    const overlay = document.getElementById('debug-overlay');
-    overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
-  }
-
-  function showMore() {
-    displayLimit += increment;
-    sysLog(`Showing next ${increment} results (Limit: ${displayLimit})`);
-    renderResults(false);
-  }
 
   function populate(id, col, data) {
     const sel = document.getElementById(id);
@@ -171,15 +115,8 @@
     });
   }
 
-  function renderResults(resetLimit = true) {
+  function renderResults() {
     if (!plantData) return;
-    
-    // If a filter/ecoregion changed, reset visible count to 10
-    if (resetLimit) {
-      displayLimit = 10;
-      sysLog("Filters changed: Resetting display limit to 10.");
-    }
-
     const query = document.getElementById('search-box').value.toLowerCase();
     const filters = {
       type: document.getElementById('type-filter').value,
@@ -201,6 +138,7 @@
       if (filters.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(filters.root)) return false;
       if (filters.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(filters.moisture)) return false;
       if (filters.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(filters.sun)) return false;
+      
       if (filters.clay !== 'all' && p['CLAY_SOIL'] !== filters.clay) return false;
       if (filters.sand !== 'all' && p['SAND_SOIL'] !== filters.sand) return false;
       if (filters.gravel !== 'all' && p['GRAVEL_SOIL'] !== filters.gravel) return false;
@@ -213,51 +151,76 @@
       return true;
     });
 
-    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, filtered.length)} of ${filtered.length} matches`;
-    
-    // Manage Show More Visibility
-    const showMoreContainer = document.getElementById('show-more-container');
-    showMoreContainer.style.display = (filtered.length > displayLimit) ? 'block' : 'none';
-
+    document.getElementById('results-count').textContent = `Found ${filtered.length} matches`;
     const list = document.getElementById('results-list');
     list.innerHTML = '';
-    
-    filtered.slice(0, displayLimit).forEach((p, index) => {
+    filtered.slice(0, 50).forEach(p => {
       const card = document.createElement('div');
       card.className = 'plant-card';
-      
-      const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
-      const sourceHtml = hasLink 
-        ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` 
-        : '';
-
-      let allFieldsHtml = '';
-      Object.keys(p).forEach(key => {
-        if(p[key] && p[key] !== '0' && p[key] !== '') {
-          allFieldsHtml += `<div><strong>${key}:</strong> ${p[key]}</div>`;
-        }
-      });
-
-      card.innerHTML = `
-        <h4>${p['Common Name'] || 'Unknown'}</h4>
-        <p><em>${p['Scientific Name'] || ''}</em></p>
-        <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
-        <p><strong>VENDOR:</strong> ${p['Vendor'] || 'None Listed'}</p>
-        <div class="card-actions">
-          <button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>
-          ${sourceHtml}
-        </div>
-        <div id="details-${index}" class="details-pane">
-          ${allFieldsHtml}
-        </div>
-      `;
+      card.innerHTML = `<h4>${p['Common Name']}</h4><p><em>${p['Scientific Name']}</em></p><p>ROOTS: ${p['ROOT_TYPE']} (${p['ROOT_DEPTH']})</p>`;
       list.appendChild(card);
     });
   }
 
-  function toggleDetails(idx) {
-    const pane = document.getElementById(`details-${idx}`);
-    pane.classList.toggle('active');
+  // GPS Functionality
+  function useGPS() {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    
+    document.getElementById('status').textContent = "Detecting site location...";
+    
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      
+      if (!allGeoJSON) {
+        alert("Wait for map data to finish loading.");
+        return;
+      }
+
+      let foundFeature = null;
+      for (const feature of allGeoJSON.features) {
+        if (isPointInFeature(lng, lat, feature)) {
+          foundFeature = feature;
+          break;
+        }
+      }
+
+      if (foundFeature) {
+        const key = foundFeature.properties.L3_KEY;
+        const name = foundFeature.properties.US_L3NAME || foundFeature.properties.NA_L3NAME || "Unknown";
+        selectedL3Key = key;
+        document.getElementById('selected-region').textContent = `${key}: ${name}`;
+        document.getElementById('status').textContent = "Ecoregion identified via GPS.";
+        map.setView([lat, lng], 9);
+        renderResults();
+      } else {
+        alert("Your GPS location is outside the mapped ecoregions.");
+        document.getElementById('status').textContent = "Location outside survey area.";
+      }
+    }, (err) => {
+      alert("GPS Error: " + err.message);
+      document.getElementById('status').textContent = "GPS Access Denied.";
+    });
+  }
+
+  function isPointInFeature(x, y, feature) {
+    const type = feature.geometry.type;
+    const coords = feature.geometry.coordinates;
+    if (type === "Polygon") return pointInPoly(x, y, coords[0]);
+    if (type === "MultiPolygon") return coords.some(p => pointInPoly(x, y, p[0]));
+    return false;
+  }
+
+  function pointInPoly(x, y, vs) {
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+      const xi = vs[i][0], yi = vs[i][1], xj = vs[j][0], yj = vs[j][1];
+      if (((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
   }
 
   async function init() {
@@ -278,33 +241,35 @@
   }
 
   async function loadMap() {
-    const map = L.map('map').setView([37.8, -122.3], 7);
+    map = L.map('map').setView([37.8, -122.3], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    try {
-      const geoRes = await fetch(ECO_URL);
-      const geoJSON = await geoRes.json();
-      L.geoJSON(geoJSON, {
-        style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
-        onEachFeature: (f, l) => {
-          const key = f.properties.L3_KEY;
-          const count = regionCounts[key] || 0;
-          l.bindTooltip(`Region ${key}: ${f.properties.US_L3NAME || "Unknown"}<br/>${count} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
-          l.on({
-            mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
-            mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
-            click: (e) => {
-              selectedL3Key = key;
-              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME || "Region"}`;
-              renderResults(true); // Reset to 10 on new region click
-            }
-          });
-        }
-      }).addTo(map);
-    } catch (e) { sysLog("Map Error: " + e.message); }
+    const geoRes = await fetch(ECO_URL);
+    allGeoJSON = await geoRes.json();
+    
+    L.geoJSON(allGeoJSON, {
+      style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
+      onEachFeature: (f, l) => {
+        const key = f.properties.L3_KEY;
+        const name = f.properties.US_L3NAME || "Unknown";
+        const count = regionCounts[key] || 0;
+
+        l.bindTooltip(`<strong>Region ${key}:</strong> ${name}<br/>${count} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
+
+        l.on({
+          mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
+          mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
+          click: (e) => {
+            selectedL3Key = key;
+            document.getElementById('selected-region').textContent = `${key}: ${name}`;
+            renderResults();
+          }
+        });
+      }
+    }).addTo(map);
   }
 
-  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
+  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', renderResults));
   window.onload = init;
 </script>
 
