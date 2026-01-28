@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://unpkg.com/@mapbox/leaflet-pip@latest/leaflet-pip.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -26,6 +27,27 @@
     
     h3 { margin: 25px 0 10px; font-size: 1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; text-transform: uppercase; }
     
+    #geo-btn { 
+      width: 100%; background: #2980b9; color: white; border: none; padding: 12px; 
+      border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 10px;
+      transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    #geo-btn:hover { background: #1f6391; }
+    #geo-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
+
+    .zip-container { display: flex; gap: 5px; margin-bottom: 15px; }
+    #zip-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; }
+    #zip-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+    /* New Export Buttons Style */
+    .export-container { display: flex; gap: 8px; margin: 15px 0; }
+    .export-btn { 
+      flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ddd; 
+      font-size: 0.75em; font-weight: bold; cursor: pointer; background: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .export-btn:hover { background: #f8f9fa; }
+
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .row { margin-bottom: 12px; }
     label { font-weight: bold; font-size: 0.8em; display: block; margin-bottom: 4px; color: #4b4b4b; }
@@ -33,15 +55,6 @@
     
     #selected-region { font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.9em; }
     
-    /* Export Button Styling */
-    .export-row { display: flex; gap: 10px; margin: 15px 0; }
-    .export-btn { 
-      flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #27ae60; 
-      background: white; color: #27ae60; font-weight: bold; cursor: pointer; font-size: 0.75em;
-      transition: all 0.2s;
-    }
-    .export-btn:hover { background: #27ae60; color: white; }
-
     .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; }
     .plant-card h4 { margin: 0 0 5px; color: #2d3436; font-size: 1.1em; }
     .plant-card p { margin: 5px 0; font-size: 0.9em; }
@@ -89,9 +102,18 @@
     <div class="acronym">SITE PRESERVATION AND DIRT EROSION-CONTROL</div>
     <div class="subtitle">Created by the Blazin Turtles</div>
     
+    <button id="geo-btn" onclick="useMyLocation()">
+      📍 Use My Current Location
+    </button>
+
+    <div class="zip-container">
+      <input type="text" id="zip-input" placeholder="Enter Zip Code" maxlength="5">
+      <button id="zip-btn" onclick="useZipCode()">Go</button>
+    </div>
+
     <div class="row">
       <label>Target Excavation Ecoregion</label>
-      <div id="selected-region">Click an area on the map</div>
+      <div id="selected-region">Click map or use location</div>
     </div>
 
     <div class="row">
@@ -121,9 +143,9 @@
     <div id="status">System starting...</div>
     <div id="results-count"></div>
 
-    <div class="export-row">
+    <div class="export-container">
       <button class="export-btn" onclick="exportToExcel()">📊 Export to Excel</button>
-      <button class="export-btn" onclick="exportToSheets()">☁️ Export for Google Sheets</button>
+      <button class="export-btn" onclick="exportToSheets()">☁️ Export for Sheets</button>
     </div>
 
     <div id="results-list"></div>
@@ -140,10 +162,11 @@
 
 <script>
   let plantData = null;
-  let filteredPlants = []; // Track filtered data for export
+  let filteredList = []; // Track currently filtered items for export
   let selectedL3Key = null;
   let regionCounts = {};
   let displayLimit = 10;
+  let map, geoLayer; 
   const increment = 10;
 
   const ECO_URL = 'assets/us_eco_l3_state_boundaries.json'; 
@@ -151,8 +174,10 @@
 
   function sysLog(msg) {
     const content = document.getElementById('debug-content');
-    content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-    content.scrollTop = content.scrollHeight;
+    if(content) {
+        content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+        content.scrollTop = content.scrollHeight;
+    }
   }
 
   function toggleDebug() {
@@ -193,8 +218,8 @@
       chalky: document.getElementById('chalky-filter').value
     };
 
-    // Store filtered plants globally for the export functions
-    filteredPlants = plantData.filter(p => {
+    // Filter the full data set based on user selections
+    filteredList = plantData.filter(p => {
       if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
       if (f.type !== 'all' && !(p['Plant Type'] || '').includes(f.type)) return false;
       if (f.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(f.root)) return false;
@@ -211,17 +236,26 @@
       return true;
     });
 
-    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, filteredPlants.length)} of ${filteredPlants.length} matches`;
-    document.getElementById('show-more-container').style.display = (filteredPlants.length > displayLimit) ? 'block' : 'none';
+    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, filteredList.length)} of ${filteredList.length} matches`;
+    document.getElementById('show-more-container').style.display = (filteredList.length > displayLimit) ? 'block' : 'none';
 
     const list = document.getElementById('results-list');
     list.innerHTML = '';
     
-    filteredPlants.slice(0, displayLimit).forEach((p, index) => {
+    filteredList.slice(0, displayLimit).forEach((p, index) => {
       const card = document.createElement('div');
       card.className = 'plant-card';
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
       const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
+
+      let soils = [];
+      if(p['CLAY_SOIL'] === 'Yes') soils.push('Clay');
+      if(p['SAND_SOIL'] === 'Yes') soils.push('Sand');
+      if(p['GRAVEL_SOIL'] === 'Yes') soils.push('Gravel');
+      if(p['LOAM_SOIL'] === 'Yes') soils.push('Loam');
+      if(p['SILT_SOIL'] === 'Yes') soils.push('Silt');
+      if(p['PEAT_SOIL'] === 'Yes') soils.push('Peat');
+      if(p['CHALKY_SOIL'] === 'Yes') soils.push('Chalky');
 
       let allFieldsHtml = '';
       Object.keys(p).forEach(key => {
@@ -235,6 +269,9 @@
         <p><em>${p['Scientific Name'] || ''}</em></p>
         <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
         <p><strong>VENDOR:</strong> ${p['Vendor'] || 'None Listed'}</p>
+        <p><strong>SOIL:</strong> ${soils.length > 0 ? soils.join(', ') : 'Any'}</p>
+        <p><strong>WATER:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
+        <p><strong>SUN:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
         <div class="card-actions">
           <button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>
           ${sourceHtml}
@@ -245,24 +282,24 @@
     });
   }
 
-  // EXPORT LOGIC
+  // Export to Excel (.xlsx)
   function exportToExcel() {
-    if (filteredPlants.length === 0) return alert("No plants match your current filters to export.");
-    const ws = XLSX.utils.json_to_sheet(filteredPlants);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Filtered_Plants");
-    XLSX.writeFile(wb, "SPADE_Site_Plan.xlsx");
+    if (filteredList.length === 0) return alert("No results to export.");
+    const worksheet = XLSX.utils.json_to_sheet(filteredList);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "SPADE_Site_Plan");
+    XLSX.writeFile(workbook, "SPADE_Site_Plan.xlsx");
   }
 
+  // Export to CSV (Best for Google Sheets)
   function exportToSheets() {
-    if (filteredPlants.length === 0) return alert("No plants match your current filters to export.");
-    // Exporting as CSV is the best way to ensure compatibility for direct Google Sheets import
-    const csvContent = Papa.unparse(filteredPlants);
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
+    if (filteredList.length === 0) return alert("No results to export.");
+    const csv = Papa.unparse(filteredList);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "SPADE_Google_Sheets_Import.csv");
+    link.setAttribute("download", "SPADE_Import_For_Sheets.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -270,6 +307,52 @@
 
   function toggleDetails(idx) {
     document.getElementById(`details-${idx}`).classList.toggle('active');
+  }
+
+  async function useZipCode() {
+    const zip = document.getElementById('zip-input').value;
+    const status = document.getElementById('status');
+    if (!/^\d{5}$/.test(zip)) {
+      status.textContent = "Enter a valid 5-digit ZIP.";
+      return;
+    }
+    status.textContent = `🔍 Searching ZIP ${zip}...`;
+    try {
+      const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
+      if (!res.ok) throw new Error("ZIP not found");
+      const data = await res.json();
+      matchLocationToRegion(parseFloat(data.places[0].latitude), parseFloat(data.places[0].longitude));
+    } catch (err) { status.textContent = "Error: ZIP not found."; }
+  }
+
+  async function useMyLocation() {
+    const status = document.getElementById('status');
+    if (!navigator.geolocation) {
+      status.textContent = "Geolocation not supported";
+      return;
+    }
+    status.textContent = "🛰️ Requesting GPS...";
+    navigator.geolocation.getCurrentPosition(
+      (pos) => matchLocationToRegion(pos.coords.latitude, pos.coords.longitude),
+      (err) => status.textContent = "Error: " + err.message,
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function matchLocationToRegion(lat, lng) {
+    const status = document.getElementById('status');
+    const results = leafletPip.pointInLayer([lng, lat], geoLayer);
+    if (results.length > 0) {
+      const f = results[0].feature;
+      selectedL3Key = f.properties.L3_KEY;
+      document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME || "Region"}`;
+      map.setView([lat, lng], 8);
+      renderResults(true);
+      status.textContent = `📍 Located: ${f.properties.US_L3NAME}`;
+    } else {
+      status.textContent = "Location found, but no ecoregion match.";
+      map.setView([lat, lng], 7);
+    }
   }
 
   async function init() {
@@ -290,16 +373,17 @@
   }
 
   async function loadMap() {
-    const map = L.map('map').setView([37.8, -122.3], 7);
+    map = L.map('map').setView([37.8, -96], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     try {
       const geoRes = await fetch(ECO_URL);
       const geoJSON = await geoRes.json();
-      L.geoJSON(geoJSON, {
+      geoLayer = L.geoJSON(geoJSON, {
         style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
         onEachFeature: (f, l) => {
           const key = f.properties.L3_KEY;
-          l.bindTooltip(`Region ${key}: ${f.properties.US_L3NAME || "Unknown"}<br/>${regionCounts[key] || 0} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
+          const count = regionCounts[key] || 0;
+          l.bindTooltip(`Region ${key}: ${f.properties.US_L3NAME || "Unknown"}<br/>${count} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
           l.on({
             mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
             mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
