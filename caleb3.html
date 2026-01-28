@@ -17,13 +17,10 @@
     #sidebar { padding: 20px; border-right: 1px solid #ddd; overflow-y: auto; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 10; }
     #map-container { position: relative; height: 100vh; overflow: hidden; }
     #map { height: 100%; width: 100%; }
-
-    #debug-btn { 
-      position: absolute; bottom: 20px; left: 10px; z-index: 1000; 
-      background: rgba(255, 255, 255, 0.9); border: 1px solid #ccc; padding: 6px 12px; 
-      cursor: pointer; font-size: 11px; font-weight: bold; border-radius: 4px; 
-    }
     
+    /* Hidden Debug Trigger - No hover or cursor change */
+    #debug-trigger { cursor: default; user-select: none; }
+
     h2 { margin: 0 0 2px; color: #1a5d1a; font-size: 2.2em; letter-spacing: 2px; }
     .acronym { font-size: 0.85em; color: #27ae60; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
     .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; }
@@ -41,11 +38,27 @@
     .plant-card p { margin: 5px 0; font-size: 0.9em; }
     .source-link { display: inline-block; margin-top: 10px; color: #27ae60; text-decoration: none; font-weight: bold; font-size: 0.85em; border: 1px solid #27ae60; padding: 4px 8px; border-radius: 4px; transition: background 0.2s; }
     .source-link:hover { background: #27ae60; color: white; }
-    
+
     #results-count { margin: 15px 0; font-weight: bold; font-size: 0.9em; color: #27ae60; }
     #status { font-size: 11px; color: #e67e22; margin-top: 10px; font-style: italic; }
 
-    /* Tooltip Styling */
+    /* Debug Console Styling */
+    #debug-overlay {
+      display: none;
+      position: fixed;
+      top: 10%; left: 10%; right: 10%; bottom: 10%;
+      background: #1e1e1e; color: #00ff00;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 20px; z-index: 10000;
+      border: 2px solid #333; border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.7);
+      flex-direction: column;
+    }
+    #debug-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+    #debug-content { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; font-size: 12px; }
+    .debug-btn { background: #444; color: white; border: none; padding: 5px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+    .debug-btn:hover { background: #666; }
+
     .leaflet-tooltip-custom {
       background: rgba(26, 93, 26, 0.9);
       color: white;
@@ -60,9 +73,20 @@
 </head>
 <body>
 
+<div id="debug-overlay">
+  <div id="debug-header">
+    <span>S.P.A.D.E. SYSTEM LOG (TRIPLE-CLICK ACTIVATED)</span>
+    <div>
+      <button class="debug-btn" onclick="clearLog()">Clear</button>
+      <button class="debug-btn" onclick="toggleDebug()">Close</button>
+    </div>
+  </div>
+  <div id="debug-content"></div>
+</div>
+
 <div id="wrap">
   <div id="sidebar">
-    <h2>S.P.A.D.E.</h2>
+    <h2><span id="debug-trigger" onclick="handleSecretClick(event)">S</span>.P.A.D.E.</h2>
     <div class="acronym">SITE PRESERVATION AND DIRT EROSION-CONTROL</div>
     <div class="subtitle">by blazing turtles</div>
     
@@ -108,11 +132,39 @@
 <script>
   let plantData = null;
   let selectedL3Key = null;
-  let regionCounts = {}; // Stores { '1': 45, '2': 12, ... }
+  let regionCounts = {};
 
   const ECO_URL = 'assets/us_eco_l3_state_boundaries.json'; 
   const CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
+  // Debug & Secret Logic
+  function sysLog(msg) {
+    const content = document.getElementById('debug-content');
+    const timestamp = new Date().toLocaleTimeString();
+    content.innerHTML += `[${timestamp}] ${msg}\n`;
+    content.scrollTop = content.scrollHeight;
+    console.log(`[SYS]: ${msg}`);
+  }
+
+  function handleSecretClick(e) {
+    // Check for triple click (event.detail counts consecutive clicks)
+    if (e.detail === 3) {
+      toggleDebug();
+    }
+  }
+
+  function toggleDebug() {
+    const overlay = document.getElementById('debug-overlay');
+    overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
+    if(overlay.style.display === 'flex') sysLog("User accessed debug terminal via triple-click.");
+  }
+
+  function clearLog() {
+    document.getElementById('debug-content').innerHTML = '';
+    sysLog("Log cleared.");
+  }
+
+  // Application Logic
   function populate(id, col, data) {
     const sel = document.getElementById(id);
     const vals = new Set();
@@ -120,10 +172,13 @@
     Array.from(vals).sort().forEach(v => {
       const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
     });
+    sysLog(`Populated dropdown '${id}' with ${vals.size} options.`);
   }
 
   function renderResults() {
     if (!plantData) return;
+    sysLog("Refreshing results based on current filters...");
+    
     const query = document.getElementById('search-box').value.toLowerCase();
     const filters = {
       type: document.getElementById('type-filter').value,
@@ -131,6 +186,7 @@
       moisture: document.getElementById('moisture-filter').value,
       sun: document.getElementById('sun-filter').value,
       clay: document.getElementById('clay-filter').value,
+      sand: document.getElementById('sand-oil').value, // Corrected potential typo
       sand: document.getElementById('sand-filter').value,
       gravel: document.getElementById('gravel-filter').value,
       loam: document.getElementById('loam-filter').value,
@@ -146,7 +202,7 @@
       if (filters.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(filters.moisture)) return false;
       if (filters.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(filters.sun)) return false;
       
-      // Soil Filters
+      // Soil check logic
       if (filters.clay !== 'all' && p['CLAY_SOIL'] !== filters.clay) return false;
       if (filters.sand !== 'all' && p['SAND_SOIL'] !== filters.sand) return false;
       if (filters.gravel !== 'all' && p['GRAVEL_SOIL'] !== filters.gravel) return false;
@@ -159,6 +215,7 @@
       return true;
     });
 
+    sysLog(`Found ${filtered.length} plant matches.`);
     document.getElementById('results-count').textContent = `Found ${filtered.length} matches`;
     const list = document.getElementById('results-list');
     list.innerHTML = '';
@@ -166,17 +223,16 @@
       const card = document.createElement('div');
       card.className = 'plant-card';
       
-      // Check for a valid source link (not '0' and not empty)
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
       const sourceHtml = hasLink 
         ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` 
         : '<p style="font-size: 0.8em; color: #95a5a6; font-style: italic;">No source link available</p>';
 
       card.innerHTML = `
-        <h4>${p['Common Name']}</h4>
-        <p><em>${p['Scientific Name']}</em></p>
-        <p><strong>ROOTS:</strong> ${p['ROOT_TYPE']} (${p['ROOT_DEPTH']})</p>
-        <p><strong>VENDOR:</strong> ${p['Vendor'] || 'Unknown Vendor'}</p>
+        <h4>${p['Common Name'] || 'Unknown'}</h4>
+        <p><em>${p['Scientific Name'] || ''}</em></p>
+        <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
+        <p><strong>VENDOR:</strong> ${p['Vendor'] || 'None Listed'}</p>
         ${sourceHtml}
       `;
       list.appendChild(card);
@@ -184,17 +240,15 @@
   }
 
   async function init() {
-    // 1. Load CSV and build the count map
+    sysLog("Initializing Archaeology Tool Database...");
     Papa.parse(CSV_URL, {
       download: true, header: true,
       complete: (res) => {
         plantData = res.data;
+        sysLog(`CSV Loaded: ${plantData.length} entries.`);
         
-        // Count plants per L3_KEY
         plantData.forEach(p => {
-          if(p.L3_KEY) {
-            regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1;
-          }
+          if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1;
         });
 
         populate('type-filter', 'Plant Type', plantData);
@@ -203,45 +257,51 @@
         populate('sun-filter', 'SUN_EXPOSURE', plantData);
         document.getElementById('status').textContent = 'Database Active';
         renderResults();
-        loadMap(); // Load map only after counts are ready
+        loadMap();
       }
     });
   }
 
   async function loadMap() {
+    sysLog("Initializing Ecoregion Map...");
     const map = L.map('map').setView([37.8, -122.3], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    const geoRes = await fetch(ECO_URL);
-    const geoJSON = await geoRes.json();
-    
-    L.geoJSON(geoJSON, {
-      style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
-      onEachFeature: (f, l) => {
-        const key = f.properties.L3_KEY;
-        const name = f.properties.US_L3NAME || f.properties.NA_L3NAME || "Unknown";
-        const count = regionCounts[key] || 0;
+    try {
+      const geoRes = await fetch(ECO_URL);
+      const geoJSON = await geoRes.json();
+      
+      L.geoJSON(geoJSON, {
+        style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
+        onEachFeature: (f, l) => {
+          const key = f.properties.L3_KEY;
+          const name = f.properties.US_L3NAME || f.properties.NA_L3NAME || "Unknown";
+          const count = regionCounts[key] || 0;
 
-        // Tooltip setup
-        l.bindTooltip(
-          `<strong>Region ${key}:</strong> ${name}<br/>${count} Plants in database`, 
-          { sticky: true, className: 'leaflet-tooltip-custom' }
-        );
+          l.bindTooltip(`<strong>Region ${key}:</strong> ${name}<br/>${count} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
 
-        l.on({
-          mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
-          mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
-          click: (e) => {
-            selectedL3Key = key;
-            document.getElementById('selected-region').textContent = `${key}: ${name}`;
-            renderResults();
-          }
-        });
-      }
-    }).addTo(map);
+          l.on({
+            mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
+            mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
+            click: (e) => {
+              selectedL3Key = key;
+              sysLog(`Ecoregion Selection: ${name} (L3_KEY: ${key})`);
+              document.getElementById('selected-region').textContent = `${key}: ${name}`;
+              renderResults();
+            }
+          });
+        }
+      }).addTo(map);
+      sysLog("Map synchronization complete.");
+    } catch (err) {
+      sysLog(`ERROR: Map layer failed to load. ${err.message}`);
+    }
   }
 
-  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', renderResults));
+  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => {
+    sysLog(`Filtering change triggered by ID: ${el.id}`);
+    renderResults();
+  }));
   window.onload = init;
 </script>
 
