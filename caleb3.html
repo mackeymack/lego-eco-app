@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>S.P.A.D.E. – by Blazing Turtles</title>
+  <title>S.P.A.D.E. – by Blazin Turtles</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -17,12 +17,11 @@
     #map-container { position: relative; height: 100vh; overflow: hidden; }
     #map { height: 100%; width: 100%; }
     
-    /* Debug Trigger - Reverted to single click, no visual signs */
     #debug-trigger { cursor: default; user-select: none; }
 
     h2 { margin: 0 0 2px; color: #1a5d1a; font-size: 2.2em; letter-spacing: 2px; }
     .acronym { font-size: 0.85em; color: #27ae60; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
-    .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; }
+    .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
     
     h3 { margin: 25px 0 10px; font-size: 1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; text-transform: uppercase; }
     
@@ -33,12 +32,11 @@
     
     #selected-region { font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.9em; }
     
-    /* Plant Card Styling */
-    .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; position: relative; }
+    .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; }
     .plant-card h4 { margin: 0 0 5px; color: #2d3436; font-size: 1.1em; }
     .plant-card p { margin: 5px 0; font-size: 0.9em; }
     
-    .card-actions { margin-top: 12px; display: flex; gap: 8px; }
+    .card-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
 
     .source-link { display: inline-block; color: #27ae60; text-decoration: none; font-weight: bold; font-size: 0.8em; border: 1px solid #27ae60; padding: 4px 10px; border-radius: 4px; }
     .source-link:hover { background: #27ae60; color: white; }
@@ -49,25 +47,26 @@
     }
     .more-info-btn:hover { background: #e9ecef; }
 
-    /* Expanded Details Area */
-    .details-pane { 
-      display: none; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; 
-      font-size: 0.8em; color: #444; 
-    }
+    .details-pane { display: none; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; font-size: 0.8em; color: #444; }
     .details-pane.active { display: block; }
-    .details-pane div { margin: 4px 0; line-height: 1.4; border-bottom: 1px solid #f9f9f9; padding-bottom: 2px; }
-    .details-pane strong { color: #1a5d1a; text-transform: uppercase; font-size: 0.75em; display: inline-block; width: 120px; }
+    .details-pane div { margin: 4px 0; border-bottom: 1px solid #f9f9f9; padding-bottom: 2px; }
+    .details-pane strong { color: #1a5d1a; text-transform: uppercase; font-size: 0.75em; display: inline-block; width: 130px; }
+
+    #show-more-container { text-align: center; margin: 20px 0; display: none; }
+    #show-more-btn { 
+      background: #27ae60; color: white; border: none; padding: 10px 20px; 
+      border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9em; width: 100%;
+    }
+    #show-more-btn:hover { background: #1e8449; }
 
     #results-count { margin: 15px 0; font-weight: bold; font-size: 0.9em; color: #27ae60; }
     #status { font-size: 11px; color: #e67e22; margin-top: 10px; font-style: italic; }
 
-    /* Debug Console */
     #debug-overlay {
       display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%;
-      background: #1e1e1e; color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; z-index: 10000;
+      background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 20px; z-index: 10000;
       border: 2px solid #333; border-radius: 8px; flex-direction: column;
     }
-    #debug-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
     #debug-content { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; font-size: 12px; }
     .debug-btn { background: #444; color: white; border: none; padding: 5px 12px; cursor: pointer; border-radius: 4px; }
 
@@ -77,10 +76,10 @@
 <body>
 
 <div id="debug-overlay">
-  <div id="debug-header">
+  <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px;">
     <span>S.P.A.D.E. SYSTEM LOG</span>
     <div>
-      <button class="debug-btn" onclick="clearLog()">Clear</button>
+      <button class="debug-btn" onclick="document.getElementById('debug-content').innerHTML = ''">Clear</button>
       <button class="debug-btn" onclick="toggleDebug()">Close</button>
     </div>
   </div>
@@ -91,7 +90,7 @@
   <div id="sidebar">
     <h2><span id="debug-trigger" onclick="toggleDebug()">S</span>.P.A.D.E.</h2>
     <div class="acronym">SITE PRESERVATION AND DIRT EROSION-CONTROL</div>
-    <div class="subtitle">by blazing turtles</div>
+    <div class="subtitle">Created by the Blazin Turtles</div>
     
     <div class="row">
       <label>Target Excavation Ecoregion</label>
@@ -125,6 +124,10 @@
     <div id="status">System starting...</div>
     <div id="results-count"></div>
     <div id="results-list"></div>
+    
+    <div id="show-more-container">
+      <button id="show-more-btn" onclick="showMore()">Show More Results</button>
+    </div>
   </div>
 
   <div id="map-container">
@@ -136,6 +139,8 @@
   let plantData = null;
   let selectedL3Key = null;
   let regionCounts = {};
+  let displayLimit = 10;
+  const increment = 10;
 
   const ECO_URL = 'assets/us_eco_l3_state_boundaries.json'; 
   const CSV_URL = 'assets/Database-Deleted-Categories.csv';
@@ -149,11 +154,12 @@
   function toggleDebug() {
     const overlay = document.getElementById('debug-overlay');
     overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
-    if(overlay.style.display === 'flex') sysLog("Debug terminal opened.");
   }
 
-  function clearLog() {
-    document.getElementById('debug-content').innerHTML = '';
+  function showMore() {
+    displayLimit += increment;
+    sysLog(`Appending ${increment} more results (Visible: ${displayLimit})`);
+    renderResults(false);
   }
 
   function populate(id, col, data) {
@@ -165,8 +171,14 @@
     });
   }
 
-  function renderResults() {
+  function renderResults(resetLimit = true) {
     if (!plantData) return;
+    
+    if (resetLimit) {
+      displayLimit = 10;
+      sysLog("Query reset to 10 results.");
+    }
+
     const query = document.getElementById('search-box').value.toLowerCase();
     const filters = {
       type: document.getElementById('type-filter').value,
@@ -200,11 +212,15 @@
       return true;
     });
 
-    document.getElementById('results-count').textContent = `Found ${filtered.length} matches`;
+    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, filtered.length)} of ${filtered.length} matches`;
+    
+    const showMoreContainer = document.getElementById('show-more-container');
+    showMoreContainer.style.display = (filtered.length > displayLimit) ? 'block' : 'none';
+
     const list = document.getElementById('results-list');
     list.innerHTML = '';
     
-    filtered.slice(0, 50).forEach((p, index) => {
+    filtered.slice(0, displayLimit).forEach((p, index) => {
       const card = document.createElement('div');
       card.className = 'plant-card';
       
@@ -213,7 +229,6 @@
         ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` 
         : '';
 
-      // Generate the full database list for the "More Information" pane
       let allFieldsHtml = '';
       Object.keys(p).forEach(key => {
         if(p[key] && p[key] !== '0' && p[key] !== '') {
@@ -222,9 +237,9 @@
       });
 
       card.innerHTML = `
-        <h4>${p['Common Name']}</h4>
-        <p><em>${p['Scientific Name']}</em></p>
-        <p><strong>ROOTS:</strong> ${p['ROOT_TYPE']} (${p['ROOT_DEPTH']})</p>
+        <h4>${p['Common Name'] || 'Unknown'}</h4>
+        <p><em>${p['Scientific Name'] || ''}</em></p>
+        <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
         <p><strong>VENDOR:</strong> ${p['Vendor'] || 'None Listed'}</p>
         <div class="card-actions">
           <button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>
@@ -236,13 +251,11 @@
       `;
       list.appendChild(card);
     });
-    sysLog(`Filtered ${filtered.length} results.`);
   }
 
   function toggleDetails(idx) {
     const pane = document.getElementById(`details-${idx}`);
     pane.classList.toggle('active');
-    sysLog(`Toggled details for card index ${idx}`);
   }
 
   async function init() {
@@ -280,16 +293,16 @@
             mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
             click: (e) => {
               selectedL3Key = key;
-              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME || "Selected Region"}`;
-              renderResults();
+              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME || "Region"}`;
+              renderResults(true);
             }
           });
         }
       }).addTo(map);
-    } catch (e) { sysLog("Map failed to load: " + e.message); }
+    } catch (e) { sysLog("Map Sync Error: " + e.message); }
   }
 
-  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', renderResults));
+  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
   window.onload = init;
 </script>
 
