@@ -1,0 +1,1228 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>S.P.A.D.E.</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- CSV parser -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Turf for point-in-polygon -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+  <style>
+    :root{
+      --green-900:#1b5e20;
+      --green-800:#2e7d32;
+      --green-700:#388e3c;
+      --green-200:#cfe9d1;
+      --green-100:#e9f6ea;
+      --bg:#f3fbf3;
+      --card:#ffffff;
+      --text:#123018;
+      --muted:#45624b;
+      --border:#b8d9bc;
+      --shadow: 0 6px 18px rgba(0,0,0,.08);
+      --radius: 14px;
+    }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .wrap{
+      max-width: 1250px;
+      margin: 0 auto;
+      padding: 16px 14px 22px;
+    }
+
+    header{
+      background: linear-gradient(180deg, var(--green-100), rgba(233,246,234,0));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    .title{
+      margin:0;
+      font-size: 42px;
+      letter-spacing: 1px;
+      color: var(--green-900);
+      line-height: 1.05;
+      user-select: none;
+    }
+    .subtitle{
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap: 14px;
+      align-items:start;
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+
+    .panel h2{
+      margin: 0 0 8px;
+      font-size: 14px;
+      letter-spacing: .2px;
+      color: var(--green-900);
+      text-transform: uppercase;
+    }
+
+    .row{
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .row > * { flex: 1 1 auto; }
+
+    label{
+      font-size: 12px;
+      color: var(--muted);
+      display:block;
+      margin: 2px 0 4px;
+    }
+
+    input[type="text"], input[type="number"], select{
+      width: 100%;
+      box-sizing:border-box;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #fbfffb;
+      color: var(--text);
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus{
+      border-color: var(--green-700);
+      box-shadow: 0 0 0 3px rgba(56,142,60,.15);
+    }
+
+    button{
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 2px solid var(--green-800);
+      background: transparent;
+      color: var(--green-900);
+      font-weight: 700;
+      cursor:pointer;
+      transition: transform .05s ease, background .15s ease;
+      white-space: nowrap;
+    }
+    button:hover{ background: rgba(46,125,50,.08); }
+    button:active{ transform: translateY(1px); }
+    button:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+
+    .smallbtn{
+      border-width: 1.5px;
+      font-weight: 650;
+      padding: 8px 10px;
+    }
+
+    .muted{
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    #map{
+      height: 520px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow:hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fbfffb;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .filters-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 520px){
+      .filters-grid{ grid-template-columns: 1fr; }
+    }
+
+    .divider{
+      height:1px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+
+    .plantCard{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fbfffb;
+    }
+
+    .plantTop{
+      display:flex;
+      gap: 8px;
+      align-items:flex-start;
+      justify-content: space-between;
+    }
+
+    .plantName{
+      margin:0;
+      font-size: 15px;
+      color: var(--green-900);
+      line-height: 1.2;
+    }
+    .plantSci{
+      margin: 3px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 160px 1fr;
+      gap: 6px 10px;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+    .k{ color: var(--muted); }
+    .v{ color: var(--text); word-break: break-word; }
+
+    .pagination{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .hidden{ display:none !important; }
+
+    /* Leaflet tooltip styling */
+    .leaflet-tooltip{
+      background: rgba(255,255,255,.96);
+      border: 1px solid var(--border);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    /* Debug unlock UI */
+    #unlockBox{
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      background: #fbfffb;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1 class="title">
+        S.P.A.<span id="unlockD" title="(double-click me)">D</span>.E.
+      </h1>
+      <div class="subtitle">“Site Preservation and Dirt Erosion-Control”</div>
+      <div class="subtitle">“Made by Blazing Turtles Robotics”</div>
+
+      <div id="unlockBox" class="hidden">
+        <div class="row" style="margin-bottom:0;">
+          <div style="flex:2 1 220px;">
+            <label for="debugPass">Debug password</label>
+            <input id="debugPass" type="text" placeholder="type dirt" />
+          </div>
+          <div style="flex:1 1 120px; align-self:end;">
+            <button id="debugUnlockBtn" class="smallbtn">Unlock</button>
+          </div>
+        </div>
+        <div class="muted" style="margin-top:6px;">
+          Tip: GitHub Pages can cache old files. Hard refresh (Ctrl+F5) or add a temporary “?v=123” to the URL.
+        </div>
+      </div>
+
+      <div id="debugPanel" class="hidden" style="margin-top:10px;">
+        <div class="row" style="margin-bottom:0;">
+          <span class="pill" id="debugStatus">Debug unlocked</span>
+          <button id="debugBtn" class="smallbtn">Debug</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Left controls -->
+      <div class="panel">
+        <h2>Find a location</h2>
+
+        <div class="row">
+          <div style="flex:2 1 220px;">
+            <label for="zipInput">ZIP Code</label>
+            <input id="zipInput" type="text" inputmode="numeric" placeholder="e.g., 64111" />
+          </div>
+          <div style="flex:1 1 120px; align-self:end;">
+            <button id="zipFindBtn">Find</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div style="flex:1 1 220px;">
+            <button id="zipUseMyLocBtn" class="smallbtn">Use my location (ZIP)</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div>
+            <label for="latInput">Latitude</label>
+            <input id="latInput" type="number" step="any" placeholder="e.g., 39.0997" />
+          </div>
+          <div>
+            <label for="lngInput">Longitude</label>
+            <input id="lngInput" type="number" step="any" placeholder="-94.5786" />
+          </div>
+          <div style="flex:0 0 auto; align-self:end;">
+            <button id="latLngGoBtn">Go</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div style="flex:1 1 220px;">
+            <button id="latLngUseMyLocBtn" class="smallbtn">Use my location (Lat/Lng)</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h2>Ecoregion</h2>
+        <div class="row">
+          <span class="pill" id="regionPill">No region selected (showing all plants)</span>
+          <button id="clearRegionBtn" class="smallbtn">Clear</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <h2>Search</h2>
+        <label for="searchInput">Plant name (Common or Scientific)</label>
+        <input id="searchInput" type="text" placeholder="type to search…" />
+
+        <div class="divider"></div>
+
+        <div class="row" style="justify-content:space-between;">
+          <h2 style="margin:0;">Filters</h2>
+          <button id="advancedToggleBtn" class="smallbtn">Advanced: Off</button>
+        </div>
+        <div class="muted" id="filtersHint" style="margin-bottom:8px;">
+          Filters are built from the spreadsheet columns (vendor/link/source columns excluded).
+        </div>
+
+        <div id="filtersBasic" class="filters-grid"></div>
+        <div id="filtersAdvanced" class="filters-grid hidden" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- Right map + plant list -->
+      <div>
+        <div id="map"></div>
+
+        <div class="panel" style="margin-top:14px;">
+          <div class="row" style="justify-content:space-between; margin-bottom:6px;">
+            <h2 style="margin:0;">Plants</h2>
+            <span class="pill" id="countPill">Loading…</span>
+          </div>
+          <div id="plantList"></div>
+
+          <div class="pagination">
+            <button id="prevBtn">Prev</button>
+            <span class="pill" id="pagePill">Page 1</span>
+            <button id="nextBtn">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // -----------------------------
+  // Paths (must match your repo)
+  // -----------------------------
+  const CSV_PATH = "assets/Database-Deleted-Categories.csv";
+  const GEOJSON_PATH = "assets/us_eco_l3_state_boundaries.json";
+
+  // -----------------------------
+  // UI elements
+  // -----------------------------
+  const regionPill = document.getElementById("regionPill");
+  const countPill = document.getElementById("countPill");
+  const plantListEl = document.getElementById("plantList");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const pagePill = document.getElementById("pagePill");
+  const clearRegionBtn = document.getElementById("clearRegionBtn");
+  const searchInput = document.getElementById("searchInput");
+  const filtersBasicEl = document.getElementById("filtersBasic");
+  const filtersAdvancedEl = document.getElementById("filtersAdvanced");
+  const advancedToggleBtn = document.getElementById("advancedToggleBtn");
+
+  const zipInput = document.getElementById("zipInput");
+  const zipFindBtn = document.getElementById("zipFindBtn");
+  const zipUseMyLocBtn = document.getElementById("zipUseMyLocBtn");
+
+  const latInput = document.getElementById("latInput");
+  const lngInput = document.getElementById("lngInput");
+  const latLngGoBtn = document.getElementById("latLngGoBtn");
+  const latLngUseMyLocBtn = document.getElementById("latLngUseMyLocBtn");
+
+  const unlockD = document.getElementById("unlockD");
+  const unlockBox = document.getElementById("unlockBox");
+  const debugPass = document.getElementById("debugPass");
+  const debugUnlockBtn = document.getElementById("debugUnlockBtn");
+  const debugPanel = document.getElementById("debugPanel");
+  const debugBtn = document.getElementById("debugBtn");
+  const debugStatus = document.getElementById("debugStatus");
+
+  // -----------------------------
+  // State
+  // -----------------------------
+  let plants = [];                // full CSV rows
+  let geo = null;                 // geojson
+  let regionCounts = new Map();   // code -> count
+  let selectedRegionCode = null;  // currently selected L3 code
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+  let advancedOn = false;
+
+  // Filters
+  let filterColumnsBasic = [];
+  let filterColumnsAdvanced = [];
+  const activeFilters = new Map(); // col -> value
+
+  // Leaflet layers
+  let map = null;
+  let geoLayer = null;
+  let layerByCode = new Map(); // code -> leaflet layer
+
+  // -----------------------------
+  // Helpers: normalization + field picking
+  // -----------------------------
+  const norm = (v) => (v ?? "").toString().trim();
+  const upper = (v) => norm(v).toUpperCase();
+
+  function guessNameField(row){
+    // Common name fallback guessing
+    const keys = Object.keys(row || {});
+    const candidates = [
+      "COMMON_NAME", "Common Name", "common_name", "COMMONNAME",
+      "PLANT", "Plant", "plant", "NAME", "Name", "name"
+    ];
+    for (const c of candidates){
+      if (keys.includes(c)) return c;
+    }
+    // try contains 'common'
+    const commonish = keys.find(k => k.toLowerCase().includes("common"));
+    if (commonish) return commonish;
+    return null;
+  }
+
+  function guessSciField(row){
+    const keys = Object.keys(row || {});
+    const candidates = [
+      "SCIENTIFIC_NAME", "Scientific Name", "scientific_name",
+      "BOTANICAL_NAME", "Botanical Name", "GENUS_SPECIES"
+    ];
+    for (const c of candidates){
+      if (keys.includes(c)) return c;
+    }
+    const sciish = keys.find(k => k.toLowerCase().includes("scient"));
+    if (sciish) return sciish;
+    return null;
+  }
+
+  function guessL3KeyField(row){
+    const keys = Object.keys(row || {});
+    const candidates = ["L3_KEY", "L3Key", "L3KEY", "L3 Key", "L3_key"];
+    for (const c of candidates){
+      if (keys.includes(c)) return c;
+    }
+    return null;
+  }
+
+  function guessUSL3CodeField(obj){
+    if (!obj) return null;
+    const keys = Object.keys(obj);
+    const candidates = ["US_L3CODE", "USL3CODE", "L3CODE", "L3_CODE", "NA_L3CODE", "ECO_L3CODE"];
+    for (const c of candidates){
+      if (keys.includes(c)) return c;
+    }
+    // fuzzy
+    const k = keys.find(x => x.toLowerCase().includes("l3") && x.toLowerCase().includes("code"));
+    return k || null;
+  }
+
+  function guessEcoNameField(obj){
+    if (!obj) return null;
+    const keys = Object.keys(obj);
+    const candidates = ["NA_L3NAME", "L3_NAME", "L3NAME", "ECO_NAME", "NAME", "Ecoregion", "ECOREGION"];
+    for (const c of candidates){
+      if (keys.includes(c)) return c;
+    }
+    const k = keys.find(x => x.toLowerCase().includes("name"));
+    return k || null;
+  }
+
+  // Exclude vendor + vendor links + source link columns
+  function isExcludedColumn(col){
+    const c = col.toLowerCase();
+    if (c.includes("vendor")) return true;
+    if (c.includes("link")) return true;
+    if (c.includes("source")) return true;
+    if (c.includes("url")) return true;
+    return false;
+  }
+
+  function isEmptyValue(v){
+    const t = upper(v);
+    return t === "" || t === "N/A" || t === "NA" || t === "NULL" || t === "NONE";
+  }
+
+  function isYesNoColumn(valuesUpper){
+    // valuesUpper: Set of UPPER strings excluding empties
+    const allowed = new Set(["YES","NO","UNCERTAIN"]);
+    if (valuesUpper.size === 0) return false;
+    for (const v of valuesUpper){
+      if (!allowed.has(v)) return false;
+    }
+    return true;
+  }
+
+  // -----------------------------
+  // Leaflet styling (keep green vibe)
+  // -----------------------------
+  const baseStyle = {
+    color: "#2e7d32",
+    weight: 2,
+    opacity: 0.9,
+    fillColor: "#7bbf7b",
+    fillOpacity: 0.28
+  };
+
+  function styleForFeature(code){
+    if (!selectedRegionCode){
+      return { ...baseStyle };
+    }
+    if (code === selectedRegionCode){
+      return {
+        ...baseStyle,
+        weight: 4,
+        opacity: 1,
+        fillOpacity: 0.45
+      };
+    }
+    // dim others
+    return {
+      ...baseStyle,
+      opacity: 0.25,
+      fillOpacity: 0.10
+    };
+  }
+
+  // -----------------------------
+  // Build counts (plants per region)
+  // -----------------------------
+  function computeRegionCounts(){
+    regionCounts = new Map();
+    const l3KeyField = guessL3KeyField(plants[0] || {});
+    const usL3CodeField = guessUSL3CodeField(plants[0] || {});
+
+    for (const row of plants){
+      let code = null;
+
+      if (l3KeyField && !isEmptyValue(row[l3KeyField])) code = norm(row[l3KeyField]);
+      if (!code && usL3CodeField && !isEmptyValue(row[usL3CodeField])) code = norm(row[usL3CodeField]);
+
+      // Some sheets embed code inside L3_KEY like "55" or "55.1" etc; keep as string
+      if (code){
+        regionCounts.set(code, (regionCounts.get(code) || 0) + 1);
+      }
+    }
+  }
+
+  // -----------------------------
+  // Map init + geojson layer
+  // -----------------------------
+  function initMap(){
+    map = L.map("map", { zoomControl:true }).setView([39.5, -98.35], 4); // USA-ish
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+  }
+
+  function addGeoLayer(){
+    layerByCode = new Map();
+
+    const sampleProps = geo?.features?.[0]?.properties || {};
+    const codeField = guessUSL3CodeField(sampleProps) || "US_L3CODE";
+    const nameField = guessEcoNameField(sampleProps);
+
+    geoLayer = L.geoJSON(geo, {
+      style: (feature) => {
+        const code = norm(feature?.properties?.[codeField] ?? "");
+        return styleForFeature(code);
+      },
+      onEachFeature: (feature, layer) => {
+        const code = norm(feature?.properties?.[codeField] ?? "");
+        const name = nameField ? norm(feature?.properties?.[nameField]) : "";
+        layerByCode.set(code, layer);
+
+        // Hover tooltip
+        layer.on("mouseover", () => {
+          const count = regionCounts.get(code) || 0;
+          const safeName = name || "(Unnamed ecoregion)";
+          const html = `
+            <div style="font-weight:800;color:#1b5e20;margin-bottom:4px;">L3 ${escapeHtml(code)}</div>
+            <div style="margin-bottom:4px;">${escapeHtml(safeName)}</div>
+            <div style="color:#45624b;font-size:12px;"><b>${count}</b> plant${count===1?"":"s"}</div>
+          `;
+          layer.bindTooltip(html, { sticky:true, direction:"top" }).openTooltip();
+          layer.setStyle({ weight: Math.max(styleForFeature(code).weight, 3) });
+        });
+
+        layer.on("mouseout", () => {
+          layer.closeTooltip();
+          layer.setStyle(styleForFeature(code));
+        });
+
+        // Click select
+        layer.on("click", () => {
+          selectRegion(code, layer.getBounds());
+        });
+      }
+    }).addTo(map);
+  }
+
+  function refreshGeoStyles(){
+    if (!geoLayer) return;
+    geoLayer.eachLayer((layer) => {
+      const feat = layer.feature;
+      const props = feat?.properties || {};
+      const codeField = guessUSL3CodeField(props) || "US_L3CODE";
+      const code = norm(props?.[codeField] ?? "");
+      layer.setStyle(styleForFeature(code));
+    });
+  }
+
+  function selectRegion(code, boundsToZoom){
+    selectedRegionCode = code || null;
+
+    if (selectedRegionCode){
+      const cnt = regionCounts.get(selectedRegionCode) || 0;
+      regionPill.textContent = `Selected L3 ${selectedRegionCode} • ${cnt} plant${cnt===1?"":"s"}`;
+    } else {
+      regionPill.textContent = "No region selected (showing all plants)";
+    }
+
+    refreshGeoStyles();
+    currentPage = 1;
+    renderPlants();
+
+    if (boundsToZoom && selectedRegionCode){
+      try { map.fitBounds(boundsToZoom, { padding:[18,18] }); } catch {}
+    }
+  }
+
+  // -----------------------------
+  // Filters
+  // -----------------------------
+  function buildFiltersFromCSV(){
+    filtersBasicEl.innerHTML = "";
+    filtersAdvancedEl.innerHTML = "";
+    activeFilters.clear();
+
+    if (!plants.length){
+      filterColumnsBasic = [];
+      filterColumnsAdvanced = [];
+      return;
+    }
+
+    const sample = plants[0];
+    const allCols = Object.keys(sample).filter(c => !isExcludedColumn(c));
+
+    // Decide noisy/advanced columns:
+    // - columns with many unique values (>= 25)
+    // - columns with long free-text (avg length >= 40)
+    // - common "notes/description" type columns
+    const alwaysAdvanced = new Set(
+      allCols.filter(c => {
+        const lc = c.toLowerCase();
+        return lc.includes("note") || lc.includes("description") || lc.includes("comment") || lc.includes("detail") || lc.includes("summary");
+      })
+    );
+
+    const stats = allCols.map(col => {
+      const values = [];
+      for (const r of plants){
+        const v = norm(r[col]);
+        if (!isEmptyValue(v)) values.push(v);
+      }
+      const uniq = new Set(values.map(v => upper(v)));
+      const avgLen = values.length ? values.reduce((a,b)=>a+b.length,0)/values.length : 0;
+      return { col, uniqCount: uniq.size, avgLen, uniqUpper: uniq };
+    });
+
+    const basic = [];
+    const advanced = [];
+
+    for (const s of stats){
+      const { col, uniqCount, avgLen } = s;
+      const lc = col.toLowerCase();
+
+      // Skip name columns from dropdown filters (search bar handles names)
+      if (lc.includes("scient") || lc === "scientific_name") { advanced.push(col); continue; }
+      if (lc.includes("common") || lc === "common_name") { advanced.push(col); continue; }
+
+      const isHuge = uniqCount >= 25;
+      const isTexty = avgLen >= 40;
+
+      if (alwaysAdvanced.has(col) || isHuge || isTexty){
+        advanced.push(col);
+      } else {
+        basic.push(col);
+      }
+    }
+
+    filterColumnsBasic = basic;
+    filterColumnsAdvanced = advanced;
+
+    // Create dropdowns
+    for (const col of filterColumnsBasic){
+      filtersBasicEl.appendChild(makeFilterDropdown(col));
+    }
+    for (const col of filterColumnsAdvanced){
+      filtersAdvancedEl.appendChild(makeFilterDropdown(col));
+    }
+  }
+
+  function makeFilterDropdown(col){
+    const wrapper = document.createElement("div");
+    const id = `flt_${col.replace(/[^a-zA-Z0-9_]/g,"_")}`;
+
+    const lab = document.createElement("label");
+    lab.setAttribute("for", id);
+    lab.textContent = col;
+
+    const sel = document.createElement("select");
+    sel.id = id;
+
+    // compute unique values from full CSV (real values)
+    const values = [];
+    for (const r of plants){
+      const v = norm(r[col]);
+      if (!isEmptyValue(v)) values.push(v);
+    }
+    const uniqUpper = new Set(values.map(v => upper(v)));
+    const yesNo = isYesNoColumn(uniqUpper);
+
+    // options
+    sel.appendChild(new Option("Any", "Any"));
+
+    if (yesNo){
+      // include UNCERTAIN if present
+      sel.appendChild(new Option("Yes", "YES"));
+      sel.appendChild(new Option("No", "NO"));
+      if (uniqUpper.has("UNCERTAIN")){
+        sel.appendChild(new Option("UNCERTAIN", "UNCERTAIN"));
+      }
+    } else {
+      const uniq = Array.from(new Set(values.map(v => norm(v)))).sort((a,b)=>a.localeCompare(b));
+      for (const v of uniq){
+        sel.appendChild(new Option(v, v));
+      }
+    }
+
+    sel.addEventListener("change", () => {
+      const val = sel.value;
+      if (!val || val === "Any") activeFilters.delete(col);
+      else activeFilters.set(col, val);
+      currentPage = 1;
+      renderPlants();
+    });
+
+    wrapper.appendChild(lab);
+    wrapper.appendChild(sel);
+    return wrapper;
+  }
+
+  // -----------------------------
+  // Plant filtering + rendering
+  // -----------------------------
+  function rowRegionCode(row){
+    const l3KeyField = guessL3KeyField(row);
+    const usL3CodeField = guessUSL3CodeField(row);
+
+    let code = null;
+    if (l3KeyField && !isEmptyValue(row[l3KeyField])) code = norm(row[l3KeyField]);
+    if (!code && usL3CodeField && !isEmptyValue(row[usL3CodeField])) code = norm(row[usL3CodeField]);
+    return code;
+  }
+
+  function applyAllFilters(){
+    const nameField = guessNameField(plants[0] || {});
+    const sciField = guessSciField(plants[0] || {});
+    const q = upper(searchInput.value);
+
+    return plants.filter(row => {
+      // region filter
+      if (selectedRegionCode){
+        const rc = rowRegionCode(row);
+        if (!rc || norm(rc) !== norm(selectedRegionCode)) return false;
+      }
+
+      // search filter
+      if (q){
+        const cn = nameField ? upper(row[nameField]) : "";
+        const sn = sciField ? upper(row[sciField]) : "";
+        if (!cn.includes(q) && !sn.includes(q)) return false;
+      }
+
+      // dropdown filters
+      for (const [col, val] of activeFilters.entries()){
+        const cell = norm(row[col]);
+        if (val === "YES" || val === "NO" || val === "UNCERTAIN"){
+          if (upper(cell) !== val) return false;
+        } else {
+          if (cell !== val) return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  function renderPlants(){
+    const filtered = applyAllFilters();
+    const total = filtered.length;
+
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const pageRows = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+    countPill.textContent = `${total} plant${total===1?"":"s"} found`;
+    pagePill.textContent = `Page ${currentPage} / ${totalPages}`;
+
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+
+    plantListEl.innerHTML = "";
+
+    if (!pageRows.length){
+      plantListEl.innerHTML = `<div class="muted">No plants match your filters.</div>`;
+      return;
+    }
+
+    for (const row of pageRows){
+      plantListEl.appendChild(makePlantCard(row));
+    }
+  }
+
+  function makePlantCard(row){
+    const card = document.createElement("div");
+    card.className = "plantCard";
+
+    const nameField = guessNameField(row);
+    const sciField = guessSciField(row);
+
+    const commonName = nameField ? norm(row[nameField]) : "(No common name)";
+    const sciName = sciField ? norm(row[sciField]) : "";
+
+    // basic fields shown on card (if they exist)
+    const preferredBasics = [
+      "ROOT_TYPE", "ROOT_DEPTH", "MAXIMUM_ROOT_DEPTH",
+      "MATURE_ROOT_DEPTH", "AVERAGE_ROOT_DEPTH", "VEGETATIVE_ROOT_DEPTH",
+      "Depth, Minimum (inches)", "DEPTH_MINIMUM", "DEPTH_MIN"
+    ].filter(k => Object.prototype.hasOwnProperty.call(row, k) && !isEmptyValue(row[k]));
+
+    const basicFields = preferredBasics.slice(0, 3);
+
+    // Expanded "more info" shows all filter-related columns (basic + advanced filter columns)
+    const filterColsAll = Array.from(new Set([...filterColumnsBasic, ...filterColumnsAdvanced]));
+    const expandedCols = ["COMMON_NAME","SCIENTIFIC_NAME"]
+      .filter(k => Object.prototype.hasOwnProperty.call(row, k))
+      .concat(filterColsAll.filter(c => Object.prototype.hasOwnProperty.call(row, c)));
+
+    const top = document.createElement("div");
+    top.className = "plantTop";
+
+    const left = document.createElement("div");
+    left.style.flex = "1 1 auto";
+
+    const h = document.createElement("h3");
+    h.className = "plantName";
+    h.textContent = commonName;
+
+    const s = document.createElement("div");
+    s.className = "plantSci";
+    s.textContent = sciName;
+
+    left.appendChild(h);
+    left.appendChild(s);
+
+    const moreBtn = document.createElement("button");
+    moreBtn.className = "smallbtn";
+    moreBtn.textContent = "More info";
+
+    top.appendChild(left);
+    top.appendChild(moreBtn);
+
+    card.appendChild(top);
+
+    if (basicFields.length){
+      const kv = document.createElement("div");
+      kv.className = "kv";
+      for (const k of basicFields){
+        kv.appendChild(makeKV(k, norm(row[k])));
+      }
+      card.appendChild(kv);
+    }
+
+    const more = document.createElement("div");
+    more.className = "kv hidden";
+    more.style.marginTop = "10px";
+
+    for (const col of expandedCols){
+      if (isExcludedColumn(col)) continue;
+      const val = norm(row[col]);
+      if (isEmptyValue(val)) continue;
+      more.appendChild(makeKV(col, val));
+    }
+
+    card.appendChild(more);
+
+    let open = false;
+    moreBtn.addEventListener("click", () => {
+      open = !open;
+      more.classList.toggle("hidden", !open);
+      moreBtn.textContent = open ? "Less info" : "More info";
+    });
+
+    return card;
+  }
+
+  function makeKV(k, v){
+    const kk = document.createElement("div");
+    kk.className = "k";
+    kk.textContent = k;
+
+    const vv = document.createElement("div");
+    vv.className = "v";
+    vv.textContent = v;
+
+    const frag = document.createDocumentFragment();
+    frag.appendChild(kk);
+    frag.appendChild(vv);
+    return frag;
+  }
+
+  // -----------------------------
+  // Location tools (ZIP + Lat/Lng)
+  // -----------------------------
+  async function geocodeZip(zip){
+    const z = norm(zip);
+    if (!/^\d{5}(-\d{4})?$/.test(z)) throw new Error("Please enter a valid 5-digit ZIP (or ZIP+4).");
+
+    // Nominatim (no key) — good for demos; may rate-limit.
+    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&postalcode=${encodeURIComponent(z)}&limit=1`;
+    const res = await fetch(url, { headers: { "Accept":"application/json" }});
+    if (!res.ok) throw new Error("ZIP lookup failed.");
+    const data = await res.json();
+    if (!data?.length) throw new Error("No result found for that ZIP.");
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }
+
+  async function reverseGeocodeToZip(lat, lng){
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+    const res = await fetch(url, { headers: { "Accept":"application/json" }});
+    if (!res.ok) throw new Error("Reverse geocode failed.");
+    const data = await res.json();
+    const pc = data?.address?.postcode;
+    if (!pc) throw new Error("No ZIP found for your location.");
+    return pc.toString().slice(0,5);
+  }
+
+  function getBrowserLocation(){
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("Geolocation not supported in this browser."));
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => reject(new Error(err.message || "Could not get location.")),
+        { enableHighAccuracy:true, timeout: 12000, maximumAge: 30000 }
+      );
+    });
+  }
+
+  function selectRegionByLatLng(lat, lng){
+    if (!geo?.features?.length) throw new Error("Ecoregion data not loaded yet.");
+
+    const pt = turf.point([lng, lat]);
+    // Find matching feature
+    for (const f of geo.features){
+      try{
+        if (turf.booleanPointInPolygon(pt, f)){
+          const props = f.properties || {};
+          const codeField = guessUSL3CodeField(props) || "US_L3CODE";
+          const code = norm(props[codeField] ?? "");
+          // Zoom bounds via Leaflet layer if possible
+          const layer = layerByCode.get(code);
+          const bounds = layer ? layer.getBounds() : null;
+          selectRegion(code, bounds);
+          // Also center map to the point a bit
+          map.setView([lat, lng], Math.max(map.getZoom(), 7));
+          return true;
+        }
+      } catch { /* skip invalid polygons */ }
+    }
+    throw new Error("No matching ecoregion found for that point.");
+  }
+
+  // -----------------------------
+  // Debug unlock
+  // -----------------------------
+  unlockD.addEventListener("dblclick", () => {
+    unlockBox.classList.toggle("hidden");
+    debugPass.focus();
+  });
+
+  function unlockDebug(){
+    if (norm(debugPass.value).toLowerCase() === "dirt"){
+      debugPanel.classList.remove("hidden");
+      unlockBox.classList.add("hidden");
+      debugStatus.textContent = "Debug unlocked ✅";
+    } else {
+      debugStatus.textContent = "Debug locked";
+      alert("Wrong password.");
+    }
+  }
+  debugUnlockBtn.addEventListener("click", unlockDebug);
+  debugPass.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") unlockDebug();
+  });
+
+  debugBtn.addEventListener("click", () => {
+    const info = {
+      selectedRegionCode,
+      plantRows: plants.length,
+      regionCountEntries: regionCounts.size,
+      activeFilters: Object.fromEntries(activeFilters.entries()),
+      search: norm(searchInput.value),
+      page: currentPage
+    };
+    console.log("S.P.A.D.E. DEBUG:", info);
+    alert("Debug info logged to console.");
+  });
+
+  // -----------------------------
+  // Events
+  // -----------------------------
+  prevBtn.addEventListener("click", () => {
+    currentPage = Math.max(1, currentPage - 1);
+    renderPlants();
+  });
+  nextBtn.addEventListener("click", () => {
+    currentPage += 1;
+    renderPlants();
+  });
+
+  clearRegionBtn.addEventListener("click", () => {
+    selectRegion(null, null);
+    try { map.setView([39.5, -98.35], 4); } catch {}
+  });
+
+  searchInput.addEventListener("input", () => {
+    currentPage = 1;
+    renderPlants();
+  });
+
+  advancedToggleBtn.addEventListener("click", () => {
+    advancedOn = !advancedOn;
+    advancedToggleBtn.textContent = advancedOn ? "Advanced: On" : "Advanced: Off";
+    filtersAdvancedEl.classList.toggle("hidden", !advancedOn);
+  });
+
+  zipFindBtn.addEventListener("click", async () => {
+    try{
+      zipFindBtn.disabled = true;
+      const { lat, lng } = await geocodeZip(zipInput.value);
+      latInput.value = lat;
+      lngInput.value = lng;
+      map.setView([lat, lng], 9);
+      selectRegionByLatLng(lat, lng);
+    } catch(e){
+      alert(e.message || String(e));
+    } finally {
+      zipFindBtn.disabled = false;
+    }
+  });
+
+  zipUseMyLocBtn.addEventListener("click", async () => {
+    try{
+      zipUseMyLocBtn.disabled = true;
+      const { lat, lng } = await getBrowserLocation();
+      const zip = await reverseGeocodeToZip(lat, lng);
+      zipInput.value = zip;
+      map.setView([lat, lng], 9);
+      selectRegionByLatLng(lat, lng);
+    } catch(e){
+      // fallback: at least use lat/lng directly
+      try{
+        const { lat, lng } = await getBrowserLocation();
+        latInput.value = lat;
+        lngInput.value = lng;
+        map.setView([lat, lng], 9);
+        selectRegionByLatLng(lat, lng);
+      } catch(e2){
+        alert((e2.message || e.message) || String(e2));
+      }
+    } finally {
+      zipUseMyLocBtn.disabled = false;
+    }
+  });
+
+  latLngGoBtn.addEventListener("click", () => {
+    try{
+      const lat = parseFloat(latInput.value);
+      const lng = parseFloat(lngInput.value);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Enter valid latitude and longitude.");
+      map.setView([lat, lng], 9);
+      selectRegionByLatLng(lat, lng);
+    } catch(e){
+      alert(e.message || String(e));
+    }
+  });
+
+  latLngUseMyLocBtn.addEventListener("click", async () => {
+    try{
+      latLngUseMyLocBtn.disabled = true;
+      const { lat, lng } = await getBrowserLocation();
+      latInput.value = lat;
+      lngInput.value = lng;
+      map.setView([lat, lng], 9);
+      selectRegionByLatLng(lat, lng);
+    } catch(e){
+      alert(e.message || String(e));
+    } finally {
+      latLngUseMyLocBtn.disabled = false;
+    }
+  });
+
+  // -----------------------------
+  // Loading
+  // -----------------------------
+  function escapeHtml(str){
+    return (str ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  async function loadCSV(){
+    const res = await fetch(CSV_PATH, { cache: "no-store" });
+    if (!res.ok) throw new Error(`CSV not found at ${CSV_PATH}`);
+    const text = await res.text();
+
+    const parsed = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false
+    });
+
+    if (parsed.errors?.length){
+      console.warn("CSV parse warnings:", parsed.errors);
+    }
+
+    // Normalize rows (keep original columns, just trim values)
+    plants = (parsed.data || []).map(r => {
+      const out = {};
+      for (const k of Object.keys(r)){
+        out[k] = norm(r[k]);
+      }
+      return out;
+    }).filter(r => Object.keys(r).length > 0);
+
+    computeRegionCounts();
+    buildFiltersFromCSV();
+    renderPlants();
+  }
+
+  async function loadGeoJSON(){
+    const res = await fetch(GEOJSON_PATH, { cache: "no-store" });
+    if (!res.ok) throw new Error(`GeoJSON not found at ${GEOJSON_PATH}`);
+    geo = await res.json();
+  }
+
+  async function boot(){
+    initMap();
+    try{
+      countPill.textContent = "Loading plants & ecoregions…";
+      await Promise.all([loadCSV(), loadGeoJSON()]);
+      addGeoLayer();
+      refreshGeoStyles();
+      countPill.textContent = `${plants.length} plants loaded`;
+      regionPill.textContent = "No region selected (showing all plants)";
+    } catch(e){
+      console.error(e);
+      countPill.textContent = "Load failed";
+      alert(e.message || String(e));
+    }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
