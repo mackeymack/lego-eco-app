@@ -11,23 +11,70 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    #wrap { display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
-    #sidebar { padding: 12px; border-right: 1px solid #ddd; overflow: auto; background: #fdfdfd; }
-    #map { height: 100vh; }
-    h2 { margin: 8px 0 6px; color: #2c3e50; }
-    h3 { margin: 15px 0 8px; font-size: 1.1em; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-    .pill { display:inline-block; padding:4px 8px; border:1px solid #ddd; border-radius:999px; margin: 4px 6px 0 0; }
-    .row { margin: 12px 0; }
-    label { font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 4px; }
-    select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-    #selected-region { font-weight: bold; color: #007bff; }
-    .plant-card { border: 1px solid #ccc; padding: 12px; margin-bottom: 12px; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .plant-card h3 { margin: 0 0 5px; color: #27ae60; border-bottom: none; }
-    .plant-card p { margin: 4px 0; font-size: 0.9em; line-height: 1.4; }
-    #results-count { margin: 15px 0 10px; font-weight: bold; color: #555; }
-    #debug-panel { display:none; background:#f0f0f0; border:1px solid #ccc; padding:10px; font-family:monospace; font-size:12px; height:200px; overflow:auto; }
-    #status { font-size: 11px; color: #888; margin-top: 4px; }
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; }
+    #wrap { display: grid; grid-template-columns: 400px 1fr; height: 100vh; }
+    
+    /* Sidebar Styling */
+    #sidebar { 
+      padding: 20px; 
+      border-right: 1px solid #ddd; 
+      overflow-y: auto; 
+      background: white; 
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+    
+    /* Map Styling */
+    #map-container { position: relative; height: 100vh; overflow: hidden; }
+    #map { height: 100%; width: 100%; }
+
+    /* Debug Button - Moved to Bottom Left of Map */
+    #debug-btn { 
+      position: absolute; 
+      bottom: 20px; 
+      left: 10px; 
+      z-index: 1000; 
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid #ccc;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+    #debug-panel { 
+      display:none; 
+      position: absolute;
+      bottom: 50px;
+      left: 10px;
+      width: 350px;
+      background: white; 
+      border: 1px solid #ccc; 
+      padding: 10px; 
+      font-family: monospace; 
+      font-size: 12px; 
+      height: 200px; 
+      overflow: auto; 
+      z-index: 1001;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    h2 { margin: 0 0 5px; color: #2c3e50; font-size: 1.5em; }
+    .subtitle { margin-bottom: 20px; color: #7f8c8d; font-style: italic; font-size: 0.9em; }
+    h3 { margin: 20px 0 10px; font-size: 1.1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; }
+    
+    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row { margin-bottom: 12px; }
+    label { font-weight: bold; font-size: 0.85em; display: block; margin-bottom: 4px; color: #34495e; }
+    select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; }
+    
+    #selected-region { font-weight: bold; color: #2980b9; }
+    .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; transition: transform 0.2s; border-left: 5px solid #27ae60; }
+    .plant-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .plant-card h4 { margin: 0 0 5px; color: #2d3436; }
+    .plant-card p { margin: 5px 0; font-size: 0.85em; color: #636e72; line-height: 1.4; }
+    
+    #results-count { margin: 15px 0; font-weight: bold; font-size: 0.9em; }
+    #status { font-size: 12px; color: #e67e22; margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -35,291 +82,255 @@
 <div id="wrap">
   <div id="sidebar">
     <h2>Blazing Turtles</h2>
-    <p><em>Dig Site Plant Selector</em></p>
-    <p style="font-size:0.9em;">Click a region on the map to see native plants for soil stability.</p>
-
-    <div class="row">
-      <strong>Region:</strong> <span id="selected-region">None (click map)</span>
-    </div>
-
-    <div class="row">
-      <input type="text" id="search-box" placeholder="Search by name or species..." />
-    </div>
-
-    <h3>Filters</h3>
+    <div class="subtitle">Lego Robotics: Dig Site Plant Selector</div>
     
     <div class="row">
-      <label for="type-filter">Plant Type</label>
-      <select id="type-filter"><option value="all">All Types</option></select>
+      <label>Selected Ecoregion</label>
+      <div id="selected-region">Click the map to select</div>
     </div>
 
     <div class="row">
-      <label for="root-filter">Root Type (Stability)</label>
-      <select id="root-filter"><option value="all">All Root Types</option></select>
+      <label for="search-box">Search Database</label>
+      <input type="text" id="search-box" placeholder="Common or Scientific Name..." />
     </div>
 
-    <div class="row">
-      <label for="moisture-filter">Soil Moisture</label>
-      <select id="moisture-filter"><option value="all">All Moisture Levels</option></select>
-    </div>
-
-    <div class="row">
-      <label for="sun-filter">Sun Exposure</label>
-      <select id="sun-filter"><option value="all">All Exposure</option></select>
-    </div>
-
-    <div class="row">
-      <label for="water-filter">Water Needs</label>
-      <select id="water-filter"><option value="all">All Water Needs</option></select>
+    <h3>Stability & Environment Filters</h3>
+    
+    <div class="filter-grid">
+      <div class="row">
+        <label for="type-filter">Plant Type</label>
+        <select id="type-filter"><option value="all">Any Type</option></select>
+      </div>
+      <div class="row">
+        <label for="root-filter">Root Type</label>
+        <select id="root-filter"><option value="all">Any Root</option></select>
+      </div>
+      <div class="row">
+        <label for="moisture-filter">Moisture</label>
+        <select id="moisture-filter"><option value="all">Any Moisture</option></select>
+      </div>
+      <div class="row">
+        <label for="sun-filter">Sun Needs</label>
+        <select id="sun-filter"><option value="all">Any Sun</option></select>
+      </div>
+      <div class="row">
+        <label for="clay-filter">Clay Soil?</label>
+        <select id="clay-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+      </div>
+      <div class="row">
+        <label for="sand-filter">Sand Soil?</label>
+        <select id="sand-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+      </div>
     </div>
 
     <div class="row">
       <label for="drought-filter">Drought Tolerance</label>
-      <select id="drought-filter"><option value="all">All Tolerance Levels</option></select>
+      <select id="drought-filter"><option value="all">Any Tolerance</option></select>
     </div>
 
-    <div class="row">
-      <label for="lifespan-filter">Lifespan</label>
-      <select id="lifespan-filter"><option value="all">All Lifespans</option></select>
-    </div>
-
-    <div class="row">
-      <label for="pollinator-filter">Pollinators</label>
-      <select id="pollinator-filter"><option value="all">All Pollinators</option></select>
-    </div>
-
-    <hr/>
-    <div id="results-count">Ready.</div>
+    <div id="status">Initializing...</div>
+    <div id="results-count"></div>
     <div id="results-list"></div>
-
-    <div id="status">Starting up...</div>
-    <button onclick="openDebug()" style="margin-top:20px; font-size:10px;">Debug Tools</button>
-    <div id="debug-panel" id="debug-log"></div>
   </div>
 
-  <div id="map"></div>
+  <div id="map-container">
+    <div id="map"></div>
+    <button id="debug-btn" onclick="toggleDebug()">Show Debug Log</button>
+    <div id="debug-panel"><strong>System Logs:</strong><hr></div>
+  </div>
 </div>
 
 <script>
   // ============================================================
-  // Global State
+  // Configuration & State
   // ============================================================
   let plantData = null;
   let selectedL3Key = null;
   let selectedL3Name = null;
 
-  // Constants - matching your file structure
-  const ECOREGIONS_URL = 'us_eco_l3_state_boundaries.json';
+  // FIXED PATHS: Looking inside the assets folder
+  const ECOREGIONS_URL = 'assets/us_eco_l3_state_boundaries.json'; 
   const DATABASE_CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
-  // Elements
-  const elTypeFilter = document.getElementById('type-filter');
-  const elSearch = document.getElementById('search-box');
+  const elStatus = document.getElementById('status');
   const elResults = document.getElementById('results-list');
   const elCount = document.getElementById('results-count');
-  const elSelected = document.getElementById('selected-region');
-  const elStatus = document.getElementById('status');
   const elDebug = document.getElementById('debug-panel');
 
   // ============================================================
-  // Utilities
+  // Helpers
   // ============================================================
-  function setStatus(msg) { elStatus.textContent = msg; }
-  function logDebug(msg, obj) {
-    const time = new Date().toLocaleTimeString();
-    const line = document.createElement('div');
-    line.textContent = `[${time}] ${msg} ${obj ? JSON.stringify(obj) : ''}`;
-    elDebug.appendChild(line);
-    console.log(msg, obj);
+  function logDebug(msg) {
+    const entry = document.createElement('div');
+    entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    elDebug.appendChild(entry);
+    console.log(msg);
   }
-  function openDebug() { elDebug.style.display = 'block'; }
 
-  function populateFilter(elementId, columnHeader, data, splitChar = ',') {
-    const el = document.getElementById(elementId);
-    if (!el) return;
+  function toggleDebug() {
+    const isVisible = elDebug.style.display === 'block';
+    elDebug.style.display = isVisible ? 'none' : 'block';
+    document.getElementById('debug-btn').textContent = isVisible ? 'Show Debug Log' : 'Hide Debug Log';
+  }
+
+  function populateDropdown(id, column, data, splitChar = ',') {
+    const select = document.getElementById(id);
     const values = new Set();
-    data.forEach(p => {
-      const val = p[columnHeader];
-      if (val) {
+    data.forEach(row => {
+      const val = row[column];
+      if (val && val !== '0') {
         val.split(splitChar).forEach(v => {
-          const trimmed = v.trim();
-          if (trimmed && trimmed !== '0' && trimmed !== '-') values.add(trimmed);
+          const clean = v.trim();
+          if (clean) values.add(clean);
         });
       }
     });
-    const sorted = Array.from(values).sort();
-    sorted.forEach(v => {
+    Array.from(values).sort().forEach(v => {
       const opt = document.createElement('option');
-      opt.value = v;
-      opt.textContent = v;
-      el.appendChild(opt);
+      opt.value = v; opt.textContent = v;
+      select.appendChild(opt);
     });
   }
 
   // ============================================================
-  // Core Logic
+  // Main Logic
   // ============================================================
   function renderResults() {
     if (!plantData) return;
 
-    const searchVal = elSearch.value.toLowerCase();
-
-    // Configuration for all category filters
-    const filterConfig = [
-      { id: 'type-filter', col: 'Plant Type', split: ',' },
-      { id: 'moisture-filter', col: 'Soil Moisture', split: ',' },
-      { id: 'sun-filter', col: 'SUN_EXPOSURE', split: ',' },
-      { id: 'water-filter', col: 'WATER_NEEDS', split: ',' },
-      { id: 'root-filter', col: 'ROOT_TYPE', split: ',' },
-      { id: 'lifespan-filter', col: 'Lifespan', split: ',' },
-      { id: 'drought-filter', col: 'Drought Tolerance', split: ',' },
-      { id: 'pollinator-filter', col: 'Pollinators', split: ';' }
-    ];
-
-    elResults.innerHTML = '';
+    const query = document.getElementById('search-box').value.toLowerCase();
+    
+    // Filter conditions
+    const filters = {
+      type: document.getElementById('type-filter').value,
+      root: document.getElementById('root-filter').value,
+      moisture: document.getElementById('moisture-filter').value,
+      sun: document.getElementById('sun-filter').value,
+      drought: document.getElementById('drought-filter').value,
+      clay: document.getElementById('clay-filter').value,
+      sand: document.getElementById('sand-filter').value
+    };
 
     const filtered = plantData.filter(p => {
-      // 1. Region Filter
+      // Ecoregion Match
       if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
 
-      // 2. Category Filters
-      for (const cfg of filterConfig) {
-        const selectEl = document.getElementById(cfg.id);
-        if (selectEl && selectEl.value !== 'all') {
-          const plantVal = (p[cfg.col] || '');
-          const parts = plantVal.split(cfg.split).map(s => s.trim());
-          if (!parts.includes(selectEl.value)) return false;
-        }
-      }
+      // Category Matches
+      if (filters.type !== 'all' && !(p['Plant Type'] || '').includes(filters.type)) return false;
+      if (filters.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(filters.root)) return false;
+      if (filters.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(filters.moisture)) return false;
+      if (filters.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(filters.sun)) return false;
+      if (filters.drought !== 'all' && !(p['Drought Tolerance'] || '').includes(filters.drought)) return false;
+      if (filters.clay !== 'all' && p['CLAY_SOIL'] !== filters.clay) return false;
+      if (filters.sand !== 'all' && p['SAND_SOIL'] !== filters.sand) return false;
 
-      // 3. Search Filter
-      const common = (p['Common Name'] || '').toLowerCase();
-      const sci = (p['Scientific Name'] || '').toLowerCase();
-      if (searchVal && !common.includes(searchVal) && !sci.includes(searchVal)) return false;
+      // Search Match
+      const nameMatch = (p['Common Name'] || '').toLowerCase().includes(query) || 
+                        (p['Scientific Name'] || '').toLowerCase().includes(query);
+      if (query && !nameMatch) return false;
 
       return true;
     });
 
-    elCount.textContent = selectedL3Key 
-      ? `Found ${filtered.length} plants for ${selectedL3Name || selectedL3Key}`
-      : `Found ${filtered.length} plants total (select a region)`;
+    elCount.textContent = `Found ${filtered.length} matching plants`;
+    elResults.innerHTML = '';
 
-    filtered.forEach(p => {
+    filtered.slice(0, 100).forEach(p => {
       const card = document.createElement('div');
       card.className = 'plant-card';
       card.innerHTML = `
-        <h3>${p['Common Name'] || 'Unknown Plant'}</h3>
+        <h4>${p['Common Name'] || 'Unnamed Plant'}</h4>
         <p><em>${p['Scientific Name'] || ''}</em></p>
-        <p><strong>Type:</strong> ${p['Plant Type'] || '-'}</p>
-        <p><strong>Roots:</strong> ${p['ROOT_TYPE'] || '-'} (${p['ROOT_DEPTH'] || 'Depth unknown'})</p>
-        <p><strong>Moisture:</strong> ${p['Soil Moisture'] || '-'}</p>
-        <p><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || '-'}</p>
-        <p><strong>Drought Tolerance:</strong> ${p['Drought Tolerance'] || '-'}</p>
-        <p><a href="${p.SOURCE_LINK_1}" target="_blank" style="color:#007bff; text-decoration:none; font-weight:bold;">→ View Detailed Data</a></p>
+        <p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'Depth unknown'})</p>
+        <p><strong>Soil:</strong> ${p['Soil Moisture'] || 'N/A'} moisture | Sun: ${p['SUN_EXPOSURE'] || 'N/A'}</p>
+        <p style="margin-top:8px;"><a href="${p.SOURCE_LINK_1}" target="_blank" style="color:#2980b9; font-weight:bold;">More Details ↗</a></p>
       `;
       elResults.appendChild(card);
     });
-
-    if (filtered.length === 0) {
-      elResults.innerHTML = '<p style="color:#888; text-align:center; margin-top:20px;">No plants match these filters.</p>';
-    }
-  }
-
-  // ============================================================
-  // Data Loading
-  // ============================================================
-  async function loadPlantDatabaseCSV() {
-    try {
-      setStatus('Loading plant database...');
-      const resp = await fetch(DATABASE_CSV_URL);
-      if (!resp.ok) throw new Error('CSV file not found at ' + DATABASE_CSV_URL);
-      const csvText = await resp.text();
-
-      Papa.parse(csvText, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          plantData = results.data;
-          logDebug('✅ CSV parsed', { count: plantData.length });
-          
-          // Populate all dynamic filters
-          populateFilter('type-filter', 'Plant Type', plantData, ',');
-          populateFilter('moisture-filter', 'Soil Moisture', plantData, ',');
-          populateFilter('sun-filter', 'SUN_EXPOSURE', plantData, ',');
-          populateFilter('water-filter', 'WATER_NEEDS', plantData, ',');
-          populateFilter('root-filter', 'ROOT_TYPE', plantData, ',');
-          populateFilter('lifespan-filter', 'Lifespan', plantData, ',');
-          populateFilter('drought-filter', 'Drought Tolerance', plantData, ',');
-          populateFilter('pollinator-filter', 'Pollinators', plantData, ';');
-
-          setStatus(`Database loaded (${plantData.length} plants).`);
-          renderResults();
-        },
-        error: (err) => { throw new Error('CSV Parse Error: ' + err.message); }
-      });
-    } catch (e) {
-      logDebug('❌ CSV load failed', String(e));
-      setStatus('ERROR: Could not load plant CSV. Check the assets folder.');
-    }
-  }
-
-  async function loadEcoregionsGeoJSON() {
-    try {
-      setStatus('Loading map...');
-      const resp = await fetch(ECOREGIONS_URL);
-      if (!resp.ok) throw new Error('GeoJSON file not found at ' + ECOREGIONS_URL);
-      const geojson = await resp.json();
-
-      const map = L.map('map').setView([37.8, -96], 4);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      function onEachFeature(feature, layer) {
-        layer.setStyle({ color: '#27ae60', weight: 1, fillOpacity: 0.2 });
-        layer.on('mouseover', () => layer.setStyle({ fillOpacity: 0.5 }));
-        layer.on('mouseout', () => layer.setStyle({ fillOpacity: 0.2 }));
-        
-        layer.on('click', () => {
-          const p = feature.properties || {};
-          selectedL3Key = p.L3_KEY || null;
-          selectedL3Name = p.US_L3NAME || p.NA_L3NAME || null;
-
-          elSelected.textContent = selectedL3Key
-            ? (selectedL3Name ? `${selectedL3Key} — ${selectedL3Name}` : selectedL3Key)
-            : 'Unknown region';
-
-          logDebug('🗺️ region clicked', { selectedL3Key, selectedL3Name });
-          renderResults();
-        });
-      }
-
-      L.geoJSON(geojson, { onEachFeature }).addTo(map);
-      setStatus('Map loaded. Click an ecoregion!');
-    } catch (e) {
-      logDebug('❌ Map failed', String(e));
-      setStatus('ERROR: Could not load map GeoJSON.');
-    }
-  }
-
-  // ============================================================
-  // Boot
-  // ============================================================
-  (async function start() {
-    logDebug('🚀 App starting...');
     
-    // Add Event Listeners for search and all filters
-    elSearch.addEventListener('input', renderResults);
-    const filterIds = ['type-filter', 'moisture-filter', 'sun-filter', 'water-filter', 'root-filter', 'lifespan-filter', 'drought-filter', 'pollinator-filter'];
-    filterIds.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('change', renderResults);
+    if (filtered.length > 100) {
+      const more = document.createElement('p');
+      more.style.textAlign = 'center';
+      more.innerHTML = `<small>Showing first 100 results...</small>`;
+      elResults.appendChild(more);
+    }
+  }
+
+  // ============================================================
+  // Load Data
+  // ============================================================
+  async function init() {
+    logDebug('🚀 Starting application...');
+
+    // Load CSV
+    Papa.parse(DATABASE_CSV_URL, {
+      download: true,
+      header: true,
+      complete: (results) => {
+        plantData = results.data;
+        logDebug(`✅ CSV loaded: ${plantData.length} records`);
+        
+        populateDropdown('type-filter', 'Plant Type', plantData);
+        populateDropdown('root-filter', 'ROOT_TYPE', plantData);
+        populateDropdown('moisture-filter', 'Soil Moisture', plantData);
+        populateDropdown('sun-filter', 'SUN_EXPOSURE', plantData);
+        populateDropdown('drought-filter', 'Drought Tolerance', plantData);
+        
+        elStatus.textContent = "Database Ready";
+        renderResults();
+      },
+      error: (err) => {
+        logDebug(`❌ CSV Error: ${err}`);
+        elStatus.textContent = "Error loading CSV database.";
+      }
     });
 
-    await loadEcoregionsGeoJSON();
-    await loadPlantDatabaseCSV();
-  })();
+    // Load GeoJSON
+    try {
+      const response = await fetch(ECOREGIONS_URL);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const geoData = await response.json();
+      logDebug('✅ GeoJSON loaded successfully');
 
+      const map = L.map('map').setView([39.8, -98.5], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+
+      function style(feature) {
+        return { color: '#27ae60', weight: 1, fillOpacity: 0.1 };
+      }
+
+      L.geoJSON(geoData, {
+        style: style,
+        onEachFeature: (feature, layer) => {
+          layer.on({
+            mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
+            mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
+            click: (e) => {
+              selectedL3Key = feature.properties.L3_KEY;
+              selectedL3Name = feature.properties.US_L3NAME || feature.properties.NA_L3NAME;
+              document.getElementById('selected-region').textContent = `${selectedL3Key}: ${selectedL3Name}`;
+              renderResults();
+            }
+          });
+        }
+      }).addTo(map);
+
+    } catch (err) {
+      logDebug(`❌ Map Error: ${err.message}`);
+      elStatus.textContent = "Error loading map shapes. Check 'assets' folder.";
+    }
+  }
+
+  // Event Listeners
+  document.querySelectorAll('select, input').forEach(el => {
+    el.addEventListener('change', renderResults);
+    el.addEventListener('input', renderResults);
+  });
+
+  window.onload = init;
 </script>
+
 </body>
 </html>
