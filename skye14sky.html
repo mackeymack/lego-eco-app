@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>S.P.A.D.E.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root{
+      /* LIGHT GREEN THEME (text + map accents) */
+      --spade-green: #86efac;      /* light green */
+      --spade-green-2: #34d399;    /* stronger green */
+      --spade-green-3: #14532d;    /* dark green for outlines */
+      --spade-bg: #0b1220;         /* deep navy-ish background for header accents if needed */
+    }
+
+    body { margin:0; font-family: Arial, sans-serif; }
+    #wrap { display:grid; grid-template-columns: 560px 1fr; height:100vh; }
+    #sidebar { padding:12px; border-right:1px solid #ddd; overflow:auto; background:#fff; }
+    #map { height:100vh; }
+
+    h2 { margin: 8px 0 6px; }
+    .small { color:#666; font-size:12px; }
+    .pill { display:inline-block; padding:6px 10px; border:1px solid #ddd; border-radius:999px; margin-top:6px; background:#fafafa; }
+    .row { margin:12px 0; }
+    label { display:block; font-weight:700; margin:0 0 6px; }
+
+    input, select, button {
+      width:100%;
+      padding:8px;
+      box-sizing:border-box;
+      border-radius:10px;
+      border:1px solid #ccc;
+      font-size:14px;
+    }
+    button { cursor:pointer; background:#111; color:#fff; border-color:#111; }
+    button.secondary { background:#fff; color:#111; border-color:#ccc; }
+    button.smallBtn { width:auto; padding:6px 10px; font-size:12px; border-radius:10px; }
+
+    .twoCol { display:flex; gap:8px; align-items:center; }
+    .twoCol input { flex:1; }
+    .twoCol button { width:auto; }
+
+    .filtersHeader { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+    .filtersHeader .left { flex:1; }
+    .filtersHeader .right { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .filtersHeader .right button { width:auto; }
+
+    #filtersGrid {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .filterBox {
+      border:1px solid #eee;
+      border-radius:12px;
+      padding:10px;
+      background:#fff;
+    }
+    .filterLabel { font-weight:700; font-size:12px; margin-bottom:6px; }
+    .filterHint { font-size:11px; color:#777; margin-top:6px; }
+    .hidden { display:none !important; }
+
+    .plant { border:1px solid #eee;
