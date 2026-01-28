@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/@mapbox/leaflet-pip@latest/leaflet-pip.js"></script>
 
   <style>
@@ -34,10 +35,18 @@
     #geo-btn:hover { background: #1f6391; }
     #geo-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
 
-    /* Zip Code Feature Styles */
     .zip-container { display: flex; gap: 5px; margin-bottom: 15px; }
     #zip-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; }
     #zip-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+    /* Export Button Styles */
+    .export-container { display: flex; gap: 10px; margin: 15px 0; }
+    .export-btn { 
+      flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ddd; 
+      font-size: 0.75em; font-weight: bold; cursor: pointer; background: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .export-btn:hover { background: #f8f9fa; }
 
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .row { margin-bottom: 12px; }
@@ -132,7 +141,14 @@
     </div>
 
     <div id="status">System starting...</div>
+    
     <div id="results-count"></div>
+
+    <div class="export-container">
+      <button class="export-btn" onclick="exportExcel()">📊 Export to Excel</button>
+      <button class="export-btn" onclick="exportSheets()">☁️ Export for Sheets</button>
+    </div>
+
     <div id="results-list"></div>
     
     <div id="show-more-container">
@@ -147,10 +163,11 @@
 
 <script>
   let plantData = null;
+  let currentFilteredList = []; // Track filtered items for export
   let selectedL3Key = null;
   let regionCounts = {};
   let displayLimit = 10;
-  let map, geoLayer;
+  let map, geoLayer; 
   const increment = 10;
 
   const ECO_URL = 'assets/us_eco_l3_state_boundaries.json'; 
@@ -188,7 +205,7 @@
     if (resetLimit) displayLimit = 10;
 
     const query = document.getElementById('search-box').value.toLowerCase();
-    const filters = {
+    const f = {
       type: document.getElementById('type-filter').value,
       root: document.getElementById('root-filter').value,
       moisture: document.getElementById('moisture-filter').value,
@@ -202,34 +219,44 @@
       chalky: document.getElementById('chalky-filter').value
     };
 
-    const filtered = plantData.filter(p => {
+    currentFilteredList = plantData.filter(p => {
       if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
-      if (filters.type !== 'all' && !(p['Plant Type'] || '').includes(filters.type)) return false;
-      if (filters.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(filters.root)) return false;
-      if (filters.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(filters.moisture)) return false;
-      if (filters.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(filters.sun)) return false;
-      if (filters.clay !== 'all' && p['CLAY_SOIL'] !== filters.clay) return false;
-      if (filters.sand !== 'all' && p['SAND_SOIL'] !== filters.sand) return false;
-      if (filters.gravel !== 'all' && p['GRAVEL_SOIL'] !== filters.gravel) return false;
-      if (filters.loam !== 'all' && p['LOAM_SOIL'] !== filters.loam) return false;
-      if (filters.silt !== 'all' && p['SILT_SOIL'] !== filters.silt) return false;
-      if (filters.peat !== 'all' && p['PEAT_SOIL'] !== filters.peat) return false;
-      if (filters.chalky !== 'all' && p['CHALKY_SOIL'] !== filters.chalky) return false;
+      if (f.type !== 'all' && !(p['Plant Type'] || '').includes(f.type)) return false;
+      if (f.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(f.root)) return false;
+      if (f.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(f.moisture)) return false;
+      if (f.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(f.sun)) return false;
+      if (f.clay !== 'all' && p['CLAY_SOIL'] !== f.clay) return false;
+      if (f.sand !== 'all' && p['SAND_SOIL'] !== f.sand) return false;
+      if (f.gravel !== 'all' && p['GRAVEL_SOIL'] !== f.gravel) return false;
+      if (f.loam !== 'all' && p['LOAM_SOIL'] !== f.loam) return false;
+      if (f.silt !== 'all' && p['SILT_SOIL'] !== f.silt) return false;
+      if (f.peat !== 'all' && p['PEAT_SOIL'] !== f.peat) return false;
+      if (f.chalky !== 'all' && p['CHALKY_SOIL'] !== f.chalky) return false;
       if (query && !((p['Common Name'] || '').toLowerCase().includes(query) || (p['Scientific Name'] || '').toLowerCase().includes(query))) return false;
       return true;
     });
 
-    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, filtered.length)} of ${filtered.length} matches`;
-    document.getElementById('show-more-container').style.display = (filtered.length > displayLimit) ? 'block' : 'none';
+    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, currentFilteredList.length)} of ${currentFilteredList.length} matches`;
+    document.getElementById('show-more-container').style.display = (currentFilteredList.length > displayLimit) ? 'block' : 'none';
 
     const list = document.getElementById('results-list');
     list.innerHTML = '';
     
-    filtered.slice(0, displayLimit).forEach((p, index) => {
+    currentFilteredList.slice(0, displayLimit).forEach((p, index) => {
       const card = document.createElement('div');
       card.className = 'plant-card';
+      
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
       const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
+
+      let soils = [];
+      if(p['CLAY_SOIL'] === 'Yes') soils.push('Clay');
+      if(p['SAND_SOIL'] === 'Yes') soils.push('Sand');
+      if(p['GRAVEL_SOIL'] === 'Yes') soils.push('Gravel');
+      if(p['LOAM_SOIL'] === 'Yes') soils.push('Loam');
+      if(p['SILT_SOIL'] === 'Yes') soils.push('Silt');
+      if(p['PEAT_SOIL'] === 'Yes') soils.push('Peat');
+      if(p['CHALKY_SOIL'] === 'Yes') soils.push('Chalky');
 
       let allFieldsHtml = '';
       Object.keys(p).forEach(key => {
@@ -242,6 +269,10 @@
         <h4>${p['Common Name'] || 'Unknown'}</h4>
         <p><em>${p['Scientific Name'] || ''}</em></p>
         <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
+        <p><strong>VENDOR:</strong> ${p['Vendor'] || 'None Listed'}</p>
+        <p><strong>SOIL:</strong> ${soils.length > 0 ? soils.join(', ') : 'Any'}</p>
+        <p><strong>WATER:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
+        <p><strong>SUN:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
         <div class="card-actions">
           <button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>
           ${sourceHtml}
@@ -252,72 +283,75 @@
     });
   }
 
+  // Export Functions
+  function exportExcel() {
+    if (currentFilteredList.length === 0) return alert("No results to export.");
+    const worksheet = XLSX.utils.json_to_sheet(currentFilteredList);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "SPADE_Plants");
+    XLSX.writeFile(workbook, "SPADE_Site_Plan.xlsx");
+  }
+
+  function exportSheets() {
+    if (currentFilteredList.length === 0) return alert("No results to export.");
+    const csv = Papa.unparse(currentFilteredList);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "SPADE_For_Google_Sheets.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   function toggleDetails(idx) {
     document.getElementById(`details-${idx}`).classList.toggle('active');
   }
 
-  // ZIP Code Logic
   async function useZipCode() {
     const zip = document.getElementById('zip-input').value;
     const status = document.getElementById('status');
     if (!/^\d{5}$/.test(zip)) {
-      status.textContent = "Please enter a valid 5-digit ZIP code.";
+      status.textContent = "Please enter a 5-digit ZIP code.";
       return;
     }
-
-    status.textContent = `🔍 Looking up ZIP ${zip}...`;
+    status.textContent = `🔍 Searching ZIP ${zip}...`;
     try {
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
-      if (!res.ok) throw new Error("ZIP code not found");
+      if (!res.ok) throw new Error("ZIP not found");
       const data = await res.json();
-      const lat = parseFloat(data.places[0].latitude);
-      const lng = parseFloat(data.places[0].longitude);
-      matchLocationToRegion(lat, lng);
-    } catch (err) {
-      status.textContent = "Error: ZIP code lookup failed.";
-    }
+      matchLocationToRegion(parseFloat(data.places[0].latitude), parseFloat(data.places[0].longitude));
+    } catch (err) { status.textContent = "Error: ZIP not found."; }
   }
 
   async function useMyLocation() {
     const status = document.getElementById('status');
-    const btn = document.getElementById('geo-btn');
     if (!navigator.geolocation) {
       status.textContent = "Geolocation not supported";
       return;
     }
-    status.textContent = "🛰️ Requesting coordinates...";
-    btn.disabled = true;
-
+    status.textContent = "🛰️ Requesting GPS...";
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        matchLocationToRegion(pos.coords.latitude, pos.coords.longitude);
-        btn.disabled = false;
-      },
-      (err) => {
-        status.textContent = "Error: " + err.message;
-        btn.disabled = false;
-      },
+      (pos) => matchLocationToRegion(pos.coords.latitude, pos.coords.longitude),
+      (err) => status.textContent = "Error: " + err.message,
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
 
-  // Unified logic for GPS and ZIP
   function matchLocationToRegion(lat, lng) {
     const status = document.getElementById('status');
     const results = leafletPip.pointInLayer([lng, lat], geoLayer);
-
     if (results.length > 0) {
-      const match = results[0];
-      const key = match.feature.properties.L3_KEY;
-      const name = match.feature.properties.US_L3NAME || "Region";
-      
-      selectedL3Key = key;
-      document.getElementById('selected-region').textContent = `${key}: ${name}`;
+      const f = results[0].feature;
+      selectedL3Key = f.properties.L3_KEY;
+      document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME || "Region"}`;
       map.setView([lat, lng], 8);
       renderResults(true);
-      status.textContent = `📍 Ecoregion Identified: ${name}`;
+      status.textContent = `📍 Located: ${f.properties.US_L3NAME}`;
     } else {
-      status.textContent = "No matching ecoregion found for these coordinates.";
+      status.textContent = "Location found, but no ecoregion match.";
       map.setView([lat, lng], 7);
     }
   }
@@ -342,7 +376,6 @@
   async function loadMap() {
     map = L.map('map').setView([37.8, -96], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
     try {
       const geoRes = await fetch(ECO_URL);
       const geoJSON = await geoRes.json();
