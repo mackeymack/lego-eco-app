@@ -1,0 +1,748 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>My S.P.A.D.E.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; }
+    #wrap { display:grid; grid-template-columns: 480px 1fr; height:100vh; }
+    #sidebar { padding:12px; border-right:1px solid #ddd; overflow:auto; background:#fff; }
+    #map { height:100vh; }
+
+    h2 { margin: 8px 0 6px; }
+    .small { color:#666; font-size:12px; }
+    .pill { display:inline-block; padding:6px 10px; border:1px solid #ddd; border-radius:999px; margin-top:6px; background:#fafafa; }
+    .row { margin:12px 0; }
+    label { display:block; font-weight:700; margin:0 0 6px; }
+
+    input, select, button {
+      width:100%;
+      padding:8px;
+      box-sizing:border-box;
+      border-radius:10px;
+      border:1px solid #ccc;
+      font-size:14px;
+    }
+    button { cursor:pointer; background:#111; color:#fff; border-color:#111; }
+    button.secondary { background:#fff; color:#111; border-color:#ccc; }
+    button.smallBtn { width:auto; padding:6px 10px; font-size:12px; border-radius:10px; }
+
+    .filtersHeader { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+    .filtersHeader .left { flex:1; }
+    .filtersHeader .right { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .filtersHeader .right button { width:auto; }
+
+    #filtersGrid {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .filterBox {
+      border:1px solid #eee;
+      border-radius:12px;
+      padding:10px;
+      background:#fff;
+    }
+    .filterLabel { font-weight:700; font-size:12px; margin-bottom:6px; }
+    .filterHint { font-size:11px; color:#777; margin-top:6px; }
+    .hidden { display:none !important; }
+
+    .plant { border:1px solid #eee; border-radius:12px; padding:10px; margin:10px 0; background:#fff; }
+    .plant b { display:block; margin-bottom:3px; font-size:16px; }
+    .kv { margin-top:6px; }
+    .kv div { font-size:12px; color:#333; margin:2px 0; }
+    .kv span.key { color:#666; }
+    code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
+
+    /* Debug */
+    #debugFab { position:fixed; right:14px; bottom:14px; z-index:9999; padding:10px 12px; border-radius:999px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; font-size:14px; width:auto; }
+    #debugModalBackdrop { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9998; display:none; }
+    #debugModal { position:fixed; right:14px; bottom:62px; width:min(640px, calc(100vw - 28px)); height:min(460px, calc(100vh - 90px)); background:#fff; border:1px solid #ddd; border-radius:14px; z-index:9999; display:none; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.25); }
+    #debugModalHeader { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #eee; background:#f7f7f7; }
+    #debugModalHeader .btnRow { display:flex; gap:8px; }
+    .debugBtn { width:auto; padding:6px 10px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:12px; color:#111; }
+    #debugLogArea { height:calc(100% - 46px); padding:10px 12px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; white-space:pre-wrap; background:#fff; }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="sidebar">
+      <h2>🐢🔥My S.P.A.D.E.</h2>
+      <div class="small">Dropdown options come from your spreadsheet values (Yes/No, growth times, etc). Click an ecoregion to narrow options to that region.</div>
+
+      <div class="row">
+        <label>Selected Ecoregion</label>
+        <div id="selectedRegion" class="pill">(None)</div>
+        <div class="small" style="margin-top:6px;">Filters use <b>AND logic</b> (must match all selected traits).</div>
+      </div>
+
+      <div class="row">
+        <label>Search (Common or Scientific name)</label>
+        <input id="searchBox" placeholder="type to filter…" />
+      </div>
+
+      <div class="row">
+        <div class="filtersHeader">
+          <div class="left">
+            <label style="margin:0;">Filters (separate per category)</label>
+            <div class="small">
+              Vendor + links are removed. “Advanced” hides high-cardinality columns automatically.
+            </div>
+          </div>
+          <div class="right">
+            <button id="clearFiltersBtn" class="secondary smallBtn" type="button">Clear filters</button>
+            <button id="toggleAdvancedBtn" class="secondary smallBtn" type="button">Show advanced</button>
+          </div>
+        </div>
+
+        <div id="filtersGrid"></div>
+      </div>
+
+      <div class="row">
+        <label>Results <span class="small" id="resultCount"></span></label>
+        <div id="results"></div>
+      </div>
+
+      <hr/>
+      <div class="small" id="status">Loading…</div>
+      <div class="small" id="colInfo"></div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <button id="debugFab">Debug</button>
+  <div id="debugModalBackdrop"></div>
+  <div id="debugModal">
+    <div id="debugModalHeader">
+      <b>Debug Log</b>
+      <div class="btnRow">
+        <button class="debugBtn" id="debugCopyBtn">Copy</button>
+        <button class="debugBtn" id="debugClearBtn">Clear</button>
+        <button class="debugBtn" id="debugCloseBtn">Close</button>
+      </div>
+    </div>
+    <div id="debugLogArea">(No logs yet)</div>
+  </div>
+
+<script>
+  // ============================================================
+  // FILES IN /assets/
+  // ============================================================
+  const ECOREGIONS_URL = '/assets/us_eco_l3_state_boundaries.json';
+  const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv';
+
+  // ============================================================
+  // REMOVE THESE FILTER COLUMNS COMPLETELY
+  // ============================================================
+  const EXCLUDED_FILTER_COLUMNS = new Set([
+    'Vendor', 'POTENTIAL_VENDOR',
+    'SOURCE_LINK_1', 'SOURCE_LINK_2', 'SOURCE_LINK_3', 'SOURCE_LINK_4'
+  ]);
+
+  // ============================================================
+  // Debug
+  // ============================================================
+  const DEBUG_LOG_MAX_LINES = 300;
+  let debugLines = [];
+  function logDebug(message, data){
+    const ts = new Date().toISOString().replace('T',' ').replace('Z','');
+    let line = `[${ts}] ${message}`;
+    if (data !== undefined) { try { line += ` | ${typeof data === 'string' ? data : JSON.stringify(data)}`; } catch { line += ` | (unstringifiable)`; } }
+    debugLines.push(line);
+    if (debugLines.length > DEBUG_LOG_MAX_LINES) debugLines = debugLines.slice(-DEBUG_LOG_MAX_LINES);
+    const area = document.getElementById('debugLogArea');
+    if (area) area.textContent = debugLines.length ? debugLines.join('\n') : '(No logs yet)';
+  }
+  function openDebug(){ document.getElementById('debugModalBackdrop').style.display='block'; document.getElementById('debugModal').style.display='block'; }
+  function closeDebug(){ document.getElementById('debugModalBackdrop').style.display='none'; document.getElementById('debugModal').style.display='none'; }
+  window.addEventListener('DOMContentLoaded', ()=>{
+    document.getElementById('debugFab').addEventListener('click', openDebug);
+    document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
+    document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
+    document.getElementById('debugClearBtn').addEventListener('click', ()=>{ debugLines=[]; logDebug('🧹 Log cleared'); });
+    document.getElementById('debugCopyBtn').addEventListener('click', async ()=>{
+      try { await navigator.clipboard.writeText(debugLines.join('\n')); logDebug('✅ Copied log'); }
+      catch(err){ logDebug('❌ Copy failed', String(err)); alert('Copy blocked. Select text and copy manually.'); }
+    });
+    logDebug('✅ Debug UI ready');
+  });
+
+  function setStatus(msg){ document.getElementById('status').textContent = msg; logDebug('ℹ️ status', msg); }
+  function normalizeKey(s){ return String(s ?? '').toLowerCase().replace(/[\s_\-]+/g,''); }
+  function normText(s){ return String(s ?? '').toLowerCase().trim(); }
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+  function extractLeadingCode(text){
+    const s = String(text ?? '').trim();
+    const m = s.match(/^(\d{1,3})\b/);
+    return m ? m[1] : '';
+  }
+  function tokenizeCell(cell){
+    const s = String(cell ?? '').trim();
+    if (!s) return [];
+    const parts = s.split(/[,;|\/]+/g).map(x => x.trim()).filter(Boolean);
+    return parts.length ? parts : [s];
+  }
+
+  // ============================================================
+  // Boolean-ish helpers (soil columns, etc.)
+  // ============================================================
+  function isYesNoLike(v){
+    const s = normText(v);
+    return s === 'yes' || s === 'no' || s === 'yes [uncertain]' || s === 'no [uncertain]' || s === 'true' || s === 'false' || s === '1' || s === '0';
+  }
+  function canonicalYesNoOptions(valuesSet){
+    // Always offer Yes/No if column looks boolean-like anywhere.
+    // Also include UNCERTAIN if present in data.
+    const present = new Set([...valuesSet].map(v => String(v).trim()));
+    const base = ['Yes','No'];
+    const extra = [];
+    if (present.has('Yes [UNCERTAIN]')) extra.push('Yes [UNCERTAIN]');
+    if (present.has('No [UNCERTAIN]')) extra.push('No [UNCERTAIN]');
+    // If this dataset uses True/False/1/0, include them if present
+    if (present.has('True')) extra.push('True');
+    if (present.has('False')) extra.push('False');
+    if (present.has('1')) extra.push('1');
+    if (present.has('0')) extra.push('0');
+    return [...base, ...extra];
+  }
+
+  function matchesDropdownCell(cell, want){
+    const w = String(want ?? '').trim();
+    if (!w) return true;
+    const cellStr = String(cell ?? '').trim();
+    if (!cellStr) return false;
+
+    const tokens = tokenizeCell(cellStr);
+    const wn = normText(w);
+    if (tokens.length >= 2) return tokens.some(t => normText(t) === wn);
+
+    // allow contains (ranges like "Full Sun to Part Shade")
+    return normText(cellStr).includes(wn);
+  }
+
+  // ============================================================
+  // Map
+  // ============================================================
+  const map = L.map('map').setView([39.5, -98.35], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
+
+  let ecoregionsLayer = null;
+  let selectedProps = null;
+
+  // ============================================================
+  // CSV state
+  // ============================================================
+  let csvHeaders = [];
+  let plants = []; // { l3Raw, l3Norm, l3Code, commonName, scientificName, raw }
+  const colL3Key = 'L3_KEY';
+  const colCommon = 'Common Name';
+  const colScientific = 'Scientific Name';
+
+  let plantsByL3Raw = new Map();
+  let plantsByL3Norm = new Map();
+  let plantsByCode = new Map();
+
+  function addTo(mapObj, key, item){
+    if (!key) return;
+    if (!mapObj.has(key)) mapObj.set(key, []);
+    mapObj.get(key).push(item);
+  }
+
+  function indexPlants(){
+    plantsByL3Raw = new Map();
+    plantsByL3Norm = new Map();
+    plantsByCode = new Map();
+    for (const p of plants) {
+      addTo(plantsByL3Raw, p.l3Raw, p);
+      addTo(plantsByL3Norm, p.l3Norm, p);
+      if (p.l3Code) addTo(plantsByCode, p.l3Code, p);
+    }
+    logDebug('✅ indexed plants', { rawKeys: plantsByL3Raw.size, normKeys: plantsByL3Norm.size, codes: plantsByCode.size });
+  }
+
+  function getPlantsForRegion(props){
+    if (!props) return [];
+    const rawKey = String(props.L3_KEY ?? '').trim();
+    const normKey = normalizeKey(rawKey);
+    const code = String(props.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+
+    if (rawKey && plantsByL3Raw.has(rawKey)) return plantsByL3Raw.get(rawKey);
+    if (normKey && plantsByL3Norm.has(normKey)) return plantsByL3Norm.get(normKey);
+    if (code && plantsByCode.has(code)) return plantsByCode.get(code);
+    return [];
+  }
+
+  function getCountForRegion(props){ return getPlantsForRegion(props).length; }
+
+  function buildTooltipHtml(props){
+    const rawKey = String(props?.L3_KEY ?? '').trim();
+    const code = String(props?.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+    const name = props?.US_L3NAME || props?.NA_L3NAME || '';
+    const count = getCountForRegion(props);
+    return `
+      <div style="font-size:12px; line-height:1.25;">
+        <div><b>${escapeHtml(code || rawKey || 'Unknown')}</b>${name ? ` — ${escapeHtml(name)}` : ''}</div>
+        <div style="color:#555;">Plants in CSV: <b>${count.toLocaleString()}</b></div>
+      </div>
+    `;
+  }
+
+  function styleForFeature(){ return { color:'#555', weight:1, opacity:0.8, fillColor:'#4f46e5', fillOpacity:0.15 }; }
+  function styleForDimmed(){ return { color:'#777', weight:1, opacity:0.25, fillColor:'#999', fillOpacity:0.05 }; }
+  function styleForSelected(){ return { color:'#111', weight:3, opacity:1, fillColor:'#f59e0b', fillOpacity:0.45 }; }
+
+  function applySelectionStyles(){
+    if (!ecoregionsLayer) return;
+    ecoregionsLayer.eachLayer((layer)=>{
+      const p = layer?.feature?.properties || {};
+      if (!selectedProps) { layer.setStyle(styleForFeature()); return; }
+      const key = String(p.L3_KEY ?? '').trim();
+      const selKey = String(selectedProps.L3_KEY ?? '').trim();
+      if (key && selKey && key === selKey) { layer.setStyle(styleForSelected()); try { layer.bringToFront(); } catch {} }
+      else layer.setStyle(styleForDimmed());
+    });
+  }
+
+  function refreshAllTooltips(){
+    if (!ecoregionsLayer) return;
+    ecoregionsLayer.eachLayer((layer)=>{
+      const p = layer?.feature?.properties || {};
+      const tt = layer.getTooltip ? layer.getTooltip() : null;
+      if (tt && tt.setContent) tt.setContent(buildTooltipHtml(p));
+    });
+  }
+
+  // ============================================================
+  // Filters UI
+  // ============================================================
+  const filtersGrid = document.getElementById('filtersGrid');
+
+  // col -> { el, wrapper, advanced, kind:'dropdown'|'text', isBoolean }
+  const filterControls = new Map();
+  let advancedVisible = false;
+
+  function setAdvancedVisible(visible){
+    advancedVisible = visible;
+    for (const ctrl of filterControls.values()) {
+      if (!ctrl.advanced) continue;
+      ctrl.wrapper.classList.toggle('hidden', !advancedVisible);
+    }
+    document.getElementById('toggleAdvancedBtn').textContent = advancedVisible ? 'Hide advanced' : 'Show advanced';
+  }
+
+  function clearAllFilters(){
+    for (const ctrl of filterControls.values()) ctrl.el.value = '';
+  }
+
+  document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+    clearAllFilters();
+    renderResults();
+  });
+  document.getElementById('toggleAdvancedBtn').addEventListener('click', ()=>{
+    setAdvancedVisible(!advancedVisible);
+  });
+
+  // Decide "advanced" WITHOUT vendor/links (they’re removed)
+  function isAdvancedColumnBestGuess(col, uniqueEstimate){
+    // Put very high-cardinality columns into advanced (too many unique options)
+    if (uniqueEstimate > 60) return true;
+    // Long text-ish columns often explode (keep advanced)
+    const n = normalizeKey(col);
+    if (n.includes('where') || n.includes('period')) return true;
+    return false;
+  }
+
+  function decideKind(col, uniqueEstimate){
+    // If too many unique values, use text filter instead of dropdown
+    if (uniqueEstimate > 120) return 'text';
+    return 'dropdown';
+  }
+
+  function setSelectOptions(selectEl, values){
+    const current = String(selectEl.value ?? '');
+    selectEl.innerHTML = '';
+
+    const anyOpt = document.createElement('option');
+    anyOpt.value = '';
+    anyOpt.textContent = '(Any)';
+    selectEl.appendChild(anyOpt);
+
+    for (const v of values) {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      selectEl.appendChild(opt);
+    }
+
+    const has = [...selectEl.options].some(o => o.value === current);
+    selectEl.value = has ? current : '';
+  }
+
+  function uniqueValuesFromList(list, col){
+    const set = new Set();
+    for (const p of list) {
+      const cell = String(p.raw?.[col] ?? '').trim();
+      if (!cell) continue;
+      tokenizeCell(cell).forEach(t => set.add(t));
+    }
+    return set;
+  }
+
+  function rebuildDropdownOptionsFromList(list){
+    for (const [col, ctrl] of filterControls.entries()) {
+      if (ctrl.kind !== 'dropdown') continue;
+
+      const valuesSet = uniqueValuesFromList(list, col);
+
+      // If column is boolean-like, show Yes/No (+ uncertain if present)
+      if (ctrl.isBoolean) {
+        setSelectOptions(ctrl.el, canonicalYesNoOptions(valuesSet));
+      } else {
+        const vals = [...valuesSet].filter(v => String(v).trim() !== '').sort((a,b)=>String(a).localeCompare(String(b)));
+        setSelectOptions(ctrl.el, vals);
+      }
+    }
+  }
+
+  function getActiveFilters(){
+    const active = [];
+    for (const [col, ctrl] of filterControls.entries()) {
+      const v = String(ctrl.el.value ?? '').trim();
+      if (!v) continue;
+      active.push({ col, kind: ctrl.kind, value: v });
+    }
+    return active;
+  }
+
+  function buildFilterControls(globalStats){
+    filtersGrid.innerHTML = '';
+    filterControls.clear();
+
+    // exclude name columns + vendor/link columns
+    const excluded = new Set([colL3Key, colCommon, colScientific, ...EXCLUDED_FILTER_COLUMNS]);
+
+    // Preferred ordering
+    const preferred = [
+      'Ecoregion','Plant Type',
+      'ROOT_TYPE','ROOT_DEPTH',
+      'PLANT_GROWTH_TIME','PLANTING_SEASON','SUN_EXPOSURE','WATER_NEEDS',
+      'Height (feet)','Lifespan','Soil Moisture','pH (Range)','Active Growth Period',
+      'Drought Tolerance','Fire Tolerance','Pollinators',
+      'GRAVEL_SOIL','SAND_SOIL','LOAM_SOIL','CHALKY_SOIL','SILT_SOIL','CLAY_SOIL','PEAT_SOIL',
+      'INVASIVE','INVASIVE_WHERE'
+    ];
+
+    const cols = csvHeaders.filter(c => c && c.trim() && !excluded.has(c));
+
+    const ordered = [];
+    for (const p of preferred) {
+      const found = cols.find(c => normalizeKey(c) === normalizeKey(p));
+      if (found && !ordered.includes(found)) ordered.push(found);
+    }
+    for (const c of cols.sort((a,b)=>a.localeCompare(b))) {
+      if (!ordered.includes(c)) ordered.push(c);
+    }
+
+    for (const col of ordered) {
+      const stats = globalStats[col] || { uniqueEstimate: 0, sampleUniques: new Set() };
+      const kind = decideKind(col, stats.uniqueEstimate);
+
+      // Boolean-like if sampled uniques are all yes/no-ish (soil types etc.)
+      const sampleVals = [...stats.sampleUniques].filter(v => String(v).trim() !== '');
+      const isBoolean = sampleVals.length > 0 && sampleVals.length <= 12 && sampleVals.every(isYesNoLike);
+
+      const advanced = isAdvancedColumnBestGuess(col, stats.uniqueEstimate);
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'filterBox' + (advanced && !advancedVisible ? ' hidden' : '');
+
+      const label = document.createElement('div');
+      label.className = 'filterLabel';
+      label.textContent = col + (advanced ? ' (advanced)' : '');
+      wrapper.appendChild(label);
+
+      if (kind === 'dropdown') {
+        const sel = document.createElement('select');
+        sel.innerHTML = `<option value="">(Any)</option>`;
+        sel.addEventListener('change', renderResults);
+        wrapper.appendChild(sel);
+
+        const hint = document.createElement('div');
+        hint.className = 'filterHint';
+        hint.textContent = isBoolean
+          ? 'Dropdown (Yes/No + UNCERTAIN if present)'
+          : 'Dropdown (values pulled from spreadsheet)';
+        wrapper.appendChild(hint);
+
+        filtersGrid.appendChild(wrapper);
+        filterControls.set(col, { el: sel, wrapper, advanced, kind:'dropdown', isBoolean });
+
+      } else {
+        const inp = document.createElement('input');
+        inp.placeholder = 'type to match (contains)…';
+        inp.addEventListener('input', renderResults);
+        wrapper.appendChild(inp);
+
+        const hint = document.createElement('div');
+        hint.className = 'filterHint';
+        hint.textContent = 'Text filter (contains) — used when there are too many dropdown values';
+        wrapper.appendChild(hint);
+
+        filtersGrid.appendChild(wrapper);
+        filterControls.set(col, { el: inp, wrapper, advanced, kind:'text', isBoolean:false });
+      }
+    }
+
+    setAdvancedVisible(false);
+  }
+
+  // ============================================================
+  // Results
+  // ============================================================
+  function renderResults(){
+    const elResults = document.getElementById('results');
+    const elCount = document.getElementById('resultCount');
+    elResults.innerHTML = '';
+    elCount.textContent = '';
+
+    if (!selectedProps) {
+      elResults.innerHTML = '<div class="small">Click an ecoregion to see plants.</div>';
+      return;
+    }
+
+    const base = getPlantsForRegion(selectedProps);
+    const q = normText(document.getElementById('searchBox').value);
+    const activeFilters = getActiveFilters();
+
+    const filtered = base.filter(p => {
+      if (q) {
+        const ok = normText(p.commonName).includes(q) || normText(p.scientificName).includes(q);
+        if (!ok) return false;
+      }
+
+      for (const f of activeFilters) {
+        const cell = p.raw?.[f.col];
+        if (f.kind === 'dropdown') {
+          if (!matchesDropdownCell(cell, f.value)) return false;
+        } else {
+          const cellStr = String(cell ?? '').trim();
+          if (!cellStr) return false;
+          if (!normText(cellStr).includes(normText(f.value))) return false;
+        }
+      }
+      return true;
+    });
+
+    const shown = filtered.slice(0, 80);
+    elCount.textContent = `(${filtered.length} matches${filtered.length > shown.length ? `, showing first ${shown.length}` : ''})`;
+
+    if (activeFilters.length) {
+      const div = document.createElement('div');
+      div.className = 'small';
+      div.style.margin = '6px 0 10px';
+      div.innerHTML =
+        `<b>Active filters:</b> ` +
+        activeFilters.map(f => `${escapeHtml(f.col)} = <code>${escapeHtml(f.value)}</code>`).join(' &nbsp; ');
+      elResults.appendChild(div);
+    }
+
+    // Show key columns always if present
+    const always = [];
+    const wantAlways = ['Plant Type','ROOT_TYPE','ROOT_DEPTH','Soil Moisture','SUN_EXPOSURE','WATER_NEEDS','Drought Tolerance','pH (Range)','Height (feet)','PLANT_GROWTH_TIME','INVASIVE'];
+    for (const w of wantAlways) {
+      const found = csvHeaders.find(h => normalizeKey(h) === normalizeKey(w));
+      if (found && !always.includes(found)) always.push(found);
+    }
+
+    for (const p of shown) {
+      const card = document.createElement('div');
+      card.className = 'plant';
+
+      const lines = [];
+
+      for (const c of always) {
+        const v = String(p.raw?.[c] ?? '').trim();
+        if (v) lines.push(`<div><span class="key">${escapeHtml(c)}:</span> ${escapeHtml(v)}</div>`);
+      }
+
+      for (const f of activeFilters) {
+        if (always.includes(f.col)) continue;
+        const v = String(p.raw?.[f.col] ?? '').trim();
+        if (v) lines.push(`<div><span class="key">${escapeHtml(f.col)}:</span> ${escapeHtml(v)}</div>`);
+      }
+
+      card.innerHTML = `
+        <b>${escapeHtml(p.commonName || '(no common name)')}</b>
+        <div class="small"><i>${escapeHtml(p.scientificName || '(no scientific name)')}</i></div>
+        ${lines.length ? `<div class="kv">${lines.join('')}</div>` : `<div class="small">(No extra details)</div>`}
+      `;
+      elResults.appendChild(card);
+    }
+
+    if (!shown.length) {
+      const msg = document.createElement('div');
+      msg.className = 'small';
+      msg.textContent = 'No plants match those filters for this ecoregion. Clear a filter or choose different values.';
+      elResults.appendChild(msg);
+    }
+  }
+
+  // ============================================================
+  // Load CSV
+  // ============================================================
+  async function loadPlantDatabaseCSV(){
+    setStatus('Loading plant database CSV…');
+    logDebug('➡️ fetch CSV', DATABASE_CSV_URL);
+
+    const res = await fetch(DATABASE_CSV_URL, { cache:'no-store' });
+    logDebug('⬅️ CSV status', res.status);
+    if (!res.ok) throw new Error(`Failed to load CSV: ${res.status}`);
+
+    const text = await res.text();
+    const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
+    const rows = parsed.data || [];
+    if (!rows.length) throw new Error('CSV loaded but has 0 rows.');
+
+    csvHeaders = Object.keys(rows[0] || {});
+
+    // Global stats to decide advanced/text/dropdown and boolean detection
+    const globalStats = {};
+    for (const col of csvHeaders) {
+      const set = new Set();
+      const sampleLimit = Math.min(rows.length, 6000);
+      for (let i=0;i<sampleLimit;i++){
+        const v = String(rows[i]?.[col] ?? '').trim();
+        if (!v) continue;
+        set.add(v);
+        if (set.size > 220) break;
+      }
+      globalStats[col] = { uniqueEstimate: set.size, sampleUniques: set };
+    }
+
+    plants = rows.map(r => {
+      const l3Raw = String(r[colL3Key] ?? '').trim();
+      return {
+        l3Raw,
+        l3Norm: normalizeKey(l3Raw),
+        l3Code: extractLeadingCode(l3Raw),
+        commonName: String(r[colCommon] ?? '').trim(),
+        scientificName: String(r[colScientific] ?? '').trim(),
+        raw: r
+      };
+    });
+
+    indexPlants();
+
+    document.getElementById('colInfo').innerHTML = `
+      <div class="small">
+        Loaded <b>${rows.length.toLocaleString()}</b> rows and <b>${csvHeaders.length}</b> columns.
+        Vendor + link columns removed from filters.
+      </div>
+    `;
+
+    // Build filters UI
+    buildFilterControls(globalStats);
+
+    // IMPORTANT: populate dropdowns RIGHT AWAY from entire spreadsheet (so it won't just say "(Any)")
+    rebuildDropdownOptionsFromList(plants);
+
+    // Now tooltips can show correct plant counts
+    refreshAllTooltips();
+
+    setStatus('CSV loaded. Click an ecoregion to narrow filter options to that region.');
+  }
+
+  // ============================================================
+  // Load GeoJSON map
+  // ============================================================
+  async function loadEcoregionsGeoJSON(){
+    setStatus('Loading ecoregion map…');
+    logDebug('➡️ fetch GeoJSON', ECOREGIONS_URL);
+
+    const res = await fetch(ECOREGIONS_URL, { cache:'no-store' });
+    logDebug('⬅️ GeoJSON status', res.status);
+    if (!res.ok) throw new Error(`Failed to load map JSON: ${res.status}`);
+
+    const geojson = await res.json();
+    logDebug('✅ GeoJSON parsed', { type: geojson.type, features: geojson.features?.length });
+
+    if (ecoregionsLayer) { try { map.removeLayer(ecoregionsLayer); } catch {} }
+
+    function onEachFeature(feature, layer){
+      const p = feature.properties || {};
+      layer.bindTooltip(buildTooltipHtml(p), { sticky:true, direction:'auto', opacity:0.95 });
+
+      layer.on('mouseover', ()=>{
+        const tt = layer.getTooltip ? layer.getTooltip() : null;
+        if (tt && tt.setContent) tt.setContent(buildTooltipHtml(p));
+        layer.setStyle({ weight:2, opacity:1, fillOpacity:0.30 });
+      });
+
+      layer.on('mouseout', ()=>{
+        if (!selectedProps) layer.setStyle(styleForFeature());
+        else {
+          const key = String(p.L3_KEY ?? '').trim();
+          const selKey = String(selectedProps.L3_KEY ?? '').trim();
+          if (key && selKey && key === selKey) layer.setStyle(styleForSelected());
+          else layer.setStyle(styleForDimmed());
+        }
+      });
+
+      layer.on('click', ()=>{
+        selectedProps = p;
+
+        const rawKey = String(p.L3_KEY ?? '').trim();
+        const code = String(p.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+        const name = p.US_L3NAME || p.NA_L3NAME || '';
+
+        document.getElementById('selectedRegion').textContent =
+          rawKey ? `${code || rawKey}${name ? ' — ' + name : ''}` : '(Unknown)';
+
+        logDebug('🗺️ region clicked', { rawKey, code, name });
+
+        applySelectionStyles();
+
+        // Tighten dropdown options to ONLY values that exist in that selected region
+        const regionPlants = getPlantsForRegion(selectedProps);
+        rebuildDropdownOptionsFromList(regionPlants);
+
+        renderResults();
+      });
+    }
+
+    ecoregionsLayer = L.geoJSON(geojson, { style: styleForFeature, onEachFeature }).addTo(map);
+    setStatus('Map loaded. Hover for details; click to select an ecoregion.');
+  }
+
+  // Search event
+  document.getElementById('searchBox').addEventListener('input', renderResults);
+
+  // Boot
+  (async function start(){
+    try {
+      logDebug('🚀 App starting', { ECOREGIONS_URL, DATABASE_CSV_URL });
+      await loadEcoregionsGeoJSON();
+      await loadPlantDatabaseCSV();
+      renderResults();
+      logDebug('✅ App ready');
+    } catch (err) {
+      logDebug('❌ App start error', String(err));
+      setStatus('ERROR: ' + err.message);
+      openDebug();
+    }
+  })();
+</script>
+</body>
+</html>
