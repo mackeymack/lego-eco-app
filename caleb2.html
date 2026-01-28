@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
 
   <style>
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; color: #2d3436; }
@@ -24,11 +25,12 @@
     .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
     
     #gps-btn { 
-      margin-top: 10px; width: 100%; padding: 10px; background: #27ae60; color: white; 
-      border: none; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold; 
-      transition: background 0.2s; 
+      margin-top: 10px; width: 100%; padding: 12px; background: #27ae60; color: white; 
+      border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em; font-weight: bold; 
+      transition: background 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     #gps-btn:hover { background: #1e8449; }
+    #gps-btn:disabled { background: #ccc; cursor: not-allowed; }
 
     h3 { margin: 25px 0 10px; font-size: 1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; text-transform: uppercase; }
     
@@ -70,7 +72,7 @@
 
 <div id="debug-overlay">
   <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px;">
-    <span>S.P.A.D.E. SYSTEM LOG</span>
+    <span>S.P.A.D.E. SYSTEM LOG (TURF ENGINE ACTIVE)</span>
     <div>
       <button class="debug-btn" onclick="document.getElementById('debug-content').innerHTML = ''">Clear</button>
       <button class="debug-btn" onclick="toggleDebug()">Close</button>
@@ -141,7 +143,6 @@
 
   function showMore() {
     displayLimit += increment;
-    sysLog(`Showing next ${increment} results (Total: ${displayLimit})`);
     renderResults(false);
   }
 
@@ -153,7 +154,7 @@
 
   function renderResults(resetLimit = true) {
     if (!plantData) return;
-    if (resetLimit) { displayLimit = 10; sysLog("Resetting display to top 10 matches."); }
+    if (resetLimit) displayLimit = 10;
     const query = document.getElementById('search-box').value.toLowerCase();
     const f = {
       type: document.getElementById('type-filter').value, root: document.getElementById('root-filter').value, moisture: document.getElementById('moisture-filter').value, sun: document.getElementById('sun-filter').value,
@@ -193,56 +194,54 @@
 
   function toggleDetails(idx) { document.getElementById(`details-${idx}`).classList.toggle('active'); }
 
+  // New Turf.js powered GPS matching
   function useGPS() {
     if (!navigator.geolocation) { alert("GPS not supported."); return; }
-    if (!allGeoJSON) { alert("Mapping data still loading. Please wait a second."); return; }
+    if (!allGeoJSON) { alert("Still loading ecoregion shapes..."); return; }
     
-    document.getElementById('status').textContent = "Locating your site...";
-    sysLog("GPS Requested. Searching for match...");
+    document.getElementById('status').textContent = "Calibrating GPS...";
+    sysLog("GPS Requested. Fetching high-accuracy coordinates...");
 
     navigator.geolocation.getCurrentPosition((pos) => {
-      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      sysLog(`Position fixed: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
       
-      let found = allGeoJSON.features.find(feature => isPointInFeature(lng, lat, feature));
+      // Create a Turf point [longitude, latitude]
+      const pt = turf.point([lng, lat]);
+      
+      let found = allGeoJSON.features.find(feature => {
+        // Handle both Polygon and MultiPolygon automatically with Turf
+        return turf.booleanPointInPolygon(pt, feature);
+      });
       
       if (found) {
-        selectedL3Key = found.properties.L3_KEY;
-        const name = found.properties.US_L3NAME || "Identified Region";
+        selectedL3Key = found.properties.L3_KEY.toString();
+        const name = found.properties.US_L3NAME || "Local Region";
         document.getElementById('selected-region').textContent = `${selectedL3Key}: ${name}`;
-        sysLog(`GPS Match Found: Region ${selectedL3Key} (${name})`);
-        map.setView([lat, lng], 10);
-        renderResults(true); // Automatically selects and filters
+        sysLog(`SUCCESS: Located in Region ${selectedL3Key} (${name})`);
+        map.setView([lat, lng], 11);
+        renderResults(true);
       } else {
-        alert("Your location is outside the ecoregions in our database.");
-        sysLog("GPS site location not found in mapping data.");
+        alert("Found your location, but it's outside our survey's ecoregions.");
+        sysLog("GPS site location not within database boundaries.");
       }
     }, (err) => {
-      alert("GPS Access Denied or Error: " + err.message);
-      sysLog("GPS Error: " + err.message);
+      alert("GPS Error: " + err.message + ". Make sure you are using HTTPS.");
+      sysLog("ERROR: GPS Permission Denied or Timeout.");
+    }, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
     });
-  }
-
-  function isPointInFeature(lng, lat, f) {
-    const t = f.geometry.type, c = f.geometry.coordinates;
-    if (t === "Polygon") return ptInPoly(lng, lat, c[0]);
-    if (t === "MultiPolygon") return c.some(p => ptInPoly(lng, lat, p[0]));
-    return false;
-  }
-
-  function ptInPoly(x, y, vs) {
-    let inside = false;
-    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-      if (((vs[i][1] > y) != (vs[j][1] > y)) && (x < (vs[j][0] - vs[i][0]) * (y - vs[i][1]) / (vs[j][1] - vs[i][1]) + vs[i][0])) inside = !inside;
-    }
-    return inside;
   }
 
   async function init() {
     Papa.parse(CSV_URL, { download: true, header: true, complete: (res) => {
       plantData = res.data; 
-      plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
+      plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY.toString()] = (regionCounts[p.L3_KEY.toString()] || 0) + 1; });
       ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter'].forEach((id, i) => populate(id, ['Plant Type', 'ROOT_TYPE', 'Soil Moisture', 'SUN_EXPOSURE'][i], plantData));
-      document.getElementById('status').textContent = 'Database Active'; 
+      document.getElementById('status').textContent = 'Database Ready'; 
       renderResults(); 
       loadMap();
     }});
@@ -259,14 +258,14 @@
         onEachFeature: (f, l) => {
           l.bindTooltip(`Region ${f.properties.L3_KEY}: ${f.properties.US_L3NAME || "Unknown"}`, { sticky: true, className: 'leaflet-tooltip-custom' });
           l.on({ click: (e) => { 
-            selectedL3Key = f.properties.L3_KEY; 
+            selectedL3Key = f.properties.L3_KEY.toString(); 
             document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME || "Region"}`; 
             renderResults(true); 
           } });
         }
       }).addTo(map);
-      sysLog("Map and ecoregion data successfully synchronized.");
-    } catch (err) { sysLog("Map Error: " + err.message); }
+      sysLog("Satellite mapping data synchronized.");
+    } catch (err) { sysLog("Critical Map Error: " + err.message); }
   }
 
   document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
