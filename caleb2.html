@@ -26,14 +26,17 @@
     
     h3 { margin: 25px 0 10px; font-size: 1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; text-transform: uppercase; }
     
-    /* Location Button Style */
     #geo-btn { 
       width: 100%; background: #2980b9; color: white; border: none; padding: 12px; 
-      border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 15px;
+      border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 10px;
       transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     #geo-btn:hover { background: #1f6391; }
     #geo-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
+
+    .zip-container { display: flex; gap: 5px; margin-bottom: 15px; }
+    #zip-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; }
+    #zip-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .row { margin-bottom: 12px; }
@@ -93,6 +96,11 @@
       📍 Use My Current Location
     </button>
 
+    <div class="zip-container">
+      <input type="text" id="zip-input" placeholder="Enter Zip Code" maxlength="5">
+      <button id="zip-btn" onclick="useZipCode()">Go</button>
+    </div>
+
     <div class="row">
       <label>Target Excavation Ecoregion</label>
       <div id="selected-region">Click map or use location</div>
@@ -118,230 +126,4 @@
       <div class="row"><label>Gravel</label><select id="gravel-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
       <div class="row"><label>Loam</label><select id="loam-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
       <div class="row"><label>Silt</label><select id="silt-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Peat</label><select id="peat-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Chalky</label><select id="chalky-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-    </div>
-
-    <div id="status">System starting...</div>
-    <div id="results-count"></div>
-    <div id="results-list"></div>
-    
-    <div id="show-more-container">
-      <button id="show-more-btn" onclick="showMore()">Show More Results</button>
-    </div>
-  </div>
-
-  <div id="map-container">
-    <div id="map"></div>
-  </div>
-</div>
-
-<script>
-  let plantData = null;
-  let selectedL3Key = null;
-  let regionCounts = {};
-  let displayLimit = 10;
-  let map, geoLayer; // Globally scoped for geolocation
-  const increment = 10;
-
-  const ECO_URL = 'assets/us_eco_l3_state_boundaries.json'; 
-  const CSV_URL = 'assets/Database-Deleted-Categories.csv';
-
-  function sysLog(msg) {
-    const content = document.getElementById('debug-content');
-    if(content) {
-        content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-        content.scrollTop = content.scrollHeight;
-    }
-  }
-
-  function toggleDebug() {
-    const overlay = document.getElementById('debug-overlay');
-    overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
-  }
-
-  function showMore() {
-    displayLimit += increment;
-    renderResults(false);
-  }
-
-  function populate(id, col, data) {
-    const sel = document.getElementById(id);
-    const vals = new Set();
-    data.forEach(r => { if(r[col] && r[col] !== '0') r[col].split(',').forEach(v => vals.add(v.trim())); });
-    Array.from(vals).sort().forEach(v => {
-      const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
-    });
-  }
-
-  function renderResults(resetLimit = true) {
-    if (!plantData) return;
-    if (resetLimit) displayLimit = 10;
-
-    const query = document.getElementById('search-box').value.toLowerCase();
-    const filters = {
-      type: document.getElementById('type-filter').value,
-      root: document.getElementById('root-filter').value,
-      moisture: document.getElementById('moisture-filter').value,
-      sun: document.getElementById('sun-filter').value,
-      clay: document.getElementById('clay-filter').value,
-      sand: document.getElementById('sand-filter').value,
-      gravel: document.getElementById('gravel-filter').value,
-      loam: document.getElementById('loam-filter').value,
-      silt: document.getElementById('silt-filter').value,
-      peat: document.getElementById('peat-filter').value,
-      chalky: document.getElementById('chalky-filter').value
-    };
-
-    const filtered = plantData.filter(p => {
-      if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
-      if (filters.type !== 'all' && !(p['Plant Type'] || '').includes(filters.type)) return false;
-      if (filters.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(filters.root)) return false;
-      if (filters.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(filters.moisture)) return false;
-      if (filters.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(filters.sun)) return false;
-      if (filters.clay !== 'all' && p['CLAY_SOIL'] !== filters.clay) return false;
-      if (filters.sand !== 'all' && p['SAND_SOIL'] !== filters.sand) return false;
-      if (filters.gravel !== 'all' && p['GRAVEL_SOIL'] !== filters.gravel) return false;
-      if (filters.loam !== 'all' && p['LOAM_SOIL'] !== filters.loam) return false;
-      if (filters.silt !== 'all' && p['SILT_SOIL'] !== filters.silt) return false;
-      if (filters.peat !== 'all' && p['PEAT_SOIL'] !== filters.peat) return false;
-      if (filters.chalky !== 'all' && p['CHALKY_SOIL'] !== filters.chalky) return false;
-      if (query && !((p['Common Name'] || '').toLowerCase().includes(query) || (p['Scientific Name'] || '').toLowerCase().includes(query))) return false;
-      return true;
-    });
-
-    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, filtered.length)} of ${filtered.length} matches`;
-    document.getElementById('show-more-container').style.display = (filtered.length > displayLimit) ? 'block' : 'none';
-
-    const list = document.getElementById('results-list');
-    list.innerHTML = '';
-    
-    filtered.slice(0, displayLimit).forEach((p, index) => {
-      const card = document.createElement('div');
-      card.className = 'plant-card';
-      const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
-      const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
-
-      let allFieldsHtml = '';
-      Object.keys(p).forEach(key => {
-        if(p[key] && p[key] !== '0' && p[key] !== '') {
-          allFieldsHtml += `<div><strong>${key}:</strong> ${p[key]}</div>`;
-        }
-      });
-
-      card.innerHTML = `
-        <h4>${p['Common Name'] || 'Unknown'}</h4>
-        <p><em>${p['Scientific Name'] || ''}</em></p>
-        <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
-        <div class="card-actions">
-          <button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>
-          ${sourceHtml}
-        </div>
-        <div id="details-${index}" class="details-pane">${allFieldsHtml}</div>
-      `;
-      list.appendChild(card);
-    });
-  }
-
-  function toggleDetails(idx) {
-    document.getElementById(`details-${idx}`).classList.toggle('active');
-  }
-
-  async function useMyLocation() {
-    const status = document.getElementById('status');
-    const btn = document.getElementById('geo-btn');
-    
-    if (!navigator.geolocation) {
-      status.textContent = "Geolocation not supported";
-      return;
-    }
-
-    status.textContent = "🛰️ Requesting coordinates...";
-    btn.disabled = true;
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        sysLog(`GPS: ${lat}, ${lng}`);
-
-        // Point-in-polygon check using leaflet-pip
-        // Note: leaflet-pip expects [lng, lat]
-        const results = leafletPip.pointInLayer([lng, lat], geoLayer);
-
-        if (results.length > 0) {
-          const match = results[0];
-          const key = match.feature.properties.L3_KEY;
-          const name = match.feature.properties.US_L3NAME || "Region";
-          
-          selectedL3Key = key;
-          document.getElementById('selected-region').textContent = `${key}: ${name}`;
-          
-          map.setView([lat, lng], 8);
-          renderResults(true);
-          status.textContent = `📍 Located in ${name}`;
-        } else {
-          status.textContent = "Location found, but no matching ecoregion in data.";
-          map.setView([lat, lng], 7);
-        }
-        btn.disabled = false;
-      },
-      (err) => {
-        status.textContent = "Error: " + err.message;
-        btn.disabled = false;
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }
-
-  async function init() {
-    Papa.parse(CSV_URL, {
-      download: true, header: true,
-      complete: (res) => {
-        plantData = res.data;
-        plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
-        populate('type-filter', 'Plant Type', plantData);
-        populate('root-filter', 'ROOT_TYPE', plantData);
-        populate('moisture-filter', 'Soil Moisture', plantData);
-        populate('sun-filter', 'SUN_EXPOSURE', plantData);
-        document.getElementById('status').textContent = 'Database Active';
-        renderResults();
-        loadMap();
-      }
-    });
-  }
-
-  async function loadMap() {
-    map = L.map('map').setView([37.8, -96], 4); // National view
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-    try {
-      const geoRes = await fetch(ECO_URL);
-      const geoJSON = await geoRes.json();
-      
-      geoLayer = L.geoJSON(geoJSON, {
-        style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
-        onEachFeature: (f, l) => {
-          const key = f.properties.L3_KEY;
-          const count = regionCounts[key] || 0;
-          l.bindTooltip(`Region ${key}: ${f.properties.US_L3NAME || "Unknown"}<br/>${count} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
-          l.on({
-            mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
-            mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
-            click: (e) => {
-              selectedL3Key = key;
-              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME || "Region"}`;
-              renderResults(true);
-            }
-          });
-        }
-      }).addTo(map);
-    } catch (e) { sysLog("Map Sync Error: " + e.message); }
-  }
-
-  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
-  window.onload = init;
-</script>
-
-</body>
-</html>
+      <div class="row"><label>Peat</label><select id="peat-filter"><option value="all">Any</option><option value="Yes">Yes</option
