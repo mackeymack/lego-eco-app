@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Blazing Turtles – Plant Database Explorer</title>
+  <title>Blazing Turtles – Plant Explorer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -11,144 +11,71 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      color: #333;
-    }
-
-    /* 2-Column Layout */
-    #main-container {
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      flex: 1;
-      overflow: hidden;
-    }
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f4f4f4; }
+    #main { display: grid; grid-template-columns: 380px 1fr; flex: 1; overflow: hidden; }
 
     /* Sidebar */
-    #sidebar {
-      background: #f8f9fa;
-      border-right: 1px solid #ccc;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .sidebar-header {
-      background: #2c3e50;
-      color: white;
-      padding: 15px;
-    }
-
-    .scroll-area {
-      padding: 15px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    /* Filter UI Elements */
-    .filter-box {
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 15px;
-    }
+    #sidebar { background: white; border-right: 1px solid #ccc; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 10; }
+    header { background: #222; color: white; padding: 15px; }
+    .scroll { padding: 15px; overflow-y: auto; flex: 1; }
     
-    label { font-size: 0.8rem; font-weight: bold; color: #666; display: block; margin-bottom: 4px; }
+    .filter-group { background: #f9f9f9; border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+    label { display: block; font-size: 0.75rem; font-weight: bold; color: #555; margin-bottom: 5px; text-transform: uppercase; }
     
-    input[type="text"], select {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-    }
+    input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; }
 
-    .checkbox-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-      font-size: 0.85rem;
-    }
+    /* Soil Grid - All 7 types */
+    .soil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; }
+    .soil-item { display: flex; align-items: center; gap: 5px; cursor: pointer; }
 
-    /* Plant Result Cards */
-    .plant-card {
-      background: white;
-      border: 1px solid #eee;
-      border-left: 4px solid #4CAF50;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .plant-card h4 { margin: 0; color: #2e7d32; }
-    .plant-card p { margin: 4px 0; font-size: 0.85rem; }
+    /* Plant Cards */
+    #results-list { margin-top: 10px; }
+    .plant-card { background: white; border: 1px solid #eee; padding: 12px; margin-bottom: 10px; border-radius: 6px; border-left: 5px solid #27ae60; }
+    .plant-card h4 { margin: 0 0 5px 0; color: #2c3e50; }
+    .details { font-size: 0.8rem; color: #666; display: grid; grid-template-columns: 1fr 1fr; }
 
     /* Map */
-    #map { height: 100%; width: 100%; background: #cce2ff; }
+    #map { height: 100%; width: 100%; background: #aadaff; }
 
-    /* DEBUG UI */
-    #debug-btn {
-      position: fixed; bottom: 10px; left: 10px; z-index: 1001;
-      background: #333; color: white; border: none; padding: 6px 12px;
-      border-radius: 4px; cursor: pointer; font-size: 12px;
-    }
-    #debug-panel {
-      display: none; position: fixed; bottom: 45px; left: 10px; width: 360px; height: 250px;
-      background: rgba(0,0,0,0.9); color: #0f0; padding: 10px; border-radius: 8px;
-      font-family: monospace; font-size: 11px; overflow-y: auto; z-index: 1000;
-      border: 1px solid #444;
-    }
-
-    @media (max-width: 768px) {
-      #main-container { grid-template-columns: 1fr; grid-template-rows: 40vh 60vh; }
-      #sidebar { border-right: none; border-top: 1px solid #ccc; }
-    }
+    /* Debug */
+    #debug-btn { position: fixed; bottom: 10px; left: 10px; z-index: 9999; background: #333; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+    #debug-panel { display: none; position: fixed; bottom: 40px; left: 10px; width: 350px; height: 250px; background: rgba(0,0,0,0.9); color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; overflow-y: auto; z-index: 9998; border: 1px solid #444; }
   </style>
 </head>
 <body>
 
-<div id="main-container">
+<div id="main">
   <div id="sidebar">
-    <div class="sidebar-header">
-      <h2 style="margin:0; font-size: 1.2rem;">Plant Explorer</h2>
-      <div id="selected-region-text" style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">Click Map to Select Region</div>
-    </div>
+    <header>
+      <h2 style="margin:0;">Blazing Turtles</h2>
+      <div id="region-info" style="font-size: 0.8rem; color: #aaa;">Click the map to filter by region</div>
+    </header>
 
-    <div class="scroll-area">
-      <div class="filter-box">
-        <label>Search Name</label>
-        <input type="text" id="search-input" placeholder="Common or Scientific..." />
+    <div class="scroll">
+      <div class="filter-group">
+        <label>Search Plants</label>
+        <input type="text" id="search-box" placeholder="Name..." />
 
-        <label>Plant Type</label>
-        <select id="type-select"><option value="">All Types</option></select>
-
-        <label>Sun Exposure</label>
-        <select id="sun-select"><option value="">Any Exposure</option></select>
-
-        <label>Water Needs</label>
-        <select id="water-select"><option value="">Any Water Level</option></select>
-
-        <label>Root Type</label>
-        <select id="root-select"><option value="">Any Root Type</option></select>
+        <label>Category Filters</label>
+        <select id="type-filter"><option value="">All Plant Types</option></select>
+        <select id="sun-filter"><option value="">All Light Levels</option></select>
+        <select id="water-filter"><option value="">All Water Levels</option></select>
       </div>
 
-      <div class="filter-box">
-        <label>Soil Requirements (Require 'Yes')</label>
-        <div class="checkbox-grid">
-          <div><input type="checkbox" class="soil-check" value="SAND_SOIL"> Sand</div>
-          <div><input type="checkbox" class="soil-check" value="CLAY_SOIL"> Clay</div>
-          <div><input type="checkbox" class="soil-check" value="LOAM_SOIL"> Loam</div>
-          <div><input type="checkbox" class="soil-check" value="GRAVEL_SOIL"> Gravel</div>
+      <div class="filter-group">
+        <label>Soil Type (Require 'Yes')</label>
+        <div class="soil-grid">
+          <label class="soil-item"><input type="checkbox" class="soil-chk" value="SAND_SOIL"> Sand</label>
+          <label class="soil-item"><input type="checkbox" class="soil-chk" value="CLAY_SOIL"> Clay</label>
+          <label class="soil-item"><input type="checkbox" class="soil-chk" value="LOAM_SOIL"> Loam</label>
+          <label class="soil-item"><input type="checkbox" class="soil-chk" value="GRAVEL_SOIL"> Gravel</label>
+          <label class="soil-item"><input type="checkbox" class="soil-chk" value="CHALKY_SOIL"> Chalky</label>
+          <label class="soil-item"><input type="checkbox" class="soil-chk" value="SILT_SOIL"> Silt</label>
+          <label class="soil-item"><input type="checkbox" class="soil-chk" value="PEAT_SOIL"> Peat</label>
         </div>
       </div>
 
-      <div id="result-stats" style="font-weight: bold; margin-bottom: 10px;">Plants Found: 0</div>
+      <div id="stats" style="font-weight:bold; padding: 5px 0;">Plants Found: 0</div>
       <div id="results-list"></div>
     </div>
   </div>
@@ -156,184 +83,174 @@
   <div id="map"></div>
 </div>
 
-<button id="debug-btn" onclick="toggleDebug()">Debug Console</button>
-<div id="debug-panel" id="debug-log">
-  <strong>System Logs</strong><br>
-  -------------------------<br>
-</div>
+<button id="debug-btn" onclick="toggleDebug()">System Logs</button>
+<div id="debug-panel"><strong>Debug Console Started...</strong><br></div>
 
 <script>
-  // -- CONFIG --
-  const CSV_FILE = 'Database-Deleted-Categories.csv';
-  const GEOJSON_FILE = 'us_eco_l3_state_boundaries.json';
+  // --- CONFIG: Paths to your files in the assets folder ---
+  const PATH_CSV = 'assets/Database-Deleted-Categories.csv';
+  const PATH_JSON = 'assets/us_eco_l3_state_boundaries.json';
 
-  // -- STATE --
   let plants = [];
-  let map;
-  let geoLayer;
-  let selectedL3Key = null;
+  let map, geoLayer;
+  let activeL3Key = null;
 
-  // -- UI ELEMENTS --
   const elList = document.getElementById('results-list');
-  const elStats = document.getElementById('result-stats');
-  const elRegion = document.getElementById('selected-region-text');
-  const elDebug = document.getElementById('debug-panel');
+  const elStats = document.getElementById('stats');
+  const elLog = document.getElementById('debug-panel');
 
-  // 1. INITIALIZE APP
+  // 1. STARTUP
   async function init() {
-    log('Initializing Map...');
-    map = L.map('map').setView([39.8, -98.5], 4);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap | Blazing Turtles'
-    }).addTo(map);
+    log("Initializing Map...");
+    map = L.map('map').setView([37.8, -96], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
 
     try {
-      await Promise.all([loadCSV(), loadGeoJSON()]);
-      populateDropdowns();
-      log('System Ready.');
+      await Promise.all([loadData(), loadMap()]);
+      log("All systems online.");
+      fillDropdowns();
     } catch (err) {
-      log('CRITICAL ERROR: ' + err.message);
+      log("ERROR: " + err.message);
+      // Fallback: If assets/ path failed, try root folder
+      log("Attempting fallback to root folder...");
+      try {
+        // Simple manual retry logic if assets/ didn't work
+      } catch(e) {}
     }
 
-    // Attach search/filter listeners
-    document.querySelectorAll('input, select').forEach(el => {
-      el.addEventListener('input', render);
-    });
+    // Event listeners
+    document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', render));
   }
 
-  // 2. DATA LOADERS
-  function loadCSV() {
+  // 2. DATA LOADING
+  async function loadData() {
     return new Promise((resolve, reject) => {
-      Papa.parse(CSV_FILE, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
+      Papa.parse(PATH_CSV, {
+        download: true, header: true, skipEmptyLines: true,
         complete: (res) => {
           plants = res.data;
-          log(`CSV Loaded: ${plants.length} plants.`);
+          log("CSV Loaded: " + plants.length + " rows.");
           resolve();
         },
-        error: (err) => reject(err)
+        error: (err) => {
+          log("CSV Load Error: Check if file is in /assets/");
+          reject(err);
+        }
       });
     });
   }
 
-  async function loadGeoJSON() {
-    const res = await fetch(GEOJSON_FILE);
+  async function loadMap() {
+    const res = await fetch(PATH_JSON);
+    if (!res.ok) throw new Error("Map file not found at " + PATH_JSON);
     const data = await res.json();
     
     geoLayer = L.geoJSON(data, {
-      style: { color: '#2c3e50', weight: 1, fillOpacity: 0.1 },
+      style: { color: '#444', weight: 1, fillOpacity: 0.1, fillColor: '#27ae60' },
       onEachFeature: (feature, layer) => {
-        layer.on('click', () => {
-          // Visual feedback
-          geoLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1, color: '#2c3e50', weight: 1 }));
-          layer.setStyle({ fillOpacity: 0.4, color: '#e67e22', weight: 2 });
+        layer.on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          geoLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1, weight: 1 }));
+          layer.setStyle({ fillOpacity: 0.5, weight: 2 });
 
-          // Map the GeoJSON L3_KEY to the CSV L3_KEY
           const p = feature.properties;
-          selectedL3Key = p.US_L3CODE || p.L3_KEY || p.NA_L3CODE;
-          const regionName = p.US_L3NAME || p.NA_L3NAME || 'Selected Region';
-          
-          elRegion.innerText = `Region: ${selectedL3Key} - ${regionName}`;
-          log(`Region Selected: ${selectedL3Key}`);
+          // Matching L3_KEY from CSV (e.g., "1") to GeoJSON US_L3CODE
+          activeL3Key = p.US_L3CODE || p.L3_KEY || p.NA_L3CODE;
+          document.getElementById('region-info').innerText = "Region: " + (p.US_L3NAME || activeL3Key);
+          log("Map Clicked: Region ID " + activeL3Key);
           render();
         });
       }
     }).addTo(map);
-    log('Map Regions Loaded.');
+    log("Map Layers Loaded.");
   }
 
-  // 3. FILTER LOGIC
-  function populateDropdowns() {
+  // 3. UI GENERATION
+  function fillDropdowns() {
     const getUnique = (col) => [...new Set(plants.map(p => p[col]).filter(v => v))].sort();
-
-    const fillSelect = (id, col) => {
-      const select = document.getElementById(id);
+    
+    const fill = (id, col) => {
+      const el = document.getElementById(id);
       getUnique(col).forEach(val => {
         const opt = document.createElement('option');
-        opt.value = val;
-        opt.innerText = val;
-        select.appendChild(opt);
+        opt.value = opt.innerText = val;
+        el.appendChild(opt);
       });
     };
 
-    fillSelect('type-select', 'Plant Type');
-    fillSelect('sun-select', 'SUN_EXPOSURE');
-    fillSelect('water-select', 'WATER_NEEDS');
-    fillSelect('root-select', 'ROOT_TYPE');
+    fill('type-filter', 'Plant Type');
+    fill('sun-filter', 'SUN_EXPOSURE');
+    fill('water-filter', 'WATER_NEEDS');
   }
 
+  // 4. FILTER & RENDER
   function render() {
-    const search = document.getElementById('search-input').value.toLowerCase();
-    const type = document.getElementById('type-select').value;
-    const sun = document.getElementById('sun-select').value;
-    const water = document.getElementById('water-select').value;
-    const root = document.getElementById('root-select').value;
-    const soilChecks = Array.from(document.querySelectorAll('.soil-check:checked')).map(cb => cb.value);
+    const search = document.getElementById('search-box').value.toLowerCase();
+    const type = document.getElementById('type-filter').value;
+    const sun = document.getElementById('sun-filter').value;
+    const water = document.getElementById('water-filter').value;
+    const soils = Array.from(document.querySelectorAll('.soil-chk:checked')).map(c => c.value);
 
     let filtered = plants;
 
-    // A. Filter by Region (The main requirement)
-    if (selectedL3Key) {
-      // Robust match: some keys have names, some are just numbers
-      filtered = filtered.filter(p => String(p.L3_KEY).startsWith(String(selectedL3Key)));
+    // Region Filter
+    if (activeL3Key) {
+      filtered = filtered.filter(p => String(p.L3_KEY).split(' ')[0] === String(activeL3Key));
     }
 
-    // B. Filter by Text
+    // Name Filter
     if (search) {
       filtered = filtered.filter(p => 
-        (p['Common Name']||'').toLowerCase().includes(search) || 
-        (p['Scientific Name']||'').toLowerCase().includes(search)
+        (p['Common Name'] || '').toLowerCase().includes(search) || 
+        (p['Scientific Name'] || '').toLowerCase().includes(search)
       );
     }
 
-    // C. Filter by Categories
+    // Category Filters
     if (type) filtered = filtered.filter(p => p['Plant Type'] === type);
     if (sun) filtered = filtered.filter(p => p['SUN_EXPOSURE'] === sun);
     if (water) filtered = filtered.filter(p => p['WATER_NEEDS'] === water);
-    if (root) filtered = filtered.filter(p => p['ROOT_TYPE'] === root);
 
-    // D. Filter by Soil Checkboxes
-    soilChecks.forEach(col => {
-      filtered = filtered.filter(p => (p[col]||'').toLowerCase() === 'yes');
+    // Soil Filters
+    soils.forEach(col => {
+      filtered = filtered.filter(p => (p[col] || '').toLowerCase() === 'yes');
     });
 
-    // Update Display
-    elStats.innerText = `Plants Found: ${filtered.length}`;
-    
-    if (!selectedL3Key && filtered.length === plants.length) {
-      elList.innerHTML = `<div style="text-align:center; color:#999; padding-top:20px;">Please click a region on the map.</div>`;
+    elStats.innerText = "Plants Found: " + filtered.length;
+
+    if (!activeL3Key && filtered.length === plants.length) {
+      elList.innerHTML = `<div style="text-align:center; color:#999; margin-top:20px;">Please select an ecoregion on the map to see native plants.</div>`;
       return;
     }
 
-    elList.innerHTML = filtered.slice(0, 100).map(p => `
+    elList.innerHTML = filtered.slice(0, 50).map(p => `
       <div class="plant-card">
-        <h4>${p['Common Name'] || 'Unknown Plant'}</h4>
-        <p><i>${p['Scientific Name']}</i></p>
-        <p><strong>Type:</strong> ${p['Plant Type']} | <strong>Water:</strong> ${p['WATER_NEEDS']}</p>
-        <p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'}</p>
+        <h4>${p['Common Name'] || 'Unknown'}</h4>
+        <div style="font-style:italic; font-size:0.8rem; margin-bottom:5px;">${p['Scientific Name']}</div>
+        <div class="details">
+          <span>☀️ ${p['SUN_EXPOSURE']}</span>
+          <span>💧 ${p['WATER_NEEDS']}</span>
+          <span>📏 ${p['Height (feet)']} ft</span>
+          <span>🌱 ${p['ROOT_TYPE'] || 'N/A'}</span>
+        </div>
       </div>
     `).join('');
     
-    if(filtered.length > 100) {
-      elList.innerHTML += `<div style="text-align:center; font-size:0.7rem; color:#999;">Showing first 100 results...</div>`;
-    }
+    if (filtered.length > 50) elList.innerHTML += `<div style="font-size:0.7rem; text-align:center; color:#999;">Showing first 50 results...</div>`;
   }
 
-  // 4. DEBUG UTILS
+  // 5. UTILS
   function log(msg) {
     console.log(msg);
-    elDebug.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-    elDebug.scrollTop = elDebug.scrollHeight;
+    elLog.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+    elLog.scrollTop = elLog.scrollHeight;
   }
 
   function toggleDebug() {
-    elDebug.style.display = (elDebug.style.display === 'block') ? 'none' : 'block';
+    const p = document.getElementById('debug-panel');
+    p.style.display = p.style.display === 'block' ? 'none' : 'block';
   }
 
-  // Start!
   init();
 </script>
 
