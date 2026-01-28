@@ -1,0 +1,548 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Blazing Turtles – Dig Site Plant Selector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    /* =========================================
+       THEME: Archeologist Field Journal
+       Colors: Earthy greens, clays, and slate
+    ========================================= */
+    :root {
+      --primary: #2d5a27;      /* Forest Green */
+      --secondary: #8c6239;    /* Soil/Clay */
+      --bg-sidebar: #f4f1ea;   /* Paper/Parchment */
+      --bg-card: #ffffff;
+      --text-main: #2c2c2c;
+      --text-muted: #666;
+      --accent-safe: #27ae60;  /* Success green */
+      --border-color: #dcd6cb;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Layout Grid */
+    #wrap {
+      display: grid;
+      grid-template-columns: 420px 1fr; /* Sidebar fixed width, Map takes rest */
+      height: 100vh;
+    }
+
+    /* Sidebar Styling */
+    #sidebar {
+      background-color: var(--bg-sidebar);
+      border-right: 4px solid var(--secondary);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+
+    /* Header Section */
+    .header-panel {
+      padding: 20px;
+      background: var(--primary);
+      color: white;
+    }
+    .team-badge {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.9;
+      margin-bottom: 5px;
+      display: block;
+      font-weight: bold;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      line-height: 1.2;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    /* Controls Section */
+    .controls {
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      background: #eae7de;
+    }
+    
+    .control-group {
+      margin-bottom: 10px;
+    }
+    .control-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: var(--secondary);
+    }
+    
+    input[type="text"], select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box; /* Fixes padding width issues */
+      font-size: 14px;
+    }
+
+    /* Results Scroll Area */
+    #results-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      background: #fdfdfd;
+    }
+
+    /* Status Messages */
+    #status {
+      padding: 10px;
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+
+    /* Plant Cards */
+    .plant-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: transform 0.2s;
+      position: relative;
+    }
+    .plant-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-color: var(--secondary);
+    }
+
+    /* Stability Badge */
+    .stability-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--accent-safe);
+      color: white;
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+    .stability-badge.low { background: #e74c3c; }
+    .stability-badge.med { background: #f39c12; }
+    .stability-badge.high { background: #27ae60; }
+
+    .plant-name {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin: 0 0 5px 0;
+    }
+    .sci-name {
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    /* Plant Attributes Grid */
+    .plant-attrs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 0.85rem;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+    .attr {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .icon { font-size: 1.1em; }
+
+    /* Map Area */
+    #map {
+      height: 100%;
+      width: 100%;
+      background: #aadaff; /* Ocean color fallback */
+    }
+
+    /* Debug */
+    #debug-panel {
+      display: none; 
+      position: fixed; top: 10px; right: 10px;
+      background: rgba(0,0,0,0.8); color: lime;
+      padding: 10px; width: 300px; max-height: 400px;
+      overflow: auto; z-index: 9999; font-family: monospace;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      #wrap { grid-template-columns: 1fr; grid-template-rows: 50vh 50vh; }
+      #sidebar { order: 2; border-right: none; border-top: 4px solid var(--secondary); }
+      #map { order: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="wrap">
+  <div id="sidebar">
+    
+    <div class="header-panel">
+      <span class="team-badge">🐢 Built by Blazing Turtles</span>
+      <h1>Dig Site Plant Selector</h1>
+      <div class="subtitle">Identify flora for soil stabilization & archeological preservation.</div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="elRegionName">Selected Ecoregion:</label>
+        <div id="elSelected" style="font-weight:bold; color:var(--secondary);">Click map to select...</div>
+      </div>
+
+      <div class="control-group">
+        <label for="elSearch">Search Plant Name:</label>
+        <input type="text" id="elSearch" placeholder="e.g. Sage, Oak..." />
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <div class="control-group" style="flex:1">
+          <label for="elTypeFilter">Plant Type:</label>
+          <select id="elTypeFilter">
+            <option value="">All Types</option>
+            <option value="Tree">Trees</option>
+            <option value="Shrub">Shrubs</option>
+            <option value="Herb">Herbs/Flowers</option>
+            <option value="Grass">Grasses</option>
+          </select>
+        </div>
+        
+        <div class="control-group" style="flex:1">
+          <label for="elSoilFilter">Soil Type:</label>
+          <select id="elSoilFilter">
+            <option value="">Any Soil</option>
+            <option value="SAND_SOIL">Sand</option>
+            <option value="CLAY_SOIL">Clay</option>
+            <option value="LOAM_SOIL">Loam</option>
+            <option value="GRAVEL_SOIL">Gravel</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="results-area">
+      <div id="status">Loading database...</div>
+      <div id="plant-list"></div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<pre id="debug-panel"></pre>
+
+<script>
+  // ============================================================
+  // CONFIG & GLOBALS
+  // ============================================================
+  // NOTE: Assuming assets folder structure based on user description
+  const ECOREGIONS_URL = 'us_eco_l3_state_boundaries.json'; 
+  const DATABASE_CSV_URL = 'Database-Deleted-Categories.csv';
+
+  let map;
+  let geoJsonLayer;
+  let allPlants = []; // Holds the parsed CSV data
+  let selectedL3Key = null; // The region code (e.g., "1", "85")
+  let selectedL3Name = null;
+
+  // DOM Elements
+  const elStatus = document.getElementById('status');
+  const elPlantList = document.getElementById('plant-list');
+  const elSelected = document.getElementById('elSelected');
+  const elSearch = document.getElementById('elSearch');
+  const elTypeFilter = document.getElementById('elTypeFilter');
+  const elSoilFilter = document.getElementById('elSoilFilter');
+  const elDebug = document.getElementById('debug-panel');
+
+  // ============================================================
+  // LOGIC: Data Loading
+  // ============================================================
+  
+  // 1. Load CSV
+  function loadPlantDatabaseCSV() {
+    return new Promise((resolve, reject) => {
+      Papa.parse(DATABASE_CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          allPlants = results.data;
+          logDebug(`CSV Loaded: ${allPlants.length} rows`);
+          setStatus(`Database Ready. ${allPlants.length} plants indexed.`);
+          resolve();
+        },
+        error: function(err) {
+          reject(err);
+        }
+      });
+    });
+  }
+
+  // 2. Load Map
+  async function loadEcoregionsGeoJSON() {
+    // Initialize Leaflet Map
+    // Start centered on US roughly
+    map = L.map('map').setView([39.8283, -98.5795], 4);
+
+    // Add a base tile layer (OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap | Blazing Turtles'
+    }).addTo(map);
+
+    try {
+      const response = await fetch(ECOREGIONS_URL);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const geojson = await response.json();
+
+      // Style function for map regions
+      function style(feature) {
+        return {
+          fillColor: '#2d5a27', // Forest green base
+          weight: 1,
+          opacity: 1,
+          color: 'white',
+          dashArray: '3',
+          fillOpacity: 0.2
+        };
+      }
+
+      // Interaction
+      function highlightFeature(e) {
+        const layer = e.target;
+        layer.setStyle({
+          weight: 3,
+          color: '#8c6239', // Clay highlight
+          dashArray: '',
+          fillOpacity: 0.5
+        });
+        layer.bringToFront();
+      }
+
+      function resetHighlight(e) {
+        geoJsonLayer.resetStyle(e.target);
+      }
+
+      function onEachFeature(feature, layer) {
+        layer.on({
+          mouseover: highlightFeature,
+          mouseout: resetHighlight,
+          click: (e) => {
+            // Get properties from GeoJSON
+            const p = feature.properties || {};
+            // Attempt to find the key. Usually "US_L3CODE" or similar in L3 shapefiles
+            // Based on user files, looks like "US_L3CODE" matches CSV "L3_KEY"
+            selectedL3Key = p.US_L3CODE || p.L3_KEY || "Unknown"; 
+            selectedL3Name = p.US_L3NAME || p.NA_L3NAME || "Unknown Region";
+
+            // Update UI
+            elSelected.textContent = `${selectedL3Key}: ${selectedL3Name}`;
+            
+            // Zoom to region
+            map.fitBounds(e.target.getBounds());
+
+            logDebug('Region Selected', { key: selectedL3Key, name: selectedL3Name });
+            renderResults();
+          }
+        });
+      }
+
+      geoJsonLayer = L.geoJSON(geojson, {
+        style: style,
+        onEachFeature: onEachFeature
+      }).addTo(map);
+
+      setStatus('Map loaded. Click an ecoregion to find plants!');
+
+    } catch (e) {
+      console.error(e);
+      setStatus('Error loading Map JSON: ' + e.message);
+    }
+  }
+
+  // ============================================================
+  // LOGIC: Scoring & Rendering
+  // ============================================================
+
+  // Calculate "Soil Stability Score" based on root data
+  function getStabilityScore(plant) {
+    let score = 0;
+    const rType = (plant['ROOT_TYPE'] || '').toLowerCase();
+    const rDepth = (plant['ROOT_DEPTH'] || '').toLowerCase();
+
+    // Heuristic: Tap roots and deep roots hold slopes better
+    if (rType.includes('tap')) score += 3;
+    if (rType.includes('fibrous')) score += 2; // Good for surface erosion
+    if (rType.includes('rhizome')) score += 4; // Excellent for spreading
+
+    // Depth check (Parsing strings like "12-36 in")
+    if (rDepth.includes('ft') || (parseInt(rDepth) > 24)) {
+      score += 3; // Deep roots
+    } else {
+      score += 1;
+    }
+
+    return score;
+  }
+
+  function getScoreLabel(score) {
+    if (score >= 6) return { text: 'High Stability', class: 'high', icon: '🛡️' };
+    if (score >= 4) return { text: 'Med Stability', class: 'med', icon: '🌱' };
+    return { text: 'Low Stability', class: 'low', icon: '⚠️' };
+  }
+
+  function renderResults() {
+    if (!selectedL3Key) {
+      elPlantList.innerHTML = `<div style="text-align:center; color:#888; margin-top:40px;">
+        <h3>No Region Selected</h3>
+        <p>Please click a colored region on the map to see native plants.</p>
+      </div>`;
+      return;
+    }
+
+    // Filter Logic
+    const searchTerm = elSearch.value.toLowerCase();
+    const typeFilter = elTypeFilter.value.toLowerCase();
+    const soilFilter = elSoilFilter.value; // Exact column match like "SAND_SOIL"
+
+    // 1. Filter
+    let matches = allPlants.filter(p => {
+      // Region Match (CSV L3_KEY vs GeoJSON code)
+      // We handle string vs number loosely
+      if (String(p.L3_KEY) !== String(selectedL3Key)) return false;
+
+      // Search Text
+      const nameStr = (p['Common Name'] + ' ' + p['Scientific Name']).toLowerCase();
+      if (searchTerm && !nameStr.includes(searchTerm)) return false;
+
+      // Plant Type
+      if (typeFilter && !(p['Plant Type'] || '').toLowerCase().includes(typeFilter)) return false;
+
+      // Soil Filter (Checks if column = "Yes")
+      if (soilFilter) {
+        if ((p[soilFilter] || '').toLowerCase() !== 'yes') return false;
+      }
+
+      return true;
+    });
+
+    // 2. Sort by Stability (Highest First)
+    matches.sort((a, b) => getStabilityScore(b) - getStabilityScore(a));
+
+    // 3. Render HTML
+    if (matches.length === 0) {
+      elPlantList.innerHTML = `<div style="padding:20px; text-align:center;">No plants found for this criteria. Try changing filters.</div>`;
+      return;
+    }
+
+    elStatus.textContent = `Found ${matches.length} plants for Region ${selectedL3Key}`;
+    
+    elPlantList.innerHTML = matches.map(p => {
+      const stability = getScoreLabel(getStabilityScore(p));
+      const rootInfo = p['ROOT_TYPE'] ? `${p['ROOT_TYPE']} (${p['ROOT_DEPTH'] || '?'})` : 'Unknown Root';
+      const water = p['WATER_NEEDS'] || 'Unknown';
+      const sun = p['SUN_EXPOSURE'] || 'Unknown';
+
+      return `
+        <div class="plant-card">
+          <span class="stability-badge ${stability.class}">${stability.icon} ${stability.text}</span>
+          <h3 class="plant-name">${p['Common Name'] || 'Unknown Plant'}</h3>
+          <span class="sci-name">${p['Scientific Name']}</span>
+          
+          <div class="plant-attrs">
+            <div class="attr" title="Root System">
+              <span class="icon">🧶</span> ${rootInfo}
+            </div>
+            <div class="attr" title="Height">
+              <span class="icon">📏</span> ${p['Height (feet)'] || '?'} ft
+            </div>
+            <div class="attr" title="Water Needs">
+              <span class="icon">💧</span> ${water}
+            </div>
+            <div class="attr" title="Sun Exposure">
+              <span class="icon">☀️</span> ${sun}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ============================================================
+  // UTIL
+  // ============================================================
+  function setStatus(msg) {
+    elStatus.textContent = msg;
+  }
+
+  function logDebug(msg, data) {
+    const line = `[${new Date().toLocaleTimeString()}] ${msg} \n`;
+    elDebug.textContent += line;
+    console.log(msg, data);
+  }
+
+  // UI Event Listeners
+  elSearch.addEventListener('input', renderResults);
+  elTypeFilter.addEventListener('change', renderResults);
+  elSoilFilter.addEventListener('change', renderResults);
+
+  // ============================================================
+  // BOOTSTRAP
+  // ============================================================
+  (async function start() {
+    try {
+      logDebug('🚀 App starting...');
+      await loadEcoregionsGeoJSON();
+      
+      try {
+        await loadPlantDatabaseCSV();
+      } catch (e) {
+        logDebug('❌ CSV failed', String(e));
+        setStatus('ERROR loading CSV. Check console.');
+      }
+    } catch (err) {
+      setStatus('Critical Error: ' + err.message);
+    }
+  })();
+
+</script>
+</body>
+</html>
