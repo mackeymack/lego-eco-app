@@ -1,0 +1,447 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Blazing Turtles – Dig Site Plant Selector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet (map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- PapaParse (robust CSV parsing) -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #wrap { display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
+    #sidebar { padding: 12px; border-right: 1px solid #ddd; overflow: auto; }
+    #map { height: 100vh; }
+    h2 { margin: 8px 0 6px; }
+    .pill { display:inline-block; padding:4px 8px; border:1px solid #ddd; border-radius:999px; margin: 4px 6px 0 0; }
+    .row { margin: 10px 0; }
+    input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+    .small { color:#666; font-size: 12px; }
+    .plant { border: 1px solid #eee; border-radius: 10px; padding: 8px; margin: 8px 0; }
+    .plant b { display:block; margin-bottom: 3px; }
+    code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
+
+    /* --- Debug UI --- */
+    #debugFab {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 9999;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid #333;
+      background: #111;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #debugModalBackdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 9998;
+      display: none;
+    }
+    #debugModal {
+      position: fixed;
+      right: 14px;
+      bottom: 62px;
+      width: min(560px, calc(100vw - 28px));
+      height: min(420px, calc(100vh - 90px));
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      z-index: 9999;
+      display: none;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    #debugModalHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+      background: #f7f7f7;
+    }
+    #debugModalHeader .btnRow { display: flex; gap: 8px; }
+    .debugBtn {
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    #debugLogArea {
+      height: calc(100% - 46px);
+      padding: 10px 12px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      background: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="sidebar">
+      <h2>🐢🔥 Lillian's S.P.A.D.E </h2>
+      <div class="small">
+        Click an ecoregion on the map → see matching plants from your CSV.
+      </div>
+
+      <div class="row">
+        <div><b>Selected Ecoregion</b></div>
+        <div id="selectedRegion" class="pill">None</div>
+      </div>
+
+      <div class="row">
+        <div><b>Plant Type Filter</b></div>
+        <select id="plantTypeFilter">
+          <option value="">(All Plant Types)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div><b>Search (Common or Scientific name)</b></div>
+        <input id="searchBox" placeholder="type to filter…" />
+      </div>
+
+      <div class="row">
+        <div><b>Results</b> <span class="small" id="resultCount"></span></div>
+        <div id="results"></div>
+      </div>
+
+      <hr/>
+      <div class="small" id="status">Loading…</div>
+      <div class="small" id="colInfo"></div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <!-- Debug floating button + modal -->
+  <button id="debugFab" title="Open debug log">Debug</button>
+  <div id="debugModalBackdrop"></div>
+  <div id="debugModal">
+    <div id="debugModalHeader">
+      <b>Debug Log</b>
+      <div class="btnRow">
+        <button class="debugBtn" id="debugCopyBtn">Copy</button>
+        <button class="debugBtn" id="debugClearBtn">Clear</button>
+        <button class="debugBtn" id="debugCloseBtn">Close</button>
+      </div>
+    </div>
+    <div id="debugLogArea">(No logs yet)</div>
+  </div>
+
+<script>
+  // ============================================================
+  // ✅ Your published file URLs (Netlify friendly)
+  // Put these files in: /assets/
+  // ============================================================
+  const ECOREGIONS_URL = '/assets/us_eco_l3_state_boundaries.json';
+  const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv'; // ✅ same naming, just .csv
+
+  // ============================================================
+  // Debug logger
+  // ============================================================
+  const DEBUG_LOG_MAX_LINES = 300;
+  let debugLines = [];
+
+  function logDebug(message, data) {
+    const ts = new Date().toISOString().replace('T',' ').replace('Z','');
+    let line = `[${ts}] ${message}`;
+    if (data !== undefined) {
+      try { line += ` | ${typeof data === 'string' ? data : JSON.stringify(data)}`; }
+      catch { line += ` | (unstringifiable data)`; }
+    }
+    debugLines.push(line);
+    if (debugLines.length > DEBUG_LOG_MAX_LINES) debugLines = debugLines.slice(-DEBUG_LOG_MAX_LINES);
+    const area = document.getElementById('debugLogArea');
+    if (area) area.textContent = debugLines.length ? debugLines.join('\n') : '(No logs yet)';
+  }
+
+  function openDebug() {
+    document.getElementById('debugModalBackdrop').style.display = 'block';
+    document.getElementById('debugModal').style.display = 'block';
+  }
+  function closeDebug() {
+    document.getElementById('debugModalBackdrop').style.display = 'none';
+    document.getElementById('debugModal').style.display = 'none';
+  }
+
+  window.addEventListener('error', (e) => {
+    logDebug('❌ window.error', { message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno });
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    logDebug('❌ unhandledrejection', { reason: String(e.reason) });
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('debugFab').addEventListener('click', openDebug);
+    document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
+    document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
+
+    document.getElementById('debugClearBtn').addEventListener('click', () => {
+      debugLines = [];
+      logDebug('🧹 Log cleared');
+    });
+
+    document.getElementById('debugCopyBtn').addEventListener('click', async () => {
+      const text = debugLines.join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        logDebug('✅ Copied log to clipboard');
+      } catch (err) {
+        logDebug('❌ Copy failed (clipboard blocked)', String(err));
+        alert('Copy blocked by browser. You can manually select the text and copy it.');
+      }
+    });
+
+    logDebug('✅ Debug UI ready');
+  });
+
+  // ============================================================
+  // Map setup
+  // ============================================================
+  const map = L.map('map').setView([39.5, -98.35], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // ============================================================
+  // App state + UI
+  // ============================================================
+  let plants = [];
+  let plantsByL3 = new Map();
+  let selectedL3Key = null;
+  let selectedL3Name = null;
+
+  const elSelected = document.getElementById('selectedRegion');
+  const elTypeFilter = document.getElementById('plantTypeFilter');
+  const elSearch = document.getElementById('searchBox');
+  const elResults = document.getElementById('results');
+  const elCount = document.getElementById('resultCount');
+  const elStatus = document.getElementById('status');
+  const elColInfo = document.getElementById('colInfo');
+
+  function setStatus(msg) {
+    elStatus.textContent = msg;
+    logDebug('ℹ️ status', msg);
+  }
+
+  function normalizeKey(s) { return String(s ?? '').toLowerCase().replace(/[\s_\-]+/g, ''); }
+  function normText(s) { return String(s ?? '').toLowerCase().trim(); }
+
+  // Detect columns even if headers changed slightly (spaces/dashes/underscores)
+  function findColumn(headers, wanted) {
+    const w = normalizeKey(wanted);
+    for (const h of headers) if (normalizeKey(h) === w) return h;
+
+    // helpful alternates
+    const alts = {
+      l3_key: ['l3key','l3','ecoregionkey'],
+      plant_type: ['planttype','type','category','categories'],
+      scientific_name: ['scientificname','sciname','botanicalname','scientific'],
+      common_name: ['commonname','name'],
+      root_type: ['roottype'],
+      root_depth: ['rootdepth','maturerootdepth','maximumrootdepth','maxrootdepth']
+    }[w] || [];
+
+    for (const alt of alts) {
+      for (const h of headers) if (normalizeKey(h) === alt) return h;
+    }
+    return null;
+  }
+
+  function rebuildTypeDropdown() {
+    elTypeFilter.innerHTML = '<option value="">(All Plant Types)</option>';
+    const types = new Set(plants.map(p => p.plantType).filter(Boolean));
+    [...types].sort((a,b)=>a.localeCompare(b)).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      elTypeFilter.appendChild(opt);
+    });
+  }
+
+  function indexPlantsByL3() {
+    plantsByL3 = new Map();
+    for (const p of plants) {
+      if (!p.l3Key) continue;
+      if (!plantsByL3.has(p.l3Key)) plantsByL3.set(p.l3Key, []);
+      plantsByL3.get(p.l3Key).push(p);
+    }
+    logDebug('✅ indexed plantsByL3', { keys: plantsByL3.size });
+  }
+
+  function renderResults() {
+    elResults.innerHTML = '';
+    elCount.textContent = '';
+
+    if (!selectedL3Key) {
+      elResults.innerHTML = '<div class="small">Click an ecoregion to see plants.</div>';
+      return;
+    }
+
+    const typeFilter = elTypeFilter.value;
+    const q = normText(elSearch.value);
+
+    const list = (plantsByL3.get(selectedL3Key) || []).filter(p => {
+      if (typeFilter && p.plantType !== typeFilter) return false;
+      if (!q) return true;
+      return normText(p.commonName).includes(q) || normText(p.scientificName).includes(q);
+    });
+
+    const shown = list.slice(0, 80);
+    elCount.textContent = `(${list.length} matches${list.length > shown.length ? `, showing first ${shown.length}` : ''})`;
+
+    for (const p of shown) {
+      const div = document.createElement('div');
+      div.className = 'plant';
+      div.innerHTML = `
+        <b>${p.commonName || '(no common name)'}</b>
+        <div class="small"><i>${p.scientificName || '(no scientific name)'}</i></div>
+        <div class="small">
+          Plant Type: ${p.plantType || '—'}<br/>
+          Root Type: ${p.rootType || '—'}<br/>
+          Root Depth: ${p.rootDepth || '—'}
+        </div>
+      `;
+      elResults.appendChild(div);
+    }
+  }
+
+  // ============================================================
+  // Load CSV
+  // ============================================================
+  async function loadPlantDatabaseCSV() {
+    setStatus('Loading plant database CSV…');
+    logDebug('➡️ fetch CSV', DATABASE_CSV_URL);
+
+    const res = await fetch(DATABASE_CSV_URL, { cache: 'no-store' });
+    logDebug('⬅️ CSV status', res.status);
+
+    if (!res.ok) throw new Error(`Failed to load CSV: ${res.status}`);
+
+    const text = await res.text();
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+
+    if (parsed.errors?.length) {
+      logDebug('⚠️ CSV parse errors (first 5)', parsed.errors.slice(0, 5));
+    }
+
+    const rows = parsed.data || [];
+    if (!rows.length) throw new Error('CSV loaded but has 0 rows.');
+
+    const headers = Object.keys(rows[0] || {});
+    const cL3   = findColumn(headers, 'L3_KEY');
+    const cType = findColumn(headers, 'Plant Type');
+    const cSci  = findColumn(headers, 'Scientific Name');
+    const cCom  = findColumn(headers, 'Common Name');
+    const cRT   = findColumn(headers, 'ROOT_TYPE');
+    const cRD   = findColumn(headers, 'ROOT_DEPTH');
+
+    elColInfo.innerHTML = `
+      <div class="small">
+        CSV columns used:
+        <br/>L3_KEY = <code>${cL3 || 'NOT FOUND'}</code>
+        <br/>Plant Type = <code>${cType || 'NOT FOUND'}</code>
+        <br/>Scientific Name = <code>${cSci || 'NOT FOUND'}</code>
+        <br/>Common Name = <code>${cCom || 'NOT FOUND'}</code>
+        <br/>ROOT_TYPE = <code>${cRT || 'NOT FOUND'}</code>
+        <br/>ROOT_DEPTH = <code>${cRD || 'NOT FOUND'}</code>
+      </div>
+    `;
+    logDebug('🧾 detected CSV columns', { cL3, cType, cSci, cCom, cRT, cRD });
+
+    plants = rows.map(r => ({
+      l3Key: cL3 ? String(r[cL3]).trim() : '',
+      plantType: cType ? String(r[cType]).trim() : '',
+      scientificName: cSci ? String(r[cSci]).trim() : '',
+      commonName: cCom ? String(r[cCom]).trim() : '',
+      rootType: cRT ? String(r[cRT]).trim() : '',
+      rootDepth: cRD ? String(r[cRD]).trim() : ''
+    }));
+
+    indexPlantsByL3();
+    rebuildTypeDropdown();
+    setStatus(`Loaded ${plants.length.toLocaleString()} rows from CSV.`);
+  }
+
+  // ============================================================
+  // Load map GeoJSON
+  // ============================================================
+  async function loadEcoregionsGeoJSON() {
+    setStatus('Loading ecoregion map…');
+    logDebug('➡️ fetch GeoJSON', ECOREGIONS_URL);
+
+    const res = await fetch(ECOREGIONS_URL, { cache: 'no-store' });
+    logDebug('⬅️ GeoJSON status', res.status);
+
+    if (!res.ok) throw new Error(`Failed to load map JSON: ${res.status}`);
+
+    const geojson = await res.json();
+    logDebug('✅ GeoJSON parsed', { type: geojson.type, features: geojson.features?.length });
+
+    function onEachFeature(feature, layer) {
+      layer.on('click', () => {
+        const p = feature.properties || {};
+        selectedL3Key = p.L3_KEY || null;
+        selectedL3Name = p.US_L3NAME || p.NA_L3NAME || null;
+
+        elSelected.textContent = selectedL3Key
+          ? (selectedL3Name ? `${selectedL3Key} — ${selectedL3Name}` : selectedL3Key)
+          : 'Unknown region';
+
+        logDebug('🗺️ region clicked', { selectedL3Key, selectedL3Name });
+        renderResults();
+      });
+    }
+
+    L.geoJSON(geojson, { onEachFeature }).addTo(map);
+    setStatus('Map loaded. Click an ecoregion!');
+  }
+
+  // UI events
+  elTypeFilter.addEventListener('change', renderResults);
+  elSearch.addEventListener('input', renderResults);
+
+  // ============================================================
+  // Boot (loads map even if CSV fails)
+  // ============================================================
+  (async function start() {
+    try {
+      logDebug('🚀 App starting', { ECOREGIONS_URL, DATABASE_CSV_URL });
+
+      await loadEcoregionsGeoJSON();
+
+      try {
+        await loadPlantDatabaseCSV();
+      } catch (e) {
+        logDebug('❌ CSV failed to load', String(e));
+        setStatus('ERROR loading CSV: ' + e.message);
+        openDebug();
+      }
+
+      renderResults();
+      logDebug('✅ App ready');
+    } catch (err) {
+      logDebug('❌ App start error', String(err));
+      setStatus('ERROR: ' + err.message);
+      openDebug();
+    }
+  })();
+</script>
+</body>
+</html>
