@@ -9,88 +9,22 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- PapaParse (robust CSV parsing) -->
+  <!-- PapaParse (CSV parsing) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
     body { margin: 0; font-family: Arial, sans-serif; }
     #wrap { display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
-    #sidebar { padding: 12px; border-right: 1px solid #ddd; overflow: auto; }
-    #map { height: 100vh; }
+    #sidebar { padding: 12px; border-right: 1px solid #ddd; overflow: auto; background:#fff; }
+    #map { height: 100vh; background:#f4f4f4; }
     h2 { margin: 8px 0 6px; }
-    .pill { display:inline-block; padding:4px 8px; border:1px solid #ddd; border-radius:999px; margin: 4px 6px 0 0; }
-    .row { margin: 10px 0; }
+    .row { margin: 12px 0; }
     input, select { width: 100%; padding: 8px; box-sizing: border-box; }
     .small { color:#666; font-size: 12px; }
-    .plant { border: 1px solid #eee; border-radius: 10px; padding: 8px; margin: 8px 0; }
-    .plant b { display:block; margin-bottom: 3px; }
     code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
-
-    /* --- Debug UI --- */
-    #debugFab {
-      position: fixed;
-      right: 14px;
-      bottom: 14px;
-      z-index: 9999;
-      padding: 10px 12px;
-      border-radius: 999px;
-      border: 1px solid #333;
-      background: #111;
-      color: #fff;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    #debugModalBackdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      z-index: 9998;
-      display: none;
-    }
-    #debugModal {
-      position: fixed;
-      right: 14px;
-      bottom: 62px;
-      width: min(560px, calc(100vw - 28px));
-      height: min(420px, calc(100vh - 90px));
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 14px;
-      z-index: 9999;
-      display: none;
-      overflow: hidden;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-    }
-    #debugModalHeader {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-bottom: 1px solid #eee;
-      background: #f7f7f7;
-    }
-    #debugModalHeader .btnRow { display: flex; gap: 8px; }
-    .debugBtn {
-      padding: 6px 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      background: #fff;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    #debugLogArea {
-      height: calc(100% - 46px);
-      padding: 10px 12px;
-      overflow: auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 12px;
-      white-space: pre-wrap;
-      background: #fff;
-    }
 
     /* ============================================================
        Presentation / Demo Mode + Collapsible Sidebar (iPad-friendly)
-       (All changes live ONLY in this personal .html file)
        ============================================================ */
 
     :root{
@@ -101,6 +35,7 @@
       --ui-gap: 10px;
       --ui-radius: 14px;
       --ui-shadow: 0 10px 28px rgba(0,0,0,0.18);
+      --card-shadow: 0 4px 16px rgba(0,0,0,0.06);
     }
 
     body.demo-mode{
@@ -112,35 +47,21 @@
       --ui-radius: 18px;
     }
 
-    /* Apply scalable typography */
     body { font-size: var(--ui-font-base); }
     h2 { font-size: var(--ui-font-title); }
     input, select, button { font-size: var(--ui-control-font); }
 
-    /* Bigger, touch-friendly controls */
     input, select{
       height: var(--ui-control-height);
       padding: 10px 12px;
       border-radius: var(--ui-radius);
       border: 1px solid #cfcfcf;
       outline: none;
+      background: #fff;
     }
     input:focus, select:focus{
       border-color:#7aa7ff;
       box-shadow: 0 0 0 3px rgba(122,167,255,0.25);
-    }
-
-    /* Make plant cards more readable in demo mode */
-    body.demo-mode .plant{
-      padding: 12px;
-      border-radius: 18px;
-      margin: 12px 0;
-      border: 1px solid #e8e8e8;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-    }
-    body.demo-mode .small{
-      font-size: 14px;
-      line-height: 1.35;
     }
 
     /* Demo / toolbar floating controls */
@@ -148,7 +69,7 @@
       position: fixed;
       left: 12px;
       top: 12px;
-      z-index: 9997; /* below debug modal, above map */
+      z-index: 9997;
       display: flex;
       gap: 10px;
       align-items: center;
@@ -216,16 +137,14 @@
     body.demo-mode .switchDot{ background: #111; }
     body.demo-mode .switchDot::after{ transform: translateX(10px); }
 
-    /* Wrap layout: desktop vs mobile */
-    #wrap{
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      height: 100vh;
-    }
-
-    /* Panel hidden (desktop) */
+    /* Desktop panel hidden (IMPORTANT: keep map visible; Leaflet needs invalidateSize()) */
     body.panel-hidden #wrap{ grid-template-columns: 0 1fr; }
-    body.panel-hidden #sidebar{ display: none; }
+    body.panel-hidden #sidebar{
+      width: 0;
+      padding: 0;
+      border-right: 0;
+      overflow: hidden;
+    }
 
     /* Mobile / iPad drawer behavior */
     #sidebarBackdrop{
@@ -251,26 +170,209 @@
         transform: translateX(-110%);
         transition: transform 180ms ease;
         box-shadow: var(--ui-shadow);
+        padding: 12px;
       }
-      body.sidebar-open #sidebar{
-        transform: translateX(0);
-      }
-      body.sidebar-open #sidebarBackdrop{
-        display: block;
-      }
+      body.sidebar-open #sidebar{ transform: translateX(0); }
+      body.sidebar-open #sidebarBackdrop{ display: block; }
+      body.panel-hidden #sidebar{ width: min(420px, 86vw); padding: 12px; border-right:1px solid #ddd; }
     }
 
-    /* Keep debug FAB from hiding under toolbar on small screens */
     @media (max-width: 980px){
-      #debugFab{ bottom: 14px; right: 14px; }
       #demoToolbar{ left: 10px; top: 10px; }
+    }
+
+    /* ============================================================
+       Competition polish: Demo guide + plant cards
+       ============================================================ */
+
+    .demoGuide{
+      margin: 10px 0 14px;
+      padding: 10px 12px;
+      border: 1px solid #eee;
+      border-radius: 16px;
+      background: #fafafa;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+    .demoGuide .title{
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .steps{ display: grid; gap: 8px; }
+    .step{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding: 8px 10px;
+      border: 1px solid #eee;
+      border-radius: 14px;
+      background: #fff;
+    }
+    .step .num{
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 700;
+      border: 1px solid #ddd;
+      background:#f7f7f7;
+      flex: 0 0 auto;
+    }
+    body.demo-mode .step .num{ width: 34px; height: 34px; }
+    .step .txt{ line-height: 1.25; }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      margin: 6px 6px 0 0;
+      background:#fff;
+      max-width: 100%;
+    }
+    .pill b{ font-weight:700; }
+
+    .plantCard{
+      border: 1px solid #eee;
+      border-radius: 16px;
+      padding: 10px 12px;
+      margin: 10px 0;
+      background: #fff;
+      box-shadow: var(--card-shadow);
+    }
+    body.demo-mode .plantCard{
+      border-radius: 20px;
+      padding: 14px 14px;
+      margin: 14px 0;
+    }
+    .plantHeader{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .plantName{
+      font-weight: 800;
+      line-height: 1.15;
+      font-size: 1.02em;
+    }
+    body.demo-mode .plantName{ font-size: 1.12em; }
+    .sciName{
+      color:#444;
+      font-style: italic;
+      margin-top: 3px;
+      line-height: 1.2;
+    }
+    .chips{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #e5e5e5;
+      background: #fafafa;
+      font-size: 0.92em;
+    }
+    body.demo-mode .chip{ padding: 8px 12px; }
+    .chip .ico{ font-size: 1.05em; }
+
+    /* Floating hint for demo mode */
+    #floatingHint{
+      position: fixed;
+      left: 12px;
+      bottom: 14px;
+      z-index: 9995;
+      display: none;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid #e5e5e5;
+      background: rgba(255,255,255,0.92);
+      box-shadow: var(--ui-shadow);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      max-width: min(520px, calc(100vw - 24px));
+    }
+    #floatingHint b{ font-weight: 800; }
+    body.demo-mode #floatingHint{ display: block; }
+
+    /* Debug fully hidden by default. Enable via ?debug=1 */
+    #debugFab, #debugModalBackdrop, #debugModal{ display: none; }
+    body.debug-enabled #debugFab{ display: block; }
+
+    #debugFab{
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 9999;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid #333;
+      background: #111;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #debugModalBackdrop{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 9998;
+      display: none;
+    }
+    #debugModal{
+      position: fixed;
+      right: 14px;
+      bottom: 62px;
+      width: min(560px, calc(100vw - 28px));
+      height: min(420px, calc(100vh - 90px));
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      z-index: 9999;
+      display: none;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    #debugModalHeader{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+      background: #f7f7f7;
+    }
+    #debugModalHeader .btnRow{ display:flex; gap:8px; }
+    .debugBtn{
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    #debugLogArea{
+      height: calc(100% - 46px);
+      padding: 10px 12px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      background: #fff;
     }
   </style>
 </head>
 
 <body>
-
-  <!-- Presentation / Demo Mode toolbar -->
+  <!-- Presentation controls -->
   <div id="demoToolbar" aria-label="Presentation controls">
     <button class="demoBtn secondary" id="panelToggleBtn" type="button" title="Show/Hide the left panel">☰ Panel</button>
 
@@ -282,19 +384,25 @@
     <button class="demoBtn secondary" id="resetBtn" type="button" title="Reset selection and filters">↺ Reset</button>
   </div>
 
-  <!-- Backdrop for sidebar drawer on mobile/iPad -->
   <div id="sidebarBackdrop" aria-hidden="true"></div>
 
   <div id="wrap">
     <div id="sidebar">
       <h2>🐢🔥 Joel's S.P.A.D.E.</h2>
-      <div class="small">
-        Click an ecoregion on the map → see matching plants from your CSV.
+      <div class="small">Click an ecoregion on the map → see matching plants from your CSV.</div>
+
+      <div class="demoGuide" aria-label="Demo guide">
+        <div class="title">Competition Demo (30 seconds)</div>
+        <div class="steps">
+          <div class="step"><div class="num">1</div><div class="txt"><b>Tap a region</b> on the map.</div></div>
+          <div class="step"><div class="num">2</div><div class="txt"><b>Filter plants</b> by type or search a name.</div></div>
+          <div class="step"><div class="num">3</div><div class="txt"><b>Use root info</b> to pick plants that stabilize soil.</div></div>
+        </div>
       </div>
 
       <div class="row">
         <div><b>Selected Ecoregion</b></div>
-        <div id="selectedRegion" class="pill">None</div>
+        <div id="selectedRegion" class="pill"><b>None</b></div>
       </div>
 
       <div class="row">
@@ -310,7 +418,10 @@
       </div>
 
       <div class="row">
-        <div><b>Results</b> <span class="small" id="resultCount"></span></div>
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div><b>Results</b></div>
+          <div class="small" id="resultCount"></div>
+        </div>
         <div id="results"></div>
       </div>
 
@@ -322,7 +433,11 @@
     <div id="map"></div>
   </div>
 
-  <!-- Debug floating button + modal -->
+  <div id="floatingHint">
+    <b>Tip:</b> Tap <b>☰ Panel</b> to open filters • Tap a region to see plants
+  </div>
+
+  <!-- Debug UI (hidden; enable with ?debug=1) -->
   <button id="debugFab" title="Open debug log">Debug</button>
   <div id="debugModalBackdrop"></div>
   <div id="debugModal">
@@ -338,20 +453,20 @@
   </div>
 
 <script>
-  // ============================================================
-  // ✅ Your published file URLs (Netlify friendly)
-  // Put these files in: /assets/
-  // ============================================================
+  // Assets
   const ECOREGIONS_URL = '/assets/us_eco_l3_state_boundaries.json';
-  const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv'; // ✅ same naming, just .csv
+  const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv';
 
-  // ============================================================
-  // Debug logger
-  // ============================================================
-  const DEBUG_LOG_MAX_LINES = 300;
+  // Debug (disabled unless ?debug=1)
+  const urlParams = new URLSearchParams(window.location.search);
+  const debugEnabled = urlParams.get('debug') === '1';
   let debugLines = [];
+  const DEBUG_LOG_MAX_LINES = 300;
+
+  if (debugEnabled) document.body.classList.add('debug-enabled');
 
   function logDebug(message, data) {
+    if (!debugEnabled) return;
     const ts = new Date().toISOString().replace('T',' ').replace('Z','');
     let line = `[${ts}] ${message}`;
     if (data !== undefined) {
@@ -361,189 +476,75 @@
     debugLines.push(line);
     if (debugLines.length > DEBUG_LOG_MAX_LINES) debugLines = debugLines.slice(-DEBUG_LOG_MAX_LINES);
     const area = document.getElementById('debugLogArea');
-    if (area) area.textContent = debugLines.length ? debugLines.join('\n') : '(No logs yet)';
+    if (area) area.textContent = debugLines.length ? debugLines.join('\\n') : '(No logs yet)';
   }
-
   function openDebug() {
+    if (!debugEnabled) return;
     document.getElementById('debugModalBackdrop').style.display = 'block';
     document.getElementById('debugModal').style.display = 'block';
   }
   function closeDebug() {
+    if (!debugEnabled) return;
     document.getElementById('debugModalBackdrop').style.display = 'none';
     document.getElementById('debugModal').style.display = 'none';
   }
 
-  window.addEventListener('error', (e) => {
-    logDebug('❌ window.error', { message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno });
-  });
-  window.addEventListener('unhandledrejection', (e) => {
-    logDebug('❌ unhandledrejection', { reason: String(e.reason) });
-  });
+  if (debugEnabled) {
+    window.addEventListener('error', (e) => logDebug('❌ window.error', { message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno }));
+    window.addEventListener('unhandledrejection', (e) => logDebug('❌ unhandledrejection', { reason: String(e.reason) }));
+  }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('debugFab').addEventListener('click', openDebug);
-    document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
-    document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
+  // Presentation UI helpers
+  const LS_DEMO_KEY = 'spade_demoMode';
+  const LS_PANEL_KEY = 'spade_panelState';
 
-    document.getElementById('debugClearBtn').addEventListener('click', () => {
-      debugLines = [];
-      logDebug('🧹 Log cleared');
-    });
+  function isMobileLayout() {
+    return window.matchMedia('(max-width: 980px)').matches;
+  }
 
-    document.getElementById('debugCopyBtn').addEventListener('click', async () => {
-      const text = debugLines.join('\n');
-      try {
-        await navigator.clipboard.writeText(text);
-        logDebug('✅ Copied log to clipboard');
-      } catch (err) {
-        logDebug('❌ Copy failed (clipboard blocked)', String(err));
-        alert('Copy blocked by browser. You can manually select the text and copy it.');
-      }
-    });
+  function safelyInvalidateMap() {
+    const m = window.__spadeMap;
+    if (!m) return;
+    requestAnimationFrame(() => m.invalidateSize());
+    setTimeout(() => m.invalidateSize(), 210);
+    setTimeout(() => m.invalidateSize(), 520);
+  }
 
-    // ============================================================
-    // Presentation / Demo Mode UI
-    // ============================================================
-    const LS_DEMO_KEY = 'spade_demoMode';
-    const LS_PANEL_KEY = 'spade_panelState'; // 'open' | 'closed' (desktop)
-    const demoToggle = document.getElementById('demoToggle');
-    const panelToggleBtn = document.getElementById('panelToggleBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  function setDemoMode(on) {
+    document.body.classList.toggle('demo-mode', !!on);
+    document.getElementById('demoToggle').setAttribute('aria-pressed', on ? 'true' : 'false');
+    try { localStorage.setItem(LS_DEMO_KEY, on ? '1' : '0'); } catch {}
+    safelyInvalidateMap();
+  }
 
-    function isMobileLayout() {
-      return window.matchMedia('(max-width: 980px)').matches;
+  function setPanelOpen(open) {
+    if (isMobileLayout()) {
+      document.body.classList.toggle('sidebar-open', !!open);
+      document.body.classList.remove('panel-hidden');
+    } else {
+      document.body.classList.toggle('panel-hidden', !open);
+      document.body.classList.remove('sidebar-open');
     }
+    safelyInvalidateMap();
+  }
 
-    function setDemoMode(on) {
-      document.body.classList.toggle('demo-mode', !!on);
-      demoToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
-      try { localStorage.setItem(LS_DEMO_KEY, on ? '1' : '0'); } catch {}
-    }
+  function getPanelOpen() {
+    if (isMobileLayout()) return document.body.classList.contains('sidebar-open');
+    return !document.body.classList.contains('panel-hidden');
+  }
 
-    function setPanelOpen(open) {
-      if (isMobileLayout()) {
-        document.body.classList.toggle('sidebar-open', !!open);
-      } else {
-        // On desktop, we collapse the grid sidebar entirely
-        document.body.classList.toggle('panel-hidden', !open);
-      }
-    }
+  function togglePanel() {
+    setPanelOpen(!getPanelOpen());
+    try { localStorage.setItem(LS_PANEL_KEY, getPanelOpen() ? 'open' : 'closed'); } catch {}
+  }
 
-    function getPanelOpen() {
-      if (isMobileLayout()) {
-        return document.body.classList.contains('sidebar-open');
-      }
-      return !document.body.classList.contains('panel-hidden');
-    }
-
-    function togglePanel() {
-      setPanelOpen(!getPanelOpen());
-      // Remember preference for desktop only; on mobile we default closed on load
-      try { localStorage.setItem(LS_PANEL_KEY, getPanelOpen() ? 'open' : 'closed'); } catch {}
-      updatePanelButtonLabel();
-    }
-
-    function updatePanelButtonLabel() {
-      // Keep label stable; the motion is the cue. Title explains.
-      panelToggleBtn.textContent = '☰ Panel';
-    }
-
-    function resetAppForDemo() {
-      // Clear selection + filters (keep data loaded)
-      selectedL3Key = null;
-      selectedL3Name = null;
-
-      elSelected.textContent = 'None';
-      elTypeFilter.value = '';
-      elSearch.value = '';
-
-      renderResults();
-      logDebug('↺ Reset pressed', { selectedL3Key, selectedL3Name });
-
-      // On mobile, close the drawer so visitors see the map again
-      if (isMobileLayout()) setPanelOpen(false);
-    }
-
-    function toggleDemoMode() {
-      const on = !document.body.classList.contains('demo-mode');
-      setDemoMode(on);
-      logDebug('🎤 Demo Mode toggled', { on });
-    }
-
-    function initPresentationUI() {
-      // Restore demo mode
-      let demoOn = false;
-      try { demoOn = localStorage.getItem(LS_DEMO_KEY) === '1'; } catch {}
-      setDemoMode(demoOn);
-
-      // Restore desktop panel state (mobile starts closed by default)
-      if (isMobileLayout()) {
-        setPanelOpen(false);
-      } else {
-        let panelOpen = true;
-        try { panelOpen = (localStorage.getItem(LS_PANEL_KEY) || 'open') === 'open'; } catch {}
-        setPanelOpen(panelOpen);
-      }
-      updatePanelButtonLabel();
-
-      panelToggleBtn.addEventListener('click', togglePanel);
-      sidebarBackdrop.addEventListener('click', () => setPanelOpen(false));
-
-      demoToggle.addEventListener('click', toggleDemoMode);
-      demoToggle.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDemoMode(); }
-      });
-
-      resetBtn.addEventListener('click', resetAppForDemo);
-
-      // Close sidebar drawer when tapping map on mobile/iPad
-      const mapEl = document.getElementById('map');
-      mapEl.addEventListener('click', () => {
-        if (isMobileLayout() && document.body.classList.contains('sidebar-open')) {
-          setPanelOpen(false);
-        }
-      });
-
-      // Re-evaluate panel state when screen resizes across the breakpoint
-      window.addEventListener('resize', () => {
-        // If we switch layouts, keep things sane:
-        if (isMobileLayout()) {
-          // moving to mobile: close drawer
-          document.body.classList.remove('panel-hidden');
-          setPanelOpen(false);
-        } else {
-          // moving to desktop: open panel unless previously saved closed
-          document.body.classList.remove('sidebar-open');
-          let panelOpen = true;
-          try { panelOpen = (localStorage.getItem(LS_PANEL_KEY) || 'open') === 'open'; } catch {}
-          setPanelOpen(panelOpen);
-        }
-        updatePanelButtonLabel();
-      }, { passive: true });
-
-      logDebug('✅ Presentation UI ready', { demoOn, mobile: isMobileLayout() });
-    }
-
-    initPresentationUI();
-
-    logDebug('✅ Debug UI ready');
-  });
-
-  // ============================================================
-  // Map setup
-  // ============================================================
+  // Map setup (Leaflet)
   const map = L.map('map', { zoomControl: false }).setView([39.5, -98.35], 4);
+  window.__spadeMap = map;
   L.control.zoom({ position: 'topright' }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-
-  // ============================================================
-  // App state + UI
-  // ============================================================
+  // App state
   let plants = [];
   let plantsByL3 = new Map();
   let selectedL3Key = null;
@@ -557,20 +558,13 @@
   const elStatus = document.getElementById('status');
   const elColInfo = document.getElementById('colInfo');
 
-  function setStatus(msg) {
-    elStatus.textContent = msg;
-    logDebug('ℹ️ status', msg);
-  }
-
-  function normalizeKey(s) { return String(s ?? '').toLowerCase().replace(/[\s_\-]+/g, ''); }
+  function setStatus(msg) { elStatus.textContent = msg; logDebug('ℹ️ status', msg); }
+  function normalizeKey(s) { return String(s ?? '').toLowerCase().replace(/[\\s_\\-]+/g, ''); }
   function normText(s) { return String(s ?? '').toLowerCase().trim(); }
 
-  // Detect columns even if headers changed slightly (spaces/dashes/underscores)
   function findColumn(headers, wanted) {
     const w = normalizeKey(wanted);
     for (const h of headers) if (normalizeKey(h) === w) return h;
-
-    // helpful alternates
     const alts = {
       l3_key: ['l3key','l3','ecoregionkey'],
       plant_type: ['planttype','type','category','categories'],
@@ -579,10 +573,7 @@
       root_type: ['roottype'],
       root_depth: ['rootdepth','maturerootdepth','maximumrootdepth','maxrootdepth']
     }[w] || [];
-
-    for (const alt of alts) {
-      for (const h of headers) if (normalizeKey(h) === alt) return h;
-    }
+    for (const alt of alts) for (const h of headers) if (normalizeKey(h) === alt) return h;
     return null;
   }
 
@@ -607,6 +598,11 @@
     logDebug('✅ indexed plantsByL3', { keys: plantsByL3.size });
   }
 
+  function fmt(v, fallback='—') {
+    const s = String(v ?? '').trim();
+    return s ? s : fallback;
+  }
+
   function renderResults() {
     elResults.innerHTML = '';
     elCount.textContent = '';
@@ -626,43 +622,135 @@
     });
 
     const shown = list.slice(0, 80);
-    elCount.textContent = `(${list.length} matches${list.length > shown.length ? `, showing first ${shown.length}` : ''})`;
+    elCount.textContent = `${list.length} matches${list.length > shown.length ? ` • showing first ${shown.length}` : ''}`;
 
     for (const p of shown) {
       const div = document.createElement('div');
-      div.className = 'plant';
+      div.className = 'plantCard';
+
+      const common = fmt(p.commonName, '(no common name)');
+      const sci = fmt(p.scientificName, '(no scientific name)');
+      const pt = fmt(p.plantType);
+      const rt = fmt(p.rootType);
+      const rd = fmt(p.rootDepth);
+
       div.innerHTML = `
-        <b>${p.commonName || '(no common name)'}</b>
-        <div class="small"><i>${p.scientificName || '(no scientific name)'}</i></div>
-        <div class="small">
-          Plant Type: ${p.plantType || '—'}<br/>
-          Root Type: ${p.rootType || '—'}<br/>
-          Root Depth: ${p.rootDepth || '—'}
+        <div class="plantHeader">
+          <div>
+            <div class="plantName">🌿 ${common}</div>
+            <div class="sciName">🔬 ${sci}</div>
+          </div>
+        </div>
+        <div class="chips">
+          <div class="chip"><span class="ico">🏷️</span> <span><b>Type</b>: ${pt}</span></div>
+          <div class="chip"><span class="ico">🧬</span> <span><b>Root</b>: ${rt}</span></div>
+          <div class="chip"><span class="ico">⛏️</span> <span><b>Depth</b>: ${rd}</span></div>
         </div>
       `;
       elResults.appendChild(div);
     }
   }
 
-  // ============================================================
+  function resetAppForDemo() {
+    selectedL3Key = null;
+    selectedL3Name = null;
+
+    elSelected.innerHTML = '<b>None</b>';
+    elTypeFilter.value = '';
+    elSearch.value = '';
+    renderResults();
+    logDebug('↺ Reset pressed');
+
+    if (isMobileLayout()) setPanelOpen(false);
+  }
+
+  // Init presentation UI once DOM is ready (and map exists)
+  window.addEventListener('DOMContentLoaded', () => {
+    const demoToggle = document.getElementById('demoToggle');
+    const panelToggleBtn = document.getElementById('panelToggleBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+    let demoOn = false;
+    try { demoOn = localStorage.getItem(LS_DEMO_KEY) === '1'; } catch {}
+    setDemoMode(demoOn);
+
+    if (isMobileLayout()) {
+      setPanelOpen(false);
+    } else {
+      let panelOpen = true;
+      try { panelOpen = (localStorage.getItem(LS_PANEL_KEY) || 'open') === 'open'; } catch {}
+      setPanelOpen(panelOpen);
+    }
+
+    panelToggleBtn.addEventListener('click', togglePanel);
+    sidebarBackdrop.addEventListener('click', () => setPanelOpen(false));
+
+    demoToggle.addEventListener('click', () => {
+      const on = !document.body.classList.contains('demo-mode');
+      setDemoMode(on);
+    });
+    demoToggle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); demoToggle.click(); }
+    });
+
+    resetBtn.addEventListener('click', resetAppForDemo);
+
+    document.getElementById('map').addEventListener('click', () => {
+      if (isMobileLayout() && document.body.classList.contains('sidebar-open')) setPanelOpen(false);
+    });
+
+    safelyInvalidateMap();
+
+    if (debugEnabled) {
+      document.getElementById('debugFab').addEventListener('click', openDebug);
+      document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
+      document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
+      document.getElementById('debugClearBtn').addEventListener('click', () => { debugLines = []; logDebug('🧹 Log cleared'); });
+      document.getElementById('debugCopyBtn').addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(debugLines.join('\\n')); logDebug('✅ Copied'); }
+        catch { alert('Copy blocked by browser.'); }
+      });
+    }
+  });
+
+  // Load GeoJSON
+  async function loadEcoregionsGeoJSON() {
+    setStatus('Loading ecoregion map…');
+    const res = await fetch(ECOREGIONS_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Failed to load map JSON: ${res.status}`);
+    const geojson = await res.json();
+
+    function onEachFeature(feature, layer) {
+      layer.on('click', () => {
+        const p = feature.properties || {};
+        selectedL3Key = p.L3_KEY || null;
+        selectedL3Name = p.US_L3NAME || p.NA_L3NAME || null;
+
+        elSelected.innerHTML = selectedL3Key
+          ? `<b>${selectedL3Key}</b>${selectedL3Name ? `&nbsp;—&nbsp;${selectedL3Name}` : ''}`
+          : '<b>Unknown region</b>';
+
+        renderResults();
+
+        // Demo behavior: on iPad/mobile, auto-open panel after selecting a region
+        if (isMobileLayout() && document.body.classList.contains('demo-mode')) setPanelOpen(true);
+      });
+    }
+
+    L.geoJSON(geojson, { onEachFeature }).addTo(map);
+    setStatus('Map loaded. Click an ecoregion!');
+    safelyInvalidateMap();
+  }
+
   // Load CSV
-  // ============================================================
   async function loadPlantDatabaseCSV() {
     setStatus('Loading plant database CSV…');
-    logDebug('➡️ fetch CSV', DATABASE_CSV_URL);
-
     const res = await fetch(DATABASE_CSV_URL, { cache: 'no-store' });
-    logDebug('⬅️ CSV status', res.status);
-
     if (!res.ok) throw new Error(`Failed to load CSV: ${res.status}`);
 
     const text = await res.text();
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-
-    if (parsed.errors?.length) {
-      logDebug('⚠️ CSV parse errors (first 5)', parsed.errors.slice(0, 5));
-    }
-
     const rows = parsed.data || [];
     if (!rows.length) throw new Error('CSV loaded but has 0 rows.');
 
@@ -685,7 +773,6 @@
         <br/>ROOT_DEPTH = <code>${cRD || 'NOT FOUND'}</code>
       </div>
     `;
-    logDebug('🧾 detected CSV columns', { cL3, cType, cSci, cCom, cRT, cRD });
 
     plants = rows.map(r => ({
       l3Key: cL3 ? String(r[cL3]).trim() : '',
@@ -701,67 +788,21 @@
     setStatus(`Loaded ${plants.length.toLocaleString()} rows from CSV.`);
   }
 
-  // ============================================================
-  // Load map GeoJSON
-  // ============================================================
-  async function loadEcoregionsGeoJSON() {
-    setStatus('Loading ecoregion map…');
-    logDebug('➡️ fetch GeoJSON', ECOREGIONS_URL);
-
-    const res = await fetch(ECOREGIONS_URL, { cache: 'no-store' });
-    logDebug('⬅️ GeoJSON status', res.status);
-
-    if (!res.ok) throw new Error(`Failed to load map JSON: ${res.status}`);
-
-    const geojson = await res.json();
-    logDebug('✅ GeoJSON parsed', { type: geojson.type, features: geojson.features?.length });
-
-    function onEachFeature(feature, layer) {
-      layer.on('click', () => {
-        const p = feature.properties || {};
-        selectedL3Key = p.L3_KEY || null;
-        selectedL3Name = p.US_L3NAME || p.NA_L3NAME || null;
-
-        elSelected.textContent = selectedL3Key
-          ? (selectedL3Name ? `${selectedL3Key} — ${selectedL3Name}` : selectedL3Key)
-          : 'Unknown region';
-
-        logDebug('🗺️ region clicked', { selectedL3Key, selectedL3Name });
-        renderResults();
-      });
-    }
-
-    L.geoJSON(geojson, { onEachFeature }).addTo(map);
-    setStatus('Map loaded. Click an ecoregion!');
-  }
-
-  // UI events
+  // Events
   elTypeFilter.addEventListener('change', renderResults);
   elSearch.addEventListener('input', renderResults);
 
-  // ============================================================
-  // Boot (loads map even if CSV fails)
-  // ============================================================
+  // Boot
   (async function start() {
     try {
-      logDebug('🚀 App starting', { ECOREGIONS_URL, DATABASE_CSV_URL });
-
       await loadEcoregionsGeoJSON();
-
-      try {
-        await loadPlantDatabaseCSV();
-      } catch (e) {
-        logDebug('❌ CSV failed to load', String(e));
-        setStatus('ERROR loading CSV: ' + e.message);
-        openDebug();
-      }
-
+      try { await loadPlantDatabaseCSV(); }
+      catch (e) { setStatus('ERROR loading CSV: ' + e.message); if (debugEnabled) openDebug(); }
       renderResults();
-      logDebug('✅ App ready');
+      safelyInvalidateMap();
     } catch (err) {
-      logDebug('❌ App start error', String(err));
       setStatus('ERROR: ' + err.message);
-      openDebug();
+      if (debugEnabled) openDebug();
     }
   })();
 </script>
