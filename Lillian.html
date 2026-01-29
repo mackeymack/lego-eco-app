@@ -26,7 +26,7 @@
     .plant b { display:block; margin-bottom: 3px; }
     code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
 
-    /* --- Debug UI --- */
+    /* --- Debug UI (hidden trigger) --- */
     #debugFab {
       position: fixed;
       right: 14px;
@@ -39,6 +39,7 @@
       color: #fff;
       cursor: pointer;
       font-size: 14px;
+      display: none; /* ✅ hidden */
     }
     #debugModalBackdrop {
       position: fixed;
@@ -105,7 +106,7 @@
 <body>
   <div id="wrap">
     <div id="sidebar">
-      <h2>🐢🔥 Lillian's S.P.A.D.E </h2>
+      <h2>🐢 S<span id="debugDot" title="Open debug log" style="cursor:pointer; user-select:none;">.</span>P.A.D.E 🔥</h2>
       <div class="small">
         Click an ecoregion on the map → see matching plants from your CSV.
       </div>
@@ -140,7 +141,7 @@
     <div id="map"></div>
   </div>
 
-  <!-- Debug floating button + modal -->
+  <!-- Debug floating button + modal (button hidden; modal accessible via secret dot) -->
   <button id="debugFab" title="Open debug log">Debug</button>
   <div id="debugModalBackdrop"></div>
   <div id="debugModal">
@@ -161,7 +162,7 @@
   // Put these files in: /assets/
   // ============================================================
   const ECOREGIONS_URL = '/assets/us_eco_l3_state_boundaries.json';
-  const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv'; // ✅ same naming, just .csv
+  const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv';
 
   // ============================================================
   // Debug logger
@@ -199,7 +200,10 @@
   });
 
   window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('debugFab').addEventListener('click', openDebug);
+    // ✅ Hidden access: click the dot after "S"
+    const dot = document.getElementById('debugDot');
+    if (dot) dot.addEventListener('click', openDebug);
+
     document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
     document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
 
@@ -219,7 +223,7 @@
       }
     });
 
-    logDebug('✅ Debug UI ready');
+    logDebug('✅ Debug UI ready (hidden trigger)');
   });
 
   // ============================================================
@@ -301,7 +305,6 @@
     logDebug('✅ indexed plantsByL3', { keys: plantsByL3.size });
   }
 
-
   // ============================================================
   // Hover tooltip + click highlight helpers
   // ============================================================
@@ -339,7 +342,6 @@
   function getL3Name(props) {
     const name = props?.US_L3NAME || props?.NA_L3NAME;
     if (name) return String(name).trim();
-    // fallback: try to strip leading code from "L3_KEY"
     const k = props?.L3_KEY ? String(props.L3_KEY).trim() : '';
     if (!k) return 'Unknown';
     return k.replace(/^\S+\s+/, '').trim() || k;
@@ -349,7 +351,7 @@
     const l3Key = props?.L3_KEY || '';
     const code = getL3Code(props);
     const name = getL3Name(props);
-    const countKnown = plants.length > 0; // after CSV loads
+    const countKnown = plants.length > 0;
     const count = countKnown ? getPlantCountForL3Key(l3Key) : null;
 
     const countText = countKnown ? `${count.toLocaleString()} plant${count === 1 ? '' : 's'}` : 'Loading…';
@@ -399,11 +401,9 @@
 
     const k = layer?.feature?.properties?.L3_KEY;
 
-    // If selected exists, keep the selected region strongly highlighted.
     if (selectedL3Key && keysMatch(k, selectedL3Key)) {
       layer.setStyle({ weight: 4, fillOpacity: 0.40 });
     } else if (selectedL3Key) {
-      // Hovering a dimmed region: make it a little easier to see.
       layer.setStyle({ weight: 2, fillOpacity: 0.12, color: '#666' });
     } else {
       layer.setStyle(STYLE_HOVER);
@@ -509,7 +509,6 @@
     rebuildTypeDropdown();
     setStatus(`Loaded ${plants.length.toLocaleString()} rows from CSV.`);
 
-    // Refresh selection/tooltip counts now that plantsByL3 is available
     updateSelectionStyles();
   }
 
@@ -553,7 +552,7 @@
         const props = feature.properties || {};
         const clickedKey = props.L3_KEY || null;
 
-        // Optional: click same region again to clear selection
+        // click same region again to clear selection
         if (selectedL3Key && clickedKey && keysMatch(clickedKey, selectedL3Key)) {
           selectedL3Key = null;
           selectedL3Name = null;
