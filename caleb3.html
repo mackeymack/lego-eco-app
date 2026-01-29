@@ -19,13 +19,13 @@
     #map-container { position: relative; height: 100vh; overflow: hidden; }
     #map { height: 100%; width: 100%; }
     
-    #debug-trigger { cursor: default; user-select: none; }
-
-    /* Header Styles */
     h2 { margin: 0 0 2px; color: #1a5d1a; font-size: 2.2em; letter-spacing: 2px; }
     .acronym { font-size: 0.85em; color: #27ae60; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
     .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
     
+    /* Secret Trigger Styling */
+    #secret-dot { cursor: default; user-select: none; }
+
     h3 { margin: 25px 0 10px; font-size: 1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; text-transform: uppercase; }
     
     #geo-btn { 
@@ -38,9 +38,8 @@
 
     .zip-container { display: flex; gap: 5px; margin-bottom: 15px; }
     #zip-input, #lat-input, #lng-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; min-width: 0; }
-    #zip-btn, .coord-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .action-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-    /* Export Buttons Styling */
     .export-row { display: flex; gap: 10px; margin: 15px 0; }
     .export-btn { 
       flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #27ae60; 
@@ -52,7 +51,7 @@
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .row { margin-bottom: 12px; }
     label { font-weight: bold; font-size: 0.8em; display: block; margin-bottom: 4px; color: #4b4b4b; }
-    select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.85em; }
+    select, input[type=\"text\"] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.85em; }
     
     .region-display-container { display: flex; align-items: center; gap: 8px; }
     #selected-region { flex-grow: 1; font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -82,145 +81,160 @@
 
     #debug-overlay {
       display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%;
-      background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 20px; z-index: 10000;
+      background: #1e1e1e; color: #00ff00; font-family: 'Consolas', monospace; padding: 20px; z-index: 10000;
       border: 2px solid #333; border-radius: 8px; flex-direction: column;
     }
-    #debug-content { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; font-size: 12px; }
-    .debug-btn { background: #444; color: white; border: none; padding: 5px 12px; cursor: pointer; border-radius: 4px; }
+    #debug-content { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; font-size: 12px; border: 1px solid #333; padding: 10px; margin-top: 10px; }
+    .debug-toolbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
+    .debug-btn { background: #444; color: white; border: none; padding: 5px 15px; cursor: pointer; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .debug-btn:hover { background: #555; }
+    .debug-btn.close-btn { background: #c0392b; }
+    .debug-btn.close-btn:hover { background: #e74c3c; }
+
     .leaflet-tooltip-custom { background: rgba(26, 93, 26, 0.9); color: white; border: none; font-weight: bold; padding: 5px 10px; border-radius: 4px; }
   </style>
 </head>
 <body>
 
-<div id="debug-overlay">
-  <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px;">
-    <span>S.P.A.D.E. SYSTEM LOG</span>
-    <div>
-      <button class="debug-btn" onclick="document.getElementById('debug-content').innerHTML = ''">Clear</button>
-      <button class="debug-btn" onclick="toggleDebug()">Close</button>
+<div id=\"debug-overlay\">
+  <div class=\"debug-toolbar\">
+    <span style=\"color: #27ae60; font-weight: bold;\">S.P.A.D.E. INTERNAL SYSTEM LOG</span>
+    <div style=\"display: flex; gap: 8px;\">
+      <button class=\"debug-btn\" onclick=\"copyDebugLog()\">Copy</button>
+      <button class=\"debug-btn\" onclick=\"clearDebugLog()\">Clear</button>
+      <button class=\"debug-btn close-btn\" onclick=\"document.getElementById('debug-overlay').style.display = 'none'\">Close</button>
     </div>
   </div>
-  <div id="debug-content"></div>
+  <div id=\"debug-content\"></div>
 </div>
 
-<div id="wrap">
-  <div id="sidebar">
-    <h2><span id="debug-trigger" onclick="toggleDebug()">S</span>.P.A.D.E.</h2>
-    <div class="acronym">SITE PRESERVATION AND DIRT EROSION-CONTROL</div>
-    <div class="subtitle">Created by the Blazin Turtles</div>
+<div id=\"wrap\">
+  <div id=\"sidebar\">
+    <h2>S<span id=\"secret-dot\">.</span>P.A.D.E.</h2>
+    <div class=\"acronym\">SITE PRESERVATION AND DIRT EROSION-CONTROL</div>
+    <div class=\"subtitle\">Created by the Blazin Turtles</div>
     
-    <button id="geo-btn" onclick="useMyLocation()">
-      📍 Use My Current Location
-    </button>
+    <button id=\"geo-btn\" onclick=\"useMyLocation()\">📍 Use My Current Location</button>
 
-    <div class="zip-container">
-      <input type="text" id="zip-input" placeholder="Enter Zip Code" maxlength="5">
-      <button id="zip-btn" onclick="useZipCode()">Go</button>
+    <div class=\"zip-container\">
+      <input type=\"text\" id=\"zip-input\" placeholder=\"Enter Zip Code\" maxlength=\"5\">
+      <button class=\"action-btn\" onclick=\"useZipCode()\">Go</button>
     </div>
 
-    <div class="zip-container">
-      <input type="number" id="lat-input" placeholder="Latitude" step="any">
-      <input type="number" id="lng-input" placeholder="Longitude" step="any">
-      <button class="coord-btn" onclick="useCoordinates()" style="background: #2980b9;">Go</button>
+    <div class=\"zip-container\">
+      <input type=\"number\" id=\"lat-input\" placeholder=\"Latitude\" step=\"any\">
+      <input type=\"number\" id=\"lng-input\" placeholder=\"Longitude\" step=\"any\">
+      <button class=\"action-btn\" onclick=\"useCoordinates()\" style=\"background: #2980b9;\">Go</button>
     </div>
 
-    <div class="row">
+    <div class=\"row\">
       <label>Target Excavation Ecoregion</label>
-      <div class="region-display-container">
-        <div id="selected-region">Click map or use location</div>
-        <button id="clear-selection-btn" onclick="resetSelection()">Clear</button>
+      <div class=\"region-display-container\">
+        <div id=\"selected-region\">Click map or use location</div>
+        <button id=\"clear-selection-btn\" onclick=\"resetSelection()\">Clear</button>
       </div>
     </div>
 
-    <div class="row">
-      <label for="search-box">Quick Search</label>
-      <input type="text" id="search-box" placeholder="e.g. Oak, Sagebrush..." />
+    <div class=\"row\">
+      <label for=\"search-box\">Quick Search</label>
+      <input type=\"text\" id=\"search-box\" placeholder=\"e.g. Oak, Sagebrush...\" />
     </div>
 
     <h3>Stability & Growth</h3>
-    <div class="filter-grid">
-      <div class="row"><label>Plant Type</label><select id="type-filter" class="plant-filter"><option value="all">Any Type</option></select></div>
-      <div class="row"><label>Root Type</label><select id="root-filter" class="plant-filter"><option value="all">Any Root</option></select></div>
-      <div class="row"><label>Moisture</label><select id="moisture-filter" class="plant-filter"><option value="all">Any</option></select></div>
-      <div class="row"><label>Sun</label><select id="sun-filter" class="plant-filter"><option value="all">Any</option></select></div>
-      <div class="row"><label>Drought Tol.</label><select id="drought-filter" class="plant-filter"><option value="all">Any</option></select></div>
-      <div class="row"><label>Fire Tol.</label><select id="fire-filter" class="plant-filter"><option value="all">Any</option></select></div>
+    <div class=\"filter-grid\">
+      <div class=\"row\"><label>Plant Type</label><select id=\"type-filter\" class=\"plant-filter\"><option value=\"all\">Any Type</option></select></div>
+      <div class=\"row\"><label>Root Type</label><select id=\"root-filter\" class=\"plant-filter\"><option value=\"all\">Any Root</option></select></div>
+      <div class=\"row\"><label>Moisture</label><select id=\"moisture-filter\" class=\"plant-filter\"><option value=\"all\">Any</option></select></div>
+      <div class=\"row\"><label>Sun</label><select id=\"sun-filter\" class=\"plant-filter\"><option value=\"all\">Any</option></select></div>
+      <div class=\"row\"><label>Drought Tol.</label><select id=\"drought-filter\" class=\"plant-filter\"><option value=\"all\">Any</option></select></div>
+      <div class=\"row\"><label>Fire Tol.</label><select id=\"fire-filter\" class=\"plant-filter\"><option value=\"all\">Any</option></select></div>
     </div>
 
     <h3>Soil Analysis</h3>
-    <div class="filter-grid">
-      <div class="row"><label>Clay</label><select id="clay-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Sand</label><select id="sand-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Gravel</label><select id="gravel-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Loam</label><select id="loam-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Silt</label><select id="silt-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Peat</label><select id="peat-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Chalky</label><select id="chalky-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+    <div class=\"filter-grid\">
+      <div class=\"row\"><label>Clay</label><select id=\"clay-filter\" class=\"plant-filter\"><option value=\"all\">Any</option><option value=\"Yes\">Yes</option><option value=\"No\">No</option></select></div>
+      <div class=\"row\"><label>Sand</label><select id=\"sand-filter\" class=\"plant-filter\"><option value=\"all\">Any</option><option value=\"Yes\">Yes</option><option value=\"No\">No</option></select></div>
+      <div class=\"row\"><label>Gravel</label><select id=\"gravel-filter\" class=\"plant-filter\"><option value=\"all\">Any</option><option value=\"Yes\">Yes</option><option value=\"No\">No</option></select></div>
+      <div class=\"row\"><label>Loam</label><select id=\"loam-filter\" class=\"plant-filter\"><option value=\"all\">Any</option><option value=\"Yes\">Yes</option><option value=\"No\">No</option></select></div>
+      <div class=\"row\"><label>Silt</label><select id=\"silt-filter\" class=\"plant-filter\"><option value=\"all\">Any</option><option value=\"Yes\">Yes</option><option value=\"No\">No</option></select></div>
+      <div class=\"row\"><label>Peat</label><select id=\"peat-filter\" class=\"plant-filter\"><option value=\"all\">Any</option><option value=\"Yes\">Yes</option><option value=\"No\">No</option></select></div>
+      <div class=\"row\"><label>Chalky</label><select id=\"chalky-filter\" class=\"plant-filter\"><option value=\"all\">Any</option><option value=\"Yes\">Yes</option><option value=\"No\">No</option></select></div>
     </div>
 
-    <button class="reset-filters-btn" onclick="resetFilters()">Reset All Filters</button>
+    <button class=\"reset-filters-btn\" onclick=\"resetFilters()\">Reset All Filters</button>
 
-    <div id="status">System starting...</div>
-    <div id="results-count"></div>
+    <div id=\"status\">System starting...</div>
+    <div id=\"results-count\"></div>
 
-    <div class="export-row">
-      <button class="export-btn" onclick="exportExcel()">Export to Excel</button>
-      <button class="export-btn" onclick="exportSheets()">Export for Sheets</button>
+    <div class=\"export-row\">
+      <button class=\"export-btn\" onclick=\"exportExcel()\">Export to Excel</button>
+      <button class=\"export-btn\" onclick=\"exportSheets()\">Export for Sheets</button>
     </div>
 
-    <div id="results-list"></div>
-    
-    <div id="show-more-container">
-      <button id="show-more-btn" onclick="showMore()">Show More Results</button>
-    </div>
+    <div id=\"results-list\"></div>
+    <div id=\"show-more-container\"><button id=\"show-more-btn\" onclick=\"showMore()\">Show More Results</button></div>
   </div>
 
-  <div id="map-container">
-    <div id="map"></div>
-  </div>
+  <div id=\"map-container\"><div id=\"map\"></div></div>
 </div>
 
 <script>
-  let plantData = null;
-  let currentFilteredItems = []; 
-  let selectedL3Key = null;
-  let regionCounts = {};
-  let displayLimit = 10;
-  let map, geoLayer; 
-  const increment = 10;
+  let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
+  const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
-  const ECO_URL = 'assets/us_eco_l3_state_boundaries.json'; 
-  const CSV_URL = 'assets/Database-Deleted-Categories.csv';
+  // Secret Debug Initialization
+  let dotClickCount = 0;
+  let dotTimer;
+  document.getElementById('secret-dot').addEventListener('click', () => {
+    dotClickCount++;
+    clearTimeout(dotTimer);
+    if (dotClickCount === 2) {
+      const accessCode = prompt(\"Enter Authentication Key:\");
+      if (accessCode === \"blazin turtles\") {
+        document.getElementById('debug-overlay').style.display = 'flex';
+        sysLog(\"SYSTEM LOG ACCESS GRANTED.\");
+      } else if (accessCode !== null) {
+        sysLog(\"UNAUTHORIZED ACCESS ATTEMPT DETECTED.\");
+      }
+      dotClickCount = 0;
+    } else {
+      dotTimer = setTimeout(() => { dotClickCount = 0; }, 500);
+    }
+  });
 
   function sysLog(msg) {
     const content = document.getElementById('debug-content');
     if(content) {
-        content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+        content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\\n`;
         content.scrollTop = content.scrollHeight;
     }
   }
 
-  function toggleDebug() {
-    const overlay = document.getElementById('debug-overlay');
-    overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
+  function clearDebugLog() { document.getElementById('debug-content').innerHTML = ''; sysLog(\"Log manually cleared.\"); }
+  
+  function copyDebugLog() {
+    const text = document.getElementById('debug-content').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      alert(\"System log copied to clipboard.\");
+      sysLog(\"Log content copied to clipboard.\");
+    });
   }
 
-  function showMore() {
-    displayLimit += increment;
-    renderResults(false);
+  function showMore() { 
+    displayLimit += increment; 
+    sysLog(`Results expansion requested. New limit: ${displayLimit}`);
+    renderResults(false); 
   }
 
   function populate(id, col, data) {
-    const sel = document.getElementById(id);
-    const vals = new Set();
+    const sel = document.getElementById(id), vals = new Set();
     data.forEach(r => { if(r[col] && r[col] !== '0') r[col].split(',').forEach(v => vals.add(v.trim())); });
-    Array.from(vals).sort().forEach(v => {
-      const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
-    });
+    Array.from(vals).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
   }
 
   function highlightRegion(key) {
     if (!geoLayer) return;
+    sysLog(`Highlighting map feature: ${key}`);
     geoLayer.eachLayer(layer => {
       if (layer.feature.properties.L3_KEY === key) {
         layer.setStyle({ fillOpacity: 0.6, weight: 3, color: '#1a5d1a', opacity: 1 });
@@ -232,22 +246,18 @@
   }
 
   function resetFilters() {
-    document.getElementById('search-box').value = "";
+    sysLog(\"Resetting all plant filters to default 'all'.\");
+    document.getElementById('search-box').value = \"\";
     document.querySelectorAll('.plant-filter').forEach(select => select.value = 'all');
     renderResults(true);
   }
 
   function resetSelection() {
+    sysLog(\"Clearing ecoregion selection and resetting map view.\");
     selectedL3Key = null;
-    document.getElementById('selected-region').textContent = "Click map or use location";
-    document.getElementById('zip-input').value = "";
-    document.getElementById('lat-input').value = "";
-    document.getElementById('lng-input').value = "";
-    if (geoLayer) {
-      geoLayer.eachLayer(layer => {
-        layer.setStyle({ fillOpacity: 0.1, weight: 1, color: '#27ae60', opacity: 1 });
-      });
-    }
+    document.getElementById('selected-region').textContent = \"Click map or use location\";
+    ['zip-input', 'lat-input', 'lng-input'].forEach(id => document.getElementById(id).value = \"\");
+    if (geoLayer) geoLayer.eachLayer(layer => layer.setStyle({ fillOpacity: 0.1, weight: 1, color: '#27ae60', opacity: 1 }));
     map.setView([37.8, -96], 4);
     renderResults(true);
   }
@@ -292,6 +302,7 @@
       return true;
     });
 
+    sysLog(`Filter applied. Results found: ${currentFilteredItems.length}`);
     document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, currentFilteredItems.length)} of ${currentFilteredItems.length} matches`;
     document.getElementById('show-more-container').style.display = (currentFilteredItems.length > displayLimit) ? 'block' : 'none';
 
@@ -302,125 +313,65 @@
       const card = document.createElement('div');
       card.className = 'plant-card';
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
-      const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
-
+      const sourceHtml = hasLink ? `<a href=\"${p['SOURCE_LINK_1']}\" target=\"_blank\" class=\"source-link\">View Source</a>` : '';
       let allFieldsHtml = '';
-      Object.keys(p).forEach(key => {
-        if(p[key] && p[key] !== '0' && p[key] !== '') {
-          allFieldsHtml += `<div><strong>${key}:</strong> ${p[key]}</div>`;
-        }
-      });
+      Object.keys(p).forEach(key => { if(p[key] && p[key] !== '0' && p[key] !== '') allFieldsHtml += `<div><strong>${key}:</strong> ${p[key]}</div>`; });
 
       card.innerHTML = `
         <h4>${p['Common Name'] || 'Unknown'}</h4>
         <p><em>${p['Scientific Name'] || ''}</em></p>
         <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
         <p><strong>TOLERANCE:</strong> Drought: ${p['Drought Tolerance'] || 'N/A'}, Fire: ${p['Fire Tolerance'] || 'N/A'}</p>
-        <p><strong>WATER:</strong> ${p['Soil Moisture'] || 'N/A'} | <strong>SUN:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
-        <div class="card-actions">
-          <button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>
-          ${sourceHtml}
-        </div>
-        <div id="details-${index}" class="details-pane">${allFieldsHtml}</div>
+        <div class=\"card-actions\"><button class=\"more-info-btn\" onclick=\"toggleDetails(${index})\">More Information</button>${sourceHtml}</div>
+        <div id=\"details-${index}\" class=\"details-pane\">${allFieldsHtml}</div>
       `;
       list.appendChild(card);
     });
   }
 
-  function exportExcel() {
-    if (currentFilteredItems.length === 0) return alert("No plants match your filters to export.");
-    const ws = XLSX.utils.json_to_sheet(currentFilteredItems);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "SPADE_Results");
-    XLSX.writeFile(wb, "SPADE_Site_Plan.xlsx");
-  }
-
-  function exportSheets() {
-    if (currentFilteredItems.length === 0) return alert("No plants match your filters to export.");
-    const csv = Papa.unparse(currentFilteredItems);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "SPADE_For_Google_Sheets.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  function toggleDetails(idx) {
-    document.getElementById(`details-${idx}`).classList.toggle('active');
-  }
-
   async function useZipCode() {
     const zip = document.getElementById('zip-input').value;
-    if (!/^\d{5}$/.test(zip)) return;
+    if (!/^\\d{5}$/.test(zip)) return;
+    sysLog(`Initiating ZIP lookup: ${zip}`);
     try {
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
-      if (!res.ok) throw new Error("ZIP not found");
+      if (!res.ok) throw new Error(\"ZIP database error.\");
       const data = await res.json();
-      const lat = parseFloat(data.places[0].latitude);
-      const lng = parseFloat(data.places[0].longitude);
-      
-      // Auto-fill coordinate fields
+      const lat = parseFloat(data.places[0].latitude), lng = parseFloat(data.places[0].longitude);
       document.getElementById('lat-input').value = lat;
       document.getElementById('lng-input').value = lng;
-      
+      sysLog(`ZIP resolved to ${lat}, ${lng}`);
       matchLocationToRegion(lat, lng);
-    } catch (err) { document.getElementById('status').textContent = "Error: ZIP not found."; }
+    } catch (err) { sysLog(`ZIP lookup failure: ${err.message}`); }
   }
 
   async function useMyLocation() {
-    const status = document.getElementById('status');
-    if (!navigator.geolocation) {
-      status.textContent = "Geolocation not supported";
-      return;
-    }
-    status.textContent = "🛰️ Requesting GPS...";
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        
-        // Auto-fill coordinate fields
+    if (!navigator.geolocation) { sysLog(\"Geolocation hardware not detected.\"); return; }
+    sysLog(\"Requesting GPS signal...\");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude, lng = pos.coords.longitude;
         document.getElementById('lat-input').value = lat.toFixed(4);
         document.getElementById('lng-input').value = lng.toFixed(4);
-        
+        sysLog(`GPS Lock: ${lat}, ${lng}`);
         matchLocationToRegion(lat, lng);
-
-        // Reverse geocode to fill ZIP
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
           const data = await res.json();
-          if (data.address && data.address.postcode) {
-            document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
-          }
-        } catch (e) { sysLog("Reverse geocode failed."); }
-      },
-      (err) => status.textContent = "Error: " + err.message,
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+          if (data.address && data.address.postcode) document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
+        } catch (e) { sysLog(\"Reverse geocoding suppressed/failed.\"); }
+      }, (err) => sysLog(`GPS Lock Failure: ${err.message}`), { enableHighAccuracy: true });
   }
 
-  async function useCoordinates() {
-    const lat = parseFloat(document.getElementById('lat-input').value);
-    const lng = parseFloat(document.getElementById('lng-input').value);
-    const status = document.getElementById('status');
-    if (isNaN(lat) || isNaN(lng)) {
-      status.textContent = "Please enter valid numeric coordinates.";
-      return;
+  function useCoordinates() {
+    const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      sysLog(`Manual coordinate search: ${lat}, ${lng}`);
+      matchLocationToRegion(lat, lng);
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(res => res.json()).then(data => {
+          if (data.address && data.address.postcode) document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
+        }).catch(() => sysLog(\"Reverse geocoding unavailable for manually entered coords.\"));
     }
-    status.textContent = `🔍 Searching: ${lat}, ${lng}`;
-    matchLocationToRegion(lat, lng);
-
-    // Reverse geocode to fill ZIP
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-      const data = await res.json();
-      if (data.address && data.address.postcode) {
-        document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
-      }
-    } catch (e) { sysLog("Reverse geocode failed."); }
   }
 
   function matchLocationToRegion(lat, lng) {
@@ -428,35 +379,32 @@
     if (results.length > 0) {
       const f = results[0].feature;
       selectedL3Key = f.properties.L3_KEY;
-      document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`;
+      sysLog(`Location successfully mapped to Ecoregion \${selectedL3Key}: \${f.properties.US_L3NAME}`);
+      document.getElementById('selected-region').textContent = `\${selectedL3Key}: \${f.properties.US_L3NAME}`;
       map.setView([lat, lng], 8);
       highlightRegion(selectedL3Key);
       renderResults(true);
-    } else {
-      document.getElementById('status').textContent = "Coordinates found, but no ecoregion matched.";
-    }
+    } else { sysLog(\"Location validated but falls outside defined Ecoregion boundaries.\"); }
   }
 
   async function init() {
-    Papa.parse(CSV_URL, {
-      download: true, header: true,
-      complete: (res) => {
+    sysLog(\"Initializing Database sequence...\");
+    Papa.parse(CSV_URL, { download: true, header: true, complete: (res) => {
         plantData = res.data;
+        sysLog(`CSV Database Loaded. Records count: \${plantData.length}`);
         plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
-        populate('type-filter', 'Plant Type', plantData);
-        populate('root-filter', 'ROOT_TYPE', plantData);
-        populate('moisture-filter', 'Soil Moisture', plantData);
-        populate('sun-filter', 'SUN_EXPOSURE', plantData);
-        populate('drought-filter', 'Drought Tolerance', plantData);
-        populate('fire-filter', 'Fire Tolerance', plantData);
+        ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter'].forEach(id => {
+          const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : 'Fire Tolerance';
+          populate(id, col, plantData);
+        });
         document.getElementById('status').textContent = 'Database Active';
         renderResults();
         loadMap();
-      }
-    });
+    }});
   }
 
   async function loadMap() {
+    sysLog(\"Initializing map engine...\");
     map = L.map('map').setView([37.8, -96], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     try {
@@ -467,22 +415,32 @@
         onEachFeature: (f, l) => {
           const key = f.properties.L3_KEY;
           const count = regionCounts[key] || 0;
-          l.bindTooltip(`Region ${key}: ${f.properties.US_L3NAME || "Unknown"}<br/>${count} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
-          l.on({
+          const states = f.properties.STATE_NAME || f.properties.STATE || \"N/A\";
+          
+          l.bindTooltip(`
+            <b>Ecoregion:</b> \${key}<br/>
+            <b>Name:</b> \${f.properties.US_L3NAME || \"Unknown\"}<br/>
+            <b>Plants:</b> \${count}<br/>
+            <b>Located in:</b> \${states}
+          `, { sticky: true, className: 'leaflet-tooltip-custom' });
+
+          l.on({ 
             mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
             mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
             click: (e) => {
               selectedL3Key = key;
-              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME || "Region"}`;
-              highlightRegion(key);
+              sysLog(`Manual Map Click: \${selectedL3Key}`);
+              document.getElementById('selected-region').textContent = `\${selectedL3Key}: \${f.properties.US_L3NAME || \"Region\"}`;
+              highlightRegion(selectedL3Key);
               renderResults(true);
-            }
-          });
+          }});
         }
       }).addTo(map);
-    } catch (e) { sysLog("Map Error: " + e.message); }
+      sysLog(\"Map layers synchronized successfully.\");
+    } catch (e) { sysLog(\"Map Layer Critical Error: \" + e.message); }
   }
 
+  function toggleDetails(idx) { document.getElementById(`details-\${idx}`).classList.toggle('active'); }
   document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
   window.onload = init;
 </script>
