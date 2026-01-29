@@ -141,7 +141,17 @@
       <div class="row"><label>Drought Tol.</label><select id="drought-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Fire Tol.</label><select id="fire-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Growth Period</label><select id="growth-filter" class="plant-filter"><option value="all">Any Period</option></select></div>
-      <div class="row"><label>Planting Season</label><select id="season-filter" class="plant-filter"><option value="all">Any Season</option></select></div>
+      <div class="row">
+        <label>Planting Season</label>
+        <select id="season-filter" class="plant-filter">
+          <option value="all">Any Season</option>
+          <option value="Spring">Spring</option>
+          <option value="Fall">Fall</option>
+          <option value="Summer">Summer</option>
+          <option value="Winter">Winter</option>
+          <option value="Year Round">Year Round</option>
+        </select>
+      </div>
     </div>
 
     <h3>Soil Analysis</h3>
@@ -272,7 +282,16 @@
       if (f.drought !== 'all' && !(p['Drought Tolerance'] || '').includes(f.drought)) return false;
       if (f.fire !== 'all' && !(p['Fire Tolerance'] || '').includes(f.fire)) return false;
       if (f.growth !== 'all' && !(p['Active Growth Period'] || '').includes(f.growth)) return false;
-      if (f.season !== 'all' && !(p['PLANTING_SEASON'] || '').includes(f.season)) return false;
+      
+      if (f.season !== 'all') {
+        const sVal = (p['PLANTING_SEASON'] || '').toLowerCase();
+        if (f.season === 'Year Round') {
+          if (!(sVal.includes('spring') && sVal.includes('fall') && sVal.includes('summer') && sVal.includes('winter'))) return false;
+        } else if (!sVal.includes(f.season.toLowerCase())) {
+          return false;
+        }
+      }
+
       if (f.clay !== 'all' && p['CLAY_SOIL'] !== f.clay) return false;
       if (f.sand !== 'all' && p['SAND_SOIL'] !== f.sand) return false;
       if (f.gravel !== 'all' && p['GRAVEL_SOIL'] !== f.gravel) return false;
@@ -317,7 +336,7 @@
         <p><strong>SOIL:</strong> ${soilStr}</p>
         <p><strong>WATER:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
         <p><strong>SUN:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
-        <div class="card-actions"><button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>${sourceHtml}</div>
+        <div class="card-actions"><button id="btn-${index}" class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>${sourceHtml}</div>
         <div id="details-${index}" class="details-pane">${allFieldsHtml}</div>
       `;
       list.appendChild(card);
@@ -376,8 +395,8 @@
     Papa.parse(CSV_URL, { download: true, header: true, complete: (res) => {
         plantData = res.data;
         plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
-        ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter', 'growth-filter', 'season-filter'].forEach(id => {
-          const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : id === 'growth-filter' ? 'Active Growth Period' : 'PLANTING_SEASON';
+        ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter', 'growth-filter'].forEach(id => {
+          const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : 'Active Growth Period';
           populate(id, col, plantData);
         });
         document.getElementById('status').textContent = 'Database Active';
@@ -421,7 +440,12 @@
     } catch (e) { sysLog("Map Error."); }
   }
 
-  function toggleDetails(idx) { document.getElementById(`details-${idx}`).classList.toggle('active'); }
+  function toggleDetails(idx) { 
+    const pane = document.getElementById(`details-${idx}`);
+    const btn = document.getElementById(`btn-${idx}`);
+    pane.classList.toggle('active');
+    btn.textContent = pane.classList.contains('active') ? 'Less Information' : 'More Information';
+  }
   document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
   window.onload = init;
 </script>
