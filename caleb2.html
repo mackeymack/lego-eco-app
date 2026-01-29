@@ -71,7 +71,6 @@
     .details-pane div { margin: 4px 0; border-bottom: 1px solid #f9f9f9; padding-bottom: 2px; }
     .details-pane strong { color: #1a5d1a; text-transform: uppercase; font-size: 0.75em; display: inline-block; width: 130px; }
 
-    /* Debug Overlays */
     #debug-overlay {
       display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%;
       background: #1e1e1e; color: #00ff00; font-family: 'Consolas', monospace; padding: 20px; z-index: 10000;
@@ -141,6 +140,8 @@
       <div class="row"><label>Sun</label><select id="sun-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Drought Tol.</label><select id="drought-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Fire Tol.</label><select id="fire-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Growth Period</label><select id="growth-filter" class="plant-filter"><option value="all">Any Period</option></select></div>
+      <div class="row"><label>Planting Season</label><select id="season-filter" class="plant-filter"><option value="all">Any Season</option></select></div>
     </div>
 
     <h3>Soil Analysis</h3>
@@ -181,7 +182,7 @@
     dotClickCount++;
     clearTimeout(dotTimer);
     if (dotClickCount === 2) {
-      if (prompt("Enter Authentication Key:") === "blazin turtles") {
+      if (prompt("Enter Authentication Key:") === "numpy") {
         document.getElementById('debug-overlay').style.display = 'flex';
         sysLog("AUTHORIZED ACCESS: Debugger opened.");
       }
@@ -251,6 +252,8 @@
       sun: document.getElementById('sun-filter').value,
       drought: document.getElementById('drought-filter').value,
       fire: document.getElementById('fire-filter').value,
+      growth: document.getElementById('growth-filter').value,
+      season: document.getElementById('season-filter').value,
       clay: document.getElementById('clay-filter').value,
       sand: document.getElementById('sand-filter').value,
       gravel: document.getElementById('gravel-filter').value,
@@ -268,6 +271,8 @@
       if (f.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(f.sun)) return false;
       if (f.drought !== 'all' && !(p['Drought Tolerance'] || '').includes(f.drought)) return false;
       if (f.fire !== 'all' && !(p['Fire Tolerance'] || '').includes(f.fire)) return false;
+      if (f.growth !== 'all' && !(p['Active Growth Period'] || '').includes(f.growth)) return false;
+      if (f.season !== 'all' && !(p['PLANTING_SEASON'] || '').includes(f.season)) return false;
       if (f.clay !== 'all' && p['CLAY_SOIL'] !== f.clay) return false;
       if (f.sand !== 'all' && p['SAND_SOIL'] !== f.sand) return false;
       if (f.gravel !== 'all' && p['GRAVEL_SOIL'] !== f.gravel) return false;
@@ -371,8 +376,8 @@
     Papa.parse(CSV_URL, { download: true, header: true, complete: (res) => {
         plantData = res.data;
         plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
-        ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter'].forEach(id => {
-          const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : 'Fire Tolerance';
+        ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter', 'growth-filter', 'season-filter'].forEach(id => {
+          const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : id === 'growth-filter' ? 'Active Growth Period' : 'PLANTING_SEASON';
           populate(id, col, plantData);
         });
         document.getElementById('status').textContent = 'Database Active';
