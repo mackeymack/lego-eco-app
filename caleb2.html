@@ -37,8 +37,8 @@
     #geo-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
 
     .zip-container { display: flex; gap: 5px; margin-bottom: 15px; }
-    #zip-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; }
-    #zip-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    #zip-input, #lat-input, #lng-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; min-width: 0; }
+    .action-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
     /* Export Buttons Styling */
     .export-row { display: flex; gap: 10px; margin: 15px 0; }
@@ -115,13 +115,13 @@
 
     <div class="zip-container">
       <input type="text" id="zip-input" placeholder="Enter Zip Code" maxlength="5">
-      <button id="zip-btn" onclick="useZipCode()">Go</button>
+      <button class="action-btn" onclick="useZipCode()">Go</button>
     </div>
 
     <div class="zip-container">
-      <input type="number" id="lat-input" placeholder="Lat" step="any" style="flex: 1; min-width: 0;">
-      <input type="number" id="lng-input" placeholder="Lng" step="any" style="flex: 1; min-width: 0;">
-      <button id="coord-btn" onclick="useCoordinates()" style="background: #2980b9; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">Go</button>
+      <input type="number" id="lat-input" placeholder="Latitude" step="any">
+      <input type="number" id="lng-input" placeholder="Longitude" step="any">
+      <button class="action-btn" onclick="useCoordinates()" style="background: #2980b9;">Go</button>
     </div>
 
     <div class="row">
@@ -359,15 +359,46 @@
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
       if (!res.ok) throw new Error("ZIP not found");
       const data = await res.json();
-      matchLocationToRegion(parseFloat(data.places[0].latitude), parseFloat(data.places[0].longitude));
+      const lat = parseFloat(data.places[0].latitude);
+      const lng = parseFloat(data.places[0].longitude);
+      
+      // Update coordinate fields
+      document.getElementById('lat-input').value = lat;
+      document.getElementById('lng-input').value = lng;
+      
+      matchLocationToRegion(lat, lng);
     } catch (err) { document.getElementById('status').textContent = "Error: ZIP not found."; }
   }
 
   async function useMyLocation() {
-    if (!navigator.geolocation) return;
+    const status = document.getElementById('status');
+    if (!navigator.geolocation) {
+      status.textContent = "Geolocation not supported";
+      return;
+    }
+    status.textContent = "🛰️ Requesting GPS...";
     navigator.geolocation.getCurrentPosition(
-      (pos) => matchLocationToRegion(pos.coords.latitude, pos.coords.longitude),
-      (err) => document.getElementById('status').textContent = "Error: " + err.message
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        
+        // Update input fields
+        document.getElementById('lat-input').value = lat.toFixed(4);
+        document.getElementById('lng-input').value = lng.toFixed(4);
+        
+        matchLocationToRegion(lat, lng);
+
+        // Attempt reverse geocoding for ZIP
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+          const data = await res.json();
+          if (data.address && data.address.postcode) {
+            document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
+          }
+        } catch (e) { sysLog("Reverse geocode failed."); }
+      },
+      (err) => status.textContent = "Error: " + err.message,
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   }
 
@@ -392,6 +423,8 @@
       map.setView([lat, lng], 8);
       highlightRegion(selectedL3Key);
       renderResults(true);
+    } else {
+      document.getElementById('status').textContent = "Coordinates found, but no ecoregion matched.";
     }
   }
 
@@ -424,11 +457,14 @@
         style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
         onEachFeature: (f, l) => {
           const key = f.properties.L3_KEY;
-          l.bindTooltip(`Region ${key}: ${f.properties.US_L3NAME}<br/>${regionCounts[key] || 0} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
+          const count = regionCounts[key] || 0;
+          l.bindTooltip(`Region ${key}: ${f.properties.US_L3NAME || "Unknown"}<br/>${count} Plants`, { sticky: true, className: 'leaflet-tooltip-custom' });
           l.on({
+            mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
+            mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
             click: (e) => {
               selectedL3Key = key;
-              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
+              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME || "Region"}`;
               highlightRegion(key);
               renderResults(true);
             }
