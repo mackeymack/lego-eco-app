@@ -33,11 +33,10 @@
       color: var(--text-main); 
       line-height: 1.5; 
       overflow-x: hidden;
-      /* Ensures content starts exactly where intended */
       padding-top: env(safe-area-inset-top);
     }
     
-    /* Home Screen Install Banner */
+    /* Install Banner */
     #install-banner {
       display: none;
       background: var(--primary-green);
@@ -59,14 +58,14 @@
     #wrap { display: flex; flex-direction: column; width: 100%; }
     
     #map-container { 
-      height: 45vh; 
+      height: 40vh; 
       width: 100%; 
       position: sticky; 
       top: 0; 
-      z-index: 1500; /* Higher than sidebar content */
-      background: #ffffff; /* Prevents text from being seen behind the map */
+      z-index: 1500; 
+      background: #ffffff; /* Blocks text bleed */
       border-bottom: 2px solid var(--border-color);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     #map { height: 100%; width: 100%; }
     
@@ -75,14 +74,13 @@
       padding: 20px; 
       background: var(--bg-light); 
       position: relative; 
-      z-index: 100; /* Lower than map */
+      z-index: 100; 
     }
 
     h2 { margin: 0 0 4px; color: var(--primary-green); font-size: 1.8em; letter-spacing: -1px; font-weight: 800; }
     .subtitle { margin-bottom: 20px; color: #4a5568; font-weight: 600; font-size: 0.75em; text-transform: uppercase; }
     #secret-dot { cursor: pointer; user-select: none; touch-action: manipulation; }
 
-    /* Location & Search Controls */
     .btn-standard { width: 100%; border: none; padding: 14px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.9em; margin-bottom: 12px; }
     #geo-btn { background: #3b82f6; color: white; }
     .zip-container { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
@@ -92,18 +90,16 @@
 
     #selected-region { font-weight: 700; color: #1e40af; background: #e6f0ff; padding: 12px; border-radius: var(--soft-radius); font-size: 0.85em; border: 1px solid #cbd5e0; margin-bottom: 15px; text-align: center; }
 
-    /* Filters Section */
     h3 { margin: 25px 0 10px; font-size: 0.8em; border-bottom: 1px solid #cbd5e0; padding-bottom: 5px; color: #475569; text-transform: uppercase; letter-spacing: 1px; }
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
     label { font-weight: 700; font-size: 0.65em; display: block; margin-bottom: 2px; color: #4a5568; text-transform: uppercase; }
 
-    /* Plant Card Categories */
+    /* Plant Card Styling */
     .plant-card { border: 1px solid #d2b48c; padding: 15px; margin-bottom: 15px; border-radius: var(--soft-radius); background: var(--card-bg); position: relative; }
     .plant-img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; margin: 10px 0; background: #e2e8f0; }
-    .img-caption { font-size: 0.65em; color: #718096; display: block; margin-bottom: 8px; }
     .soil-badge { background: #e2e8f0; color: #2d3436; font-size: 0.6em; font-weight: 700; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; margin-right: 4px; display: inline-block; margin-bottom: 4px; }
     
-    .star-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; color: #cbd5e0; line-height: 1; z-index: 5; }
+    .star-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; color: #cbd5e0; line-height: 1; }
     .star-btn.active { color: #f1c40f; }
 
     .card-actions { display: flex; gap: 10px; margin-top: 10px; }
@@ -113,7 +109,6 @@
     .details-pane { display: none; background: #fff; padding: 10px; margin-top: 10px; border-radius: 8px; font-size: 0.75em; border: 1px dashed #ccc; }
     .details-pane div { display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; padding: 4px 0; }
 
-    /* Controls Over Map */
     #map-controls { position: absolute; top: 10px; right: 10px; z-index: 1600; display: flex; flex-direction: column; gap: 5px; }
     .map-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 6px; padding: 8px; font-weight: 700; font-size: 0.75em; }
     #results-count { margin: 15px 0; font-weight: 800; font-size: 0.9em; color: var(--accent-green); text-align: center; background: #e6fffa; padding: 10px; border-radius: 8px; }
@@ -124,7 +119,7 @@
 <body>
 
 <div id="install-banner">
-  <span>Install S.P.A.D.E. to Home Screen?</span>
+  <span>Add S.P.A.D.E. to Home Screen?</span>
   <div class="banner-btns">
     <button id="install-btn">Download</button>
     <button id="ignore-btn" onclick="document.getElementById('install-banner').style.display='none'">Ignore</button>
@@ -162,8 +157,23 @@
     <div class="filter-grid">
       <div class="row"><label>Type</label><select id="type-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Roots</label><select id="root-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Moisture</label><select id="moisture-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Sun</label><select id="sun-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Drought Tol.</label><select id="drought-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Fire Tol.</label><select id="fire-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Growth</label><select id="growth-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Season</label><select id="season-filter" class="plant-filter"><option value="all">Any</option><option value="Spring">Spring</option><option value="Fall">Fall</option><option value="Summer">Summer</option><option value="Winter">Winter</option><option value="Year Round">Year Round</option></select></div>
+    </div>
+
+    <h3>Soil Analysis</h3>
+    <div class="filter-grid">
+      <div class="row"><label>Clay</label><select id="clay-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option></select></div>
+      <div class="row"><label>Sand</label><select id="sand-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option></select></div>
+      <div class="row"><label>Gravel</label><select id="gravel-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option></select></div>
+      <div class="row"><label>Loam</label><select id="loam-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option></select></div>
+      <div class="row"><label>Silt</label><select id="silt-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option></select></div>
+      <div class="row"><label>Peat</label><select id="peat-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option></select></div>
+      <div class="row"><label>Chalky</label><select id="chalky-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option></select></div>
     </div>
 
     <div id="results-count">Ready...</div>
@@ -189,7 +199,7 @@
     "critsite_native_plants_full_list": { name: "Plant Picker", url: "https://plantsman.com/" }
   };
 
-  // PWA Prompt Logic
+  // PWA Logic
   let deferredPrompt;
   const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
   const isInStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
@@ -253,11 +263,30 @@
   function renderResults(resetLimit = true) {
     if (!plantData) return; if (resetLimit) displayLimit = 10;
     const q = document.getElementById('search-box').value.toLowerCase();
+    const f = {
+      type: document.getElementById('type-filter').value, root: document.getElementById('root-filter').value,
+      moisture: document.getElementById('moisture-filter').value, sun: document.getElementById('sun-filter').value,
+      drought: document.getElementById('drought-filter').value, fire: document.getElementById('fire-filter').value,
+      growth: document.getElementById('growth-filter').value, season: document.getElementById('season-filter').value,
+      clay: document.getElementById('clay-filter').value, sand: document.getElementById('sand-filter').value,
+      gravel: document.getElementById('gravel-filter').value, loam: document.getElementById('loam-filter').value,
+      silt: document.getElementById('silt-filter').value, peat: document.getElementById('peat-filter').value,
+      chalky: document.getElementById('chalky-filter').value
+    };
+
     currentFilteredItems = plantData.filter(p => {
       if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
+      if (f.type !== 'all' && !(p['Plant Type'] || '').includes(f.type)) return false;
+      if (f.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(f.root)) return false;
+      if (f.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(f.moisture)) return false;
+      if (f.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(f.sun)) return false;
+      if (f.season !== 'all') { const v = (p['PLANTING_SEASON'] || '').toLowerCase(); if (f.season === 'Year Round') { if (!(v.includes('spring') && v.includes('summer'))) return false; } else if (!v.includes(f.season.toLowerCase())) return false; }
+      if (f.clay !== 'all' && p['CLAY_SOIL'] !== f.clay) return false;
+      if (f.sand !== 'all' && p['SAND_SOIL'] !== f.sand) return false;
       if (q && !((p['Common Name'] || '').toLowerCase().includes(q) || (p['Scientific Name'] || '').toLowerCase().includes(q))) return false;
       return true;
     });
+
     document.getElementById('results-count').textContent = `Matched ${currentFilteredItems.length} Species`;
     const list = document.getElementById('results-list'); list.innerHTML = '';
     currentFilteredItems.slice(0, displayLimit).forEach((p, idx) => {
@@ -284,8 +313,18 @@
     setTimeout(() => dotCount = 0, 500);
   });
 
+  function populate(id, col, data) { const sel = document.getElementById(id), vals = new Set(); data.forEach(r => { if(r[col] && r[col] !== '0') r[col].split(',').forEach(v => vals.add(v.trim())); }); Array.from(vals).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); }); }
+
   async function init() { 
-    Papa.parse(CSV_URL, { download: true, header: true, complete: res => { plantData = res.data; renderResults(); loadMap(); }}); 
+    Papa.parse(CSV_URL, { download: true, header: true, complete: res => { 
+      plantData = res.data; 
+      ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter', 'growth-filter'].forEach(id => {
+        const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : 'Active Growth Period';
+        populate(id, col, plantData);
+      });
+      renderResults(); 
+      loadMap(); 
+    }}); 
   }
 
   async function loadMap() {
@@ -298,6 +337,7 @@
     } catch (e) {}
   }
   window.onload = init;
+  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
 </script>
 </body>
 </html>
