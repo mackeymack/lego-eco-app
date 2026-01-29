@@ -211,10 +211,24 @@
   function exportExcel() { const data = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData; const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Plants"); XLSX.writeFile(wb, "SPADE_Export.xlsx"); }
   function exportCSV() { const data = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData; const csv = Papa.unparse(data); const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "SPADE_Export.csv"; a.click(); }
 
-  function toggleStar(sciName) {
-    const idx = starredPlants.indexOf(sciName);
-    if (idx === -1) { starredPlants.push(sciName); sysLog(`Starred: ${sciName}`); }
-    else { starredPlants.splice(idx, 1); sysLog(`Unstarred: ${sciName}`); }
+  // Sync Logic: Get Zip from Lat/Lng
+  async function reverseLookupZip(lat, lng) {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+      const data = await res.json();
+      if (data.address && data.address.postcode) {
+        document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
+        localStorage.setItem('spade_zip', data.address.postcode.split('-')[0]);
+      }
+    } catch (e) {}
+  }
+
+  // Region-Specific Star Logic
+  function toggleStar(sciName, l3key) {
+    const starId = sciName + '|' + (l3key || 'Global');
+    const idx = starredPlants.indexOf(starId);
+    if (idx === -1) { starredPlants.push(starId); sysLog(`Starred: ${starId}`); }
+    else { starredPlants.splice(idx, 1); sysLog(`Unstarred: ${starId}`); }
     localStorage.setItem('spade_starred', JSON.stringify(starredPlants));
     renderResults(false);
   }
@@ -222,12 +236,16 @@
   function showStarred() {
     const overlay = document.getElementById('starred-overlay'), grid = document.getElementById('starred-grid');
     grid.innerHTML = '';
-    const items = plantData.filter(p => starredPlants.includes(p['Scientific Name']));
+    const items = plantData.filter(p => {
+        const starId = p['Scientific Name'] + '|' + (p['L3_KEY'] || 'Global');
+        return starredPlants.includes(starId);
+    });
     if (items.length === 0) grid.innerHTML = '<p style="color:white; text-align:center; width:100%;">No favorites starred.</p>';
     items.forEach(p => {
+        const starId = p['Scientific Name'] + '|' + (p['L3_KEY'] || 'Global');
         const card = document.createElement('div');
         card.className = 'plant-card';
-        card.innerHTML = `<button class="star-btn active" onclick="toggleStar('${p['Scientific Name']}'); showStarred();">★</button><h4>${p['Common Name']}</h4><p><em>${p['Scientific Name']}</em></p><p><strong>Roots:</strong> ${p['ROOT_TYPE']}</p><button class="action-btn" style="width:100%;" onclick="toggleStar('${p['Scientific Name']}'); showStarred();">Remove Favorite</button>`;
+        card.innerHTML = `<button class="star-btn active" onclick="toggleStar('${p['Scientific Name']}', '${p['L3_KEY']}'); showStarred();">★</button><h4>${p['Common Name']}</h4><p><em>${p['Scientific Name']}</em></p><p style="font-size:0.75em; color:#718096;">Region: ${p['L3_KEY'] || 'N/A'}</p><button class="action-btn" style="width:100%;" onclick="toggleStar('${p['Scientific Name']}', '${p['L3_KEY']}'); showStarred();">Remove Favorite</button>`;
         grid.appendChild(card);
     });
     overlay.style.display = 'block';
@@ -262,11 +280,6 @@
       if (f.season !== 'all') { const sVal = (p['PLANTING_SEASON'] || '').toLowerCase(); if (f.season === 'Year Round') { if (!(sVal.includes('spring') && sVal.includes('fall') && sVal.includes('summer') && sVal.includes('winter'))) return false; } else if (!sVal.includes(f.season.toLowerCase())) return false; }
       if (f.clay !== 'all' && p['CLAY_SOIL'] !== f.clay) return false;
       if (f.sand !== 'all' && p['SAND_SOIL'] !== f.sand) return false;
-      if (f.gravel !== 'all' && p['GRAVEL_SOIL'] !== f.gravel) return false;
-      if (f.loam !== 'all' && p['LOAM_SOIL'] !== f.loam) return false;
-      if (f.silt !== 'all' && p['SILT_SOIL'] !== f.silt) return false;
-      if (f.peat !== 'all' && p['PEAT_SOIL'] !== f.peat) return false;
-      if (f.chalky !== 'all' && p['CHALKY_SOIL'] !== f.chalky) return false;
       if (query && !((p['Common Name'] || '').toLowerCase().includes(query) || (p['Scientific Name'] || '').toLowerCase().includes(query))) return false;
       return true;
     });
@@ -275,20 +288,21 @@
     document.getElementById('show-more-container').style.display = (currentFilteredItems.length > displayLimit) ? 'block' : 'none';
     const list = document.getElementById('results-list'); list.innerHTML = '';
     currentFilteredItems.slice(0, displayLimit).forEach((p, idx) => {
+      const starId = p['Scientific Name'] + '|' + (p['L3_KEY'] || 'Global');
+      const isStarred = starredPlants.includes(starId);
       const card = document.createElement('div'); card.className = 'plant-card';
-      const isStarred = starredPlants.includes(p['Scientific Name']);
       let soils = []; ['CLAY','SAND','GRAVEL','LOAM','SILT','PEAT','CHALKY'].forEach(s => { if(p[s+'_SOIL'] === 'Yes') soils.push(`<span class="soil-badge">${s}</span>`); });
       const vKey = (p['Vendor'] || '').toLowerCase().trim();
       const vendorHtml = vendorLinkMap[vKey] ? `<a href="${vendorLinkMap[vKey].url}" target="_blank" style="color:var(--accent-green); text-decoration:none;">${vendorLinkMap[vKey].name}</a>` : p['Vendor'];
       let det = ''; Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') det += `<div><strong>${k.replace(/_/g,' ')}</strong><span>${p[k]}</span></div>`; });
-      card.innerHTML = `<button class="star-btn ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}')">${isStarred?'★':'☆'}</button><h4>${p['Common Name'] || 'Species'}</h4><p><em>${p['Scientific Name'] || ''}</em></p><img id="img-${idx}" class="plant-img"><span id="caption-${idx}" class="img-caption"></span><div class="soil-category-container">${soils.join('')}</div><p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p><p><strong>Nursery:</strong> ${vendorHtml}</p><p><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p><div class="card-actions"><button id="btn-${idx}" class="more-info-btn" onclick="toggleDetails(${idx})">Details</button><a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">USDA Profile</a></div><div id="details-${idx}" class="details-pane">${det}</div>`;
+      card.innerHTML = `<button class="star-btn ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}', '${p['L3_KEY']}')">${isStarred?'★':'☆'}</button><h4>${p['Common Name'] || 'Species'}</h4><p><em>${p['Scientific Name'] || ''}</em></p><img id="img-${idx}" class="plant-img"><span id="caption-${idx}" class="img-caption"></span><div class="soil-category-container">${soils.join('')}</div><p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p><p><strong>Nursery:</strong> ${vendorHtml}</p><p><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p><div class="card-actions" style="display:flex; gap:10px; margin-top:10px;"><button id="btn-${idx}" class="more-info-btn" onclick="toggleDetails(${idx})">Details</button><a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">USDA Profile</a></div><div id="details-${idx}" class="details-pane">${det}</div>`;
       list.appendChild(card); loadPlantPhoto(p['Scientific Name'], idx);
     });
   }
 
   async function useZipCode() { const zip = document.getElementById('zip-input').value; if (!/^\d{5}$/.test(zip)) return; try { const res = await fetch(`https://api.zippopotam.us/us/${zip}`); const data = await res.json(); const lat = parseFloat(data.places[0].latitude), lng = parseFloat(data.places[0].longitude); document.getElementById('lat-input').value = lat; document.getElementById('lng-input').value = lng; localStorage.setItem('spade_lat', lat); localStorage.setItem('spade_lng', lng); localStorage.setItem('spade_zip', zip); matchLocationToRegion(lat, lng); } catch (e) {} }
-  async function useMyLocation() { navigator.geolocation.getCurrentPosition(pos => { const lat = pos.coords.latitude, lng = pos.coords.longitude; document.getElementById('lat-input').value = lat.toFixed(4); document.getElementById('lng-input').value = lng.toFixed(4); localStorage.setItem('spade_lat', lat.toFixed(4)); localStorage.setItem('spade_lng', lng.toFixed(4)); matchLocationToRegion(lat, lng); }); }
-  function useCoordinates() { const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value); if (!isNaN(lat) && !isNaN(lng)) { localStorage.setItem('spade_lat', lat); localStorage.setItem('spade_lng', lng); matchLocationToRegion(lat, lng); } }
+  async function useMyLocation() { navigator.geolocation.getCurrentPosition(pos => { const lat = pos.coords.latitude, lng = pos.coords.longitude; document.getElementById('lat-input').value = lat.toFixed(4); document.getElementById('lng-input').value = lng.toFixed(4); localStorage.setItem('spade_lat', lat.toFixed(4)); localStorage.setItem('spade_lng', lng.toFixed(4)); reverseLookupZip(lat, lng); matchLocationToRegion(lat, lng); }); }
+  function useCoordinates() { const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value); if (!isNaN(lat) && !isNaN(lng)) { localStorage.setItem('spade_lat', lat); localStorage.setItem('spade_lng', lng); reverseLookupZip(lat, lng); matchLocationToRegion(lat, lng); } }
   function matchLocationToRegion(lat, lng) { const results = leafletPip.pointInLayer([lng, lat], geoLayer); if (results.length > 0) { const f = results[0].feature; selectedL3Key = f.properties.L3_KEY; document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`; map.setView([lat, lng], 8); highlightRegion(selectedL3Key); renderResults(true); } }
 
   async function init() {
