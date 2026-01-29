@@ -24,328 +24,529 @@
       --soft-radius: 12px;
     }
 
-    body { margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg-light); color: var(--text-main); line-height: 1.5; overflow: hidden; }
+    body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-light); color: var(--text-main); line-height: 1.5; overflow: hidden; }
     #wrap { display: grid; grid-template-columns: 550px 1fr; height: 100vh; }
-    #sidebar { padding: 30px; border-right: 1px solid var(--border-color); overflow-y: auto; overflow-x: hidden; background: var(--bg-light); z-index: 10; scroll-behavior: smooth; }
+    
+    /* Sidebar */
+    #sidebar { padding: 30px; border-right: 1px solid var(--border-color); overflow-y: auto; background: var(--bg-light); z-index: 10; scroll-behavior: smooth; }
+    
+    /* Map */
     #map-container { position: relative; height: 100vh; overflow: hidden; }
-    #map { height: 100%; width: 100%; }
+    #map { height: 100%; width: 100%; background: #cad2d3; }
     
-    h2 { margin: 0 0 4px; color: var(--primary-green); font-size: 2.4em; letter-spacing: -1px; font-weight: 800; }
-    .acronym { font-size: 0.8em; color: var(--accent-green); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
-    .subtitle { margin-bottom: 30px; color: #4a5568; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
+    /* Headers */
+    h1 { margin: 0; font-size: 2.8em; font-weight: 900; color: var(--primary-green); letter-spacing: -1px; }
+    .acronym { font-size: 0.9em; font-weight: 700; color: var(--accent-green); text-transform: uppercase; margin-top: -5px; }
+    .subtitle { margin-bottom: 30px; color: #4a5568; font-size: 0.85em; font-weight: 600; letter-spacing: 0.5px; }
+    #secret-dot { cursor: pointer; user-select: none; }
+
+    /* Forms & Buttons */
+    .btn-standard { width: 100%; border: none; padding: 14px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.9em; margin-bottom: 15px; }
+    #geo-btn { background: #3b82f6; color: white; }
+    .input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    input, select { flex: 1; padding: 12px; border: 1.5px solid var(--border-color); border-radius: var(--soft-radius); font-size: 0.9em; background: #fff; }
+    .action-btn { background: var(--accent-green); color: white; border: none; padding: 0 20px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; }
     
-    #secret-dot { cursor: pointer; user-select: none; transition: opacity 0.2s; }
-    h3 { margin: 35px 0 15px; font-size: 0.9em; border-bottom: 2px solid #cbd5e0; padding-bottom: 8px; color: #475569; text-transform: uppercase; letter-spacing: 1px; }
-    
-    .btn-standard { width: 100%; border: none; padding: 14px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.9em; }
-    #geo-btn { background: #3b82f6; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); }
-    .zip-container { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; width: 100%; }
-    .input-group { display: flex; flex: 1; gap: 10px; }
+    .soil-desc { font-size: 0.65em; color: #718096; margin-top: 4px; line-height: 1.2; font-style: italic; }
+    .reset-filters-btn { width: 100%; background: var(--accent-green); color: white; border: none; padding: 14px; border-radius: var(--soft-radius); font-weight: 700; margin: 20px 0; cursor: pointer; }
 
-    input[type="text"], input[type="number"], select { flex: 1; min-width: 0; padding: 12px; border: 1.5px solid var(--border-color); border-radius: var(--soft-radius); font-size: 0.9em; height: 48px; box-sizing: border-box; transition: border-color 0.2s; background: #fff; }
-    .action-btn { background: var(--accent-green); color: white; border: none; padding: 0 24px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; height: 48px; transition: background 0.2s; flex-shrink: 0; }
-    .export-btn { flex: 1; padding: 12px; border-radius: var(--soft-radius); border: 1.5px solid var(--accent-green); background: #fff; color: var(--accent-green); font-weight: 700; cursor: pointer; font-size: 0.8em; transition: all 0.2s; }
-
-    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-    label { font-weight: 700; font-size: 0.7em; display: block; margin-bottom: 4px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
-    .soil-desc { font-size: 0.65em; color: #718096; margin-bottom: 10px; line-height: 1.2; font-style: italic; }
-
-    .region-display-container { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-    #selected-region { flex-grow: 1; font-weight: 700; color: #1e40af; background: #e6f0ff; padding: 12px; border-radius: var(--soft-radius); font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 48px; display: flex; align-items: center; border: 1px solid #cbd5e0; }
-    #clear-selection-btn { background: #fed7d7; color: #c53030; border: none; padding: 0 16px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; height: 48px; font-size: 0.8em; }
-    .reset-filters-btn { width: 100%; background: #cbd5e0; border: none; color: #2d3438; padding: 12px; border-radius: var(--soft-radius); font-size: 0.85em; font-weight: 700; cursor: pointer; margin-top: 10px; margin-bottom: 25px; }
-
+    /* Plant Cards */
     .plant-card { border: 1px solid #d2b48c; padding: 20px; margin-bottom: 20px; border-radius: var(--soft-radius); background: var(--card-bg); position: relative; }
-    .plant-card h4 { margin: 0 0 6px; color: var(--text-main); font-size: 1.25em; font-weight: 800; padding-right: 35px; }
-    .plant-img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin: 12px 0 8px; background: #e2e8f0; }
-    .img-caption { font-size: 0.75em; color: #718096; display: block; margin-bottom: 15px; }
-    .soil-category-container { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
-    .soil-badge { background: #e2e8f0; color: #2d3748; font-size: 0.7em; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; border: 1px solid var(--border-color); }
-    .source-link { display: inline-block; color: var(--accent-green); text-decoration: none; font-weight: 700; font-size: 0.8em; border: 1.5px solid var(--accent-green); padding: 8px 16px; border-radius: 8px; }
-    .more-info-btn { background: #f7fafc; border: 1.5px solid #cbd5e0; color: #4a5568; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8em; font-weight: 700; }
-    .details-pane { display: none; margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); font-size: 0.85em; color: #4a5568; }
-    .details-pane.active { display: block; }
-    .details-pane div { margin-bottom: 8px; display: flex; justify-content: space-between; }
-    #results-count { margin: 20px 0; font-weight: 800; font-size: 1em; color: var(--accent-green); text-align: center; background: #e6fffa; padding: 10px; border-radius: 8px; border: 1px solid var(--accent-green); }
+    .plant-card h4 { margin: 0; font-size: 1.4em; font-weight: 800; }
+    .sci-name { font-size: 1em; color: #4a5568; margin-bottom: 15px; font-style: italic; }
+    .plant-img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; background: #e2e8f0; }
+    .card-cat { font-weight: 800; font-size: 0.85em; text-transform: uppercase; color: var(--primary-green); margin-top: 10px; }
+    .card-val { font-size: 0.95em; margin-bottom: 5px; }
+    .source-btn { display: inline-block; background: #f7fafc; border: 1.5px solid #cbd5e0; padding: 8px 16px; border-radius: 8px; text-decoration: none; color: #4a5568; font-weight: 700; font-size: 0.8em; margin-top: 10px; }
+    .star-toggle { position: absolute; top: 20px; right: 20px; font-size: 1.8em; cursor: pointer; color: #cbd5e0; background: none; border: none; }
+    .star-toggle.active { color: #f1c40f; }
+    
+    /* Toggle Buttons */
+    .more-info-btn { background: var(--accent-green); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8em; margin-top: 10px; margin-right: 10px; }
 
-    .star-btn { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 1.6em; cursor: pointer; color: #cbd5e0; line-height: 1; }
-    .star-btn.active { color: #f1c40f; }
-    #starred-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; overflow-y: auto; padding: 40px 20px; }
-    .starred-header { display: flex; justify-content: space-between; align-items: center; color: white; max-width: 1200px; margin: 0 auto 30px; }
-    .close-starred { font-size: 35px; cursor: pointer; color: white; background: none; border: none; }
-    .starred-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+    /* Map Controls */
+    #map-toggle-container { position: absolute; top: 15px; right: 15px; z-index: 1000; }
+    .toggle-map-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 10px 15px; font-weight: 800; cursor: pointer; font-size: 0.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-    #map-controls { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-    .map-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 700; font-size: 0.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    #debug-overlay { display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%; background: #0f172a; color: #10b981; font-family: 'Fira Code', monospace; padding: 25px; z-index: 10000; border: 1px solid #334155; border-radius: var(--soft-radius); flex-direction: column; }
+    /* Overlays */
+    #starred-overlay, #debug-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 20000; overflow-y: auto; padding: 40px 20px; }
+    .close-overlay { font-size: 40px; color: white; background: none; border: none; cursor: pointer; float: right; }
+    .overlay-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; max-width: 1200px; margin: 40px auto; }
+    
+    #debug-content { background: #1e293b; color: #10b981; padding: 20px; border-radius: 8px; font-family: monospace; font-size: 12px; white-space: pre-wrap; height: 70vh; overflow-y: auto; margin-top: 20px; }
+
+    #show-more-btn:disabled { background: #cbd5e0; color: #718096; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
 <div id="starred-overlay">
-  <div class="starred-header">
-    <h2 style="color:white; margin:0;">⭐ Starred Comparisons</h2>
-    <button class="close-starred" onclick="document.getElementById('starred-overlay').style.display='none'">✕</button>
-  </div>
-  <div id="starred-grid" class="starred-grid"></div>
+  <button class="close-overlay" onclick="closeStarred()">✕</button>
+  <h2 style="color:white; text-align:center;">Your Starred Plants</h2>
+  <div id="starred-grid" class="overlay-grid"></div>
 </div>
 
 <div id="debug-overlay">
-  <div class="debug-toolbar" style="display:flex; justify-content: space-between; margin-bottom: 15px;">
-    <span style="font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">S.P.A.D.E. Logs</span>
-    <div style="display: flex; gap: 10px;">
-      <button onclick="copyDebugLog()">Copy</button>
-      <button onclick="clearDebugLog()">Clear</button>
-      <button style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px;" onclick="document.getElementById('debug-overlay').style.display = 'none'">Close</button>
-    </div>
+  <button class="close-overlay" onclick="document.getElementById('debug-overlay').style.display='none'">✕</button>
+  <h2 style="color:white;">System Debug Log</h2>
+  <div style="display:flex; gap:10px;">
+    <button onclick="copyDebug()">Copy Log</button>
+    <button onclick="clearDebug()">Clear Log</button>
   </div>
-  <div id="debug-content" style="flex-grow:1; overflow-y:auto; background:#1e293b; padding:15px; border-radius:8px; font-size:12px; white-space: pre-wrap;"></div>
+  <div id="debug-content"></div>
 </div>
 
 <div id="wrap">
   <div id="sidebar">
-    <h2>S<span id="secret-dot">.</span>P.A.D.E.</h2>
-    <div class="acronym">Site Preservation & Dirt Erosion</div>
+    <h1>S<span id="secret-dot" ondblclick="accessDebug()">.</span>P.A.D.E.</h1>
+    <div class="acronym">Site Preservation and Dirt Erosion-control</div>
     <div class="subtitle">Created By The Blazin Turtles</div>
-    
-    <button id="geo-btn" class="btn-standard" onclick="useMyLocation()">📍 Use My Location</button>
 
-    <div class="zip-container">
-      <div class="input-group"><input type="text" id="zip-input" placeholder="Zip Code" maxlength="5"></div>
+    <button id="geo-btn" class="btn-standard" onclick="useMyLocation()">📍 Use My Location</button>
+    
+    <div class="input-row">
+      <input type="text" id="zip-input" placeholder="Zip Code" maxlength="5">
       <button class="action-btn" onclick="useZipCode()">Go</button>
     </div>
-
-    <div class="zip-container">
-      <div class="input-group">
-        <input type="number" id="lat-input" placeholder="Lat" step="any">
-        <input type="number" id="lng-input" placeholder="Lng" step="any">
-      </div>
+    
+    <div class="input-row">
+      <input type="number" id="lat-input" placeholder="Latitude" step="any">
+      <input type="number" id="lng-input" placeholder="Longitude" step="any">
       <button class="action-btn" onclick="useCoordinates()">Go</button>
     </div>
 
-    <button class="btn-standard" style="background: #f1c40f; color: #2d3436; margin-bottom: 25px;" onclick="showStarred()">⭐ View Starred Plants</button>
-
-    <div class="row">
-      <label>Target Ecoregion</label>
-      <div class="region-display-container">
-        <div id="selected-region">Select a site on the map</div>
-        <button id="clear-selection-btn" onclick="resetSelection()">Clear</button>
+    <div style="background: #e6f0ff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #cbd5e0;">
+      <label style="font-size: 0.7em; font-weight: 800; color: #1e40af; text-transform: uppercase;">Selected Ecoregion</label>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+        <div id="selected-region" style="font-weight: 700; font-size: 0.9em;">None Selected</div>
+        <button id="clear-btn" style="background: #fed7d7; color: #c53030; border: none; padding: 5px 10px; border-radius: 6px; font-weight: 700; cursor: pointer;" onclick="resetAllData()">Clear</button>
       </div>
     </div>
 
-    <div class="row" style="margin-top:20px;">
-      <label for="search-box">Search Plants</label>
-      <input type="text" id="search-box" placeholder="e.g. Oak, Sagebrush..." />
-    </div>
+    <button class="btn-standard" style="background: #f1c40f; color: #2d3436;" onclick="openStarred()">⭐ View Starred Plants</button>
 
-    <h3>Environment & Season</h3>
+    <h3>Environment, Seasons & Plant Growth Data</h3>
     <div class="filter-grid">
-      <div class="row"><label>Plant Type</label><select id="type-filter" class="plant-filter"><option value="all">Any Type</option></select></div>
-      <div class="row"><label>Root Type</label><select id="root-filter" class="plant-filter"><option value="all">Any Root</option></select></div>
-      <div class="row"><label>Moisture</label><select id="moisture-filter" class="plant-filter"><option value="all">Any</option></select></div>
-      <div class="row"><label>Sun</label><select id="sun-filter" class="plant-filter"><option value="all">Any</option></select></div>
-      <div class="row"><label>Drought Tol.</label><select id="drought-filter" class="plant-filter"><option value="all">Any</option></select></div>
-      <div class="row"><label>Fire Tol.</label><select id="fire-filter" class="plant-filter"><option value="all">Any</option></select></div>
-      <div class="row"><label>Growth</label><select id="growth-filter" class="plant-filter"><option value="all">Any Period</option></select></div>
-      <div class="row"><label>Season</label><select id="season-filter" class="plant-filter"><option value="all">Any Season</option><option value="Spring">Spring</option><option value="Fall">Fall</option><option value="Summer">Summer</option><option value="Winter">Winter</option><option value="Year Round">Year Round</option></select></div>
+      <div class="row"><label>Plant Type</label><select id="type-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Root Type</label><select id="root-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Sunlight Needs</label><select id="sun-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Drought Tolerance</label><select id="drought-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Fire Tolerance</label><select id="fire-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Active Growth Period</label><select id="growth-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Planting Season</label><select id="season-filter" class="p-filter">
+        <option value="all">All</option>
+        <option value="Spring">Spring</option>
+        <option value="Fall">Fall</option>
+        <option value="Summer">Summer</option>
+        <option value="Winter">Winter</option>
+      </select></div>
     </div>
 
     <h3>Soil Analysis</h3>
     <div class="filter-grid">
-      <div class="row"><label>Clay</label><select id="clay-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Dense, holds water.</div></div>
-      <div class="row"><label>Sand</label><select id="sand-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Fast-draining, gritty.</div></div>
-      <div class="row"><label>Gravel</label><select id="gravel-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Stony, no pooling.</div></div>
-      <div class="row"><label>Loam</label><select id="loam-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Balanced soil.</div></div>
-      <div class="row"><label>Silt</label><select id="silt-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Fine particles, fertile.</div></div>
-      <div class="row"><label>Peat</label><select id="peat-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Dark, organic matter.</div></div>
-      <div class="row"><label>Chalky</label><select id="chalky-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Alkaline, stony.</div></div>
+      <div class="row"><label>Soil Moisture</label><select id="moisture-filter" class="p-filter"><option value="all">All</option></select></div>
+      
+      <div class="row"><label>Clay</label><select id="clay-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Dense, holds water, slow drainage.</div></div>
+      <div class="row"><label>Sand</label><select id="sand-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Gritty, fast-draining, low nutrients.</div></div>
+      <div class="row"><label>Gravel</label><select id="gravel-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Stony, excellent drainage, prevents pooling.</div></div>
+      <div class="row"><label>Loam</label><select id="loam-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Ideal mix of sand, silt, and clay.</div></div>
+      <div class="row"><label>Silt</label><select id="silt-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Fine particles, holds moisture well.</div></div>
+      <div class="row"><label>Peat</label><select id="peat-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Organic matter, acidic, highly absorbent.</div></div>
+      <div class="row"><label>Chalky</label><select id="chalky-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Alkaline, stony, can dry out quickly.</div></div>
     </div>
 
     <button class="reset-filters-btn" onclick="resetFilters()">Reset All Filters</button>
 
-    <div id="results-count">Ready to scan...</div>
-
-    <div class="export-row" style="display:flex; gap:10px;">
-      <button class="export-btn" onclick="exportExcel()">Export (XLSX)</button>
-      <button class="export-btn" onclick="exportCSV()">Export (CSV)</button>
+    <div class="input-row" style="margin-bottom: 30px;">
+      <button class="export-btn" style="flex:1; padding:12px; font-weight:700; cursor:pointer;" onclick="exportXLSX()">Export (.XLSX)</button>
+      <button class="export-btn" style="flex:1; padding:12px; font-weight:700; cursor:pointer;" onclick="exportCSV()">Export (.CSV)</button>
     </div>
 
-    <div id="results-list"></div>
-    <div id="show-more-container" style="text-align:center; margin-top:20px;">
-      <button id="show-more-btn" class="action-btn" style="width:100%;" onclick="showMore()">Show More Results</button>
-    </div>
-    <div id="status" style="font-size:11px; color:#718096; text-align:center; margin-top:10px;">Live • Monitoring active</div>
+    <div id="results-count" style="font-weight: 800; text-align: center; color: var(--accent-green); margin-bottom: 15px;">Scanning database...</div>
+    <div id="plant-list"></div>
+    <button id="show-more-btn" class="btn-standard" style="background:#cbd5e0;" onclick="showMore()">Show More Results</button>
   </div>
 
   <div id="map-container">
-    <div id="map-controls">
-      <button class="map-btn" onclick="setMapLayer('street')">Site Map</button>
-      <button class="map-btn" onclick="setMapLayer('satellite')">Satellite View</button>
+    <div id="map-toggle-container">
+      <button id="layer-toggle" class="toggle-map-btn" onclick="toggleMapLayer()">Switch to Satellite</button>
     </div>
     <div id="map"></div>
   </div>
 </div>
 
 <script>
-  function sysLog(msg) { const content = document.getElementById('debug-content'); if(content) { content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`; content.scrollTop = content.scrollHeight; } }
-  let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
-  let starredPlants = JSON.parse(localStorage.getItem('spade_starred') || '[]');
-  const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
-
-  const vendorLinkMap = {
-    "native west": { name: "Native West Nursery", url: "https://nativewest.com/" },
-    "prairie moon nursery": { name: "Prairie Moon Nursery", url: "https://www.prairiemoon.com/" },
-    "praire nursery": { name: "Prairie Nursery", url: "https://www.prairienursery.com/" },
-    "ernst seeds": { name: "Ernst Conservation Seeds", url: "https://www.ernstseed.com/" },
-    "gbnp": { name: "Great Bear Native Plants", url: "http://www.greatbearnativeplants.com/" },
-    "mellow marsh farm": { name: "Mellow Marsh Farm", url: "https://mellowmarshfarm.com/" },
-    "roots and shoots": { name: "Roots and Shoots Nursery", url: "https://www.rootsandshootsnursery.com/" },
-    "critsite_native_plants_full_list": { name: "Plant Picker", url: "https://plantsman.com/" }
+  // Configuration
+  const ECO_URL = 'assets/us_eco_l3_state_boundaries.json';
+  const CSV_URL = 'assets/Database-Deleted-Categories.csv';
+  const vendorLinks = {
+    "native west": "https://nativewest.com/",
+    "prairie moon nursery": "https://www.prairiemoon.com/",
+    "praire nursery": "https://www.prairienursery.com/",
+    "ernst seeds": "https://www.ernstseed.com/",
+    "gbnp": "http://www.greatbearnativeplants.com/",
+    "mellow marsh farm": "https://mellowmarshfarm.com/",
+    "roots and shoots": "https://www.rootsandshootsnursery.com/",
+    "critsite_native_plants_full_list": "https://plantsman.com/"
   };
 
-  const streetTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
-  const satelliteTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
+  // State
+  let plantData = [], geoLayer = null, map = null, currentFiltered = [];
+  let selectedL3 = null, displayLimit = 10, ecoregionCounts = {};
+  let starred = JSON.parse(localStorage.getItem('spade_starred') || '[]');
 
-  function setMapLayer(type) { if (type === 'satellite') { map.removeLayer(streetTiles); satelliteTiles.addTo(map); } else { map.removeLayer(satelliteTiles); streetTiles.addTo(map); } }
+  // Map Setup
+  const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+  let isSatellite = false;
 
-  function exportExcel() { const data = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData; const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Plants"); XLSX.writeFile(wb, "SPADE_Export.xlsx"); }
-  function exportCSV() { const data = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData; const csv = Papa.unparse(data); const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "SPADE_Export.csv"; a.click(); }
-
-  function toggleStar(sciName) {
-    const idx = starredPlants.indexOf(sciName);
-    if (idx === -1) { starredPlants.push(sciName); sysLog(`Starred: ${sciName}`); }
-    else { starredPlants.splice(idx, 1); sysLog(`Unstarred: ${sciName}`); }
-    localStorage.setItem('spade_starred', JSON.stringify(starredPlants));
-    renderResults(false);
+  function sysLog(msg) {
+    const content = document.getElementById('debug-content');
+    content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+    content.scrollTop = content.scrollHeight;
   }
 
-  function showStarred() {
-    const overlay = document.getElementById('starred-overlay'), grid = document.getElementById('starred-grid');
-    grid.innerHTML = '';
-    const items = plantData.filter(p => starredPlants.includes(p['Scientific Name']));
-    if (items.length === 0) grid.innerHTML = '<p style="color:white; text-align:center; width:100%;">No favorites starred.</p>';
-    items.forEach(p => {
-        const card = document.createElement('div');
-        card.className = 'plant-card';
-        card.innerHTML = `<button class="star-btn active" onclick="toggleStar('${p['Scientific Name']}'); showStarred();">★</button><h4>${p['Common Name']}</h4><p><em>${p['Scientific Name']}</em></p><p><strong>Roots:</strong> ${p['ROOT_TYPE']}</p><button class="action-btn" style="width:100%;" onclick="toggleStar('${p['Scientific Name']}'); showStarred();">Remove Favorite</button>`;
-        grid.appendChild(card);
+  function toggleMapLayer() {
+    const btn = document.getElementById('layer-toggle');
+    if (isSatellite) {
+      map.removeLayer(satelliteLayer);
+      streetLayer.addTo(map);
+      btn.textContent = "Switch to Satellite";
+    } else {
+      map.removeLayer(streetLayer);
+      satelliteLayer.addTo(map);
+      btn.textContent = "Switch to Site Map";
+    }
+    isSatellite = !isSatellite;
+    sysLog(`Map layer toggled. Satellite: ${isSatellite}`);
+  }
+
+  // Debug logic
+  function accessDebug() {
+    if (prompt("Enter Password:") === "numpy") {
+      document.getElementById('debug-overlay').style.display = 'block';
+      sysLog("Debug access granted.");
+    }
+  }
+  function clearDebug() { document.getElementById('debug-content').innerHTML = ""; sysLog("Logs cleared."); }
+  function copyDebug() { navigator.clipboard.writeText(document.getElementById('debug-content').innerText); alert("Copied!"); }
+
+  // Location logic
+  function syncLocation(lat, lng, source) {
+    sysLog(`Syncing location from ${source}: ${lat}, ${lng}`);
+    const results = leafletPip.pointInLayer([lng, lat], geoLayer);
+    if (results.length > 0) {
+      const feat = results[0].feature.properties;
+      selectedL3 = feat.L3_KEY;
+      document.getElementById('selected-region').textContent = `${feat.L3_KEY}: ${feat.US_L3NAME}`;
+      map.setView([lat, lng], 8);
+      highlightRegion(feat.L3_KEY);
+      renderResults(true);
+    }
+  }
+
+  function highlightRegion(key) {
+    geoLayer.eachLayer(layer => {
+      if (layer.feature.properties.L3_KEY === key) {
+        layer.setStyle({ fillOpacity: 0.75, weight: 4, color: '#1a5d1a' });
+        layer.bringToFront();
+      } else {
+        layer.setStyle({ fillOpacity: 0.05, weight: 1, color: '#cccccc' });
+      }
     });
-    overlay.style.display = 'block';
   }
 
-  let dotClickCount = 0, dotTimer;
-  document.getElementById('secret-dot').addEventListener('click', () => { dotClickCount++; clearTimeout(dotTimer); if (dotClickCount === 2) { if (prompt("Key:") === "numpy") document.getElementById('debug-overlay').style.display = 'flex'; dotClickCount = 0; } else { dotTimer = setTimeout(() => { dotClickCount = 0; }, 500); } });
+  function useMyLocation() {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude, longitude } = pos.coords;
+      document.getElementById('lat-input').value = latitude.toFixed(4);
+      document.getElementById('lng-input').value = longitude.toFixed(4);
+      syncLocation(latitude, longitude, "GPS");
+    });
+  }
 
-  function showMore() { displayLimit += increment; renderResults(false); }
+  async function useZipCode() {
+    const zip = document.getElementById('zip-input').value;
+    if (zip.length !== 5) return;
+    try {
+      const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
+      const data = await res.json();
+      const lat = parseFloat(data.places[0].latitude);
+      const lng = parseFloat(data.places[0].longitude);
+      syncLocation(lat, lng, "Zip");
+    } catch (e) { sysLog("Zip Lookup Error: " + e); }
+  }
 
-  function populate(id, col, data) { const sel = document.getElementById(id), vals = new Set(); data.forEach(r => { if(r[col] && r[col] !== '0') r[col].split(',').forEach(v => vals.add(v.trim())); }); Array.from(vals).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); }); }
+  function useCoordinates() {
+    const lat = parseFloat(document.getElementById('lat-input').value);
+    const lng = parseFloat(document.getElementById('lng-input').value);
+    if (!isNaN(lat) && !isNaN(lng)) syncLocation(lat, lng, "Manual Coords");
+  }
 
-  function highlightRegion(key) { if (!geoLayer) return; geoLayer.eachLayer(layer => { if (layer.feature.properties.L3_KEY === key) { layer.setStyle({ fillOpacity: 0.6, weight: 3, color: '#1a5d1a' }); layer.bringToFront(); } else { layer.setStyle({ fillOpacity: 0.1, weight: 1, color: '#27ae60' }); } }); }
-
-  function resetFilters() { document.getElementById('search-box').value = ""; document.querySelectorAll('.plant-filter').forEach(s => s.value = 'all'); renderResults(true); }
-
-  function resetSelection() { selectedL3Key = null; document.getElementById('selected-region').textContent = "Select a site on the map"; ['zip-input', 'lat-input', 'lng-input'].forEach(id => document.getElementById(id).value = ""); localStorage.removeItem('spade_lat'); localStorage.removeItem('spade_lng'); localStorage.removeItem('spade_zip'); if (geoLayer) geoLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1, weight: 1 })); map.setView([37.8, -96], 4); renderResults(true); }
-
-  async function loadPlantPhoto(sciName, idx) { const img = document.getElementById(`img-${idx}`), cap = document.getElementById(`caption-${idx}`); try { const res = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(sciName)}&rank=species`); const data = await res.json(); if (data.results?.[0]?.default_photo) { img.src = data.results[0].default_photo.medium_url; cap.textContent = "Source: iNaturalist"; } else { img.style.display = 'none'; cap.style.display = 'none'; } } catch (e) { img.style.display = 'none'; } }
-
+  // Data Rendering
   function renderResults(resetLimit = true) {
-    if (!plantData) return; if (resetLimit) displayLimit = 10;
-    const query = document.getElementById('search-box').value.toLowerCase();
-    const f = { 
-      type: document.getElementById('type-filter').value, 
-      root: document.getElementById('root-filter').value, 
-      moisture: document.getElementById('moisture-filter').value, 
-      sun: document.getElementById('sun-filter').value, 
-      drought: document.getElementById('drought-filter').value, 
-      fire: document.getElementById('fire-filter').value, 
-      growth: document.getElementById('growth-filter').value, 
-      season: document.getElementById('season-filter').value, 
-      clay: document.getElementById('clay-filter').value, 
-      sand: document.getElementById('sand-filter').value, 
-      gravel: document.getElementById('gravel-filter').value, 
-      loam: document.getElementById('loam-filter').value, 
-      silt: document.getElementById('silt-filter').value, 
-      peat: document.getElementById('peat-filter').value, 
-      chalky: document.getElementById('chalky-filter').value 
+    if (resetLimit) displayLimit = 10;
+    const filters = {
+      type: document.getElementById('type-filter').value,
+      root: document.getElementById('root-filter').value,
+      sun: document.getElementById('sun-filter').value,
+      drought: document.getElementById('drought-filter').value,
+      fire: document.getElementById('fire-filter').value,
+      growth: document.getElementById('growth-filter').value,
+      season: document.getElementById('season-filter').value,
+      moisture: document.getElementById('moisture-filter').value,
+      clay: document.getElementById('clay-filter').value,
+      sand: document.getElementById('sand-filter').value,
+      gravel: document.getElementById('gravel-filter').value,
+      loam: document.getElementById('loam-filter').value,
+      silt: document.getElementById('silt-filter').value,
+      peat: document.getElementById('peat-filter').value,
+      chalky: document.getElementById('chalky-filter').value
     };
 
-    currentFilteredItems = plantData.filter(p => {
-      if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
-      if (f.type !== 'all' && !(p['Plant Type'] || '').includes(f.type)) return false;
-      if (f.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(f.root)) return false;
-      if (f.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(f.moisture)) return false;
-      if (f.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(f.sun)) return false;
-      if (f.drought !== 'all' && !(p['Drought Tolerance'] || '').includes(f.drought)) return false;
-      if (f.fire !== 'all' && !(p['Fire Tolerance'] || '').includes(f.fire)) return false;
-      if (f.growth !== 'all' && !(p['Active Growth Period'] || '').includes(f.growth)) return false;
-      if (f.season !== 'all') { const sVal = (p['PLANTING_SEASON'] || '').toLowerCase(); if (f.season === 'Year Round') { if (!(sVal.includes('spring') && sVal.includes('fall') && sVal.includes('summer') && sVal.includes('winter'))) return false; } else if (!sVal.includes(f.season.toLowerCase())) return false; }
-      if (f.clay !== 'all' && p['CLAY_SOIL'] !== f.clay) return false;
-      if (f.sand !== 'all' && p['SAND_SOIL'] !== f.sand) return false;
-      if (f.gravel !== 'all' && p['GRAVEL_SOIL'] !== f.gravel) return false;
-      if (f.loam !== 'all' && p['LOAM_SOIL'] !== f.loam) return false;
-      if (f.silt !== 'all' && p['SILT_SOIL'] !== f.silt) return false;
-      if (f.peat !== 'all' && p['PEAT_SOIL'] !== f.peat) return false;
-      if (f.chalky !== 'all' && p['CHALKY_SOIL'] !== f.chalky) return false;
-      if (query && !((p['Common Name'] || '').toLowerCase().includes(query) || (p['Scientific Name'] || '').toLowerCase().includes(query))) return false;
+    currentFiltered = plantData.filter(p => {
+      if (selectedL3 && p.L3_KEY !== selectedL3) return false;
+      if (filters.type !== 'all' && !(p['Plant Type'] || "").includes(filters.type)) return false;
+      if (filters.root !== 'all' && !(p['ROOT_TYPE'] || "").includes(filters.root)) return false;
+      if (filters.sun !== 'all' && !(p['SUN_EXPOSURE'] || "").includes(filters.sun)) return false;
+      if (filters.drought !== 'all' && !(p['Drought Tolerance'] || "").includes(filters.drought)) return false;
+      if (filters.fire !== 'all' && !(p['Fire Tolerance'] || "").includes(filters.fire)) return false;
+      if (filters.growth !== 'all' && !(p['Active Growth Period'] || "").includes(filters.growth)) return false;
+      if (filters.season !== 'all') {
+        const v = (p['PLANTING_SEASON'] || "").toLowerCase();
+        if (!v.includes(filters.season.toLowerCase())) return false;
+      }
+      if (filters.moisture !== 'all' && !(p['Soil Moisture'] || "").includes(filters.moisture)) return false;
+      if (filters.clay !== 'all' && p['CLAY_SOIL'] !== filters.clay) return false;
+      if (filters.sand !== 'all' && p['SAND_SOIL'] !== filters.sand) return false;
+      if (filters.gravel !== 'all' && p['GRAVEL_SOIL'] !== filters.gravel) return false;
+      if (filters.loam !== 'all' && p['LOAM_SOIL'] !== filters.loam) return false;
+      if (filters.silt !== 'all' && p['SILT_SOIL'] !== filters.silt) return false;
+      if (filters.peat !== 'all' && p['PEAT_SOIL'] !== filters.peat) return false;
+      if (filters.chalky !== 'all' && p['CHALKY_SOIL'] !== filters.chalky) return false;
       return true;
     });
 
-    document.getElementById('results-count').textContent = `Matched ${currentFilteredItems.length} Species`;
-    document.getElementById('show-more-container').style.display = (currentFilteredItems.length > displayLimit) ? 'block' : 'none';
-    const list = document.getElementById('results-list'); list.innerHTML = '';
-    currentFilteredItems.slice(0, displayLimit).forEach((p, idx) => {
-      const card = document.createElement('div'); card.className = 'plant-card';
-      const isStarred = starredPlants.includes(p['Scientific Name']);
-      let soils = []; ['CLAY','SAND','GRAVEL','LOAM','SILT','PEAT','CHALKY'].forEach(s => { if(p[s+'_SOIL'] === 'Yes') soils.push(`<span class="soil-badge">${s}</span>`); });
-      const vKey = (p['Vendor'] || '').toLowerCase().trim();
-      const vendorHtml = vendorLinkMap[vKey] ? `<a href="${vendorLinkMap[vKey].url}" target="_blank" style="color:var(--accent-green); text-decoration:none;">${vendorLinkMap[vKey].name}</a>` : p['Vendor'];
-      let det = ''; Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') det += `<div><strong>${k.replace(/_/g,' ')}</strong><span>${p[k]}</span></div>`; });
-      card.innerHTML = `<button class="star-btn ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}')">${isStarred?'★':'☆'}</button><h4>${p['Common Name'] || 'Species'}</h4><p><em>${p['Scientific Name'] || ''}</em></p><img id="img-${idx}" class="plant-img"><span id="caption-${idx}" class="img-caption"></span><div class="soil-category-container">${soils.join('')}</div><p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p><p><strong>Nursery:</strong> ${vendorHtml}</p><p><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p><div class="card-actions"><button id="btn-${idx}" class="more-info-btn" onclick="toggleDetails(${idx})">Details</button><a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">USDA Profile</a></div><div id="details-${idx}" class="details-pane">${det}</div>`;
-      list.appendChild(card); loadPlantPhoto(p['Scientific Name'], idx);
+    document.getElementById('results-count').textContent = `Matched ${currentFiltered.length} Species`;
+    
+    const list = document.getElementById('plant-list');
+    list.innerHTML = "";
+    
+    currentFiltered.slice(0, displayLimit).forEach((p, idx) => {
+      list.appendChild(createPlantCard(p, `list-${idx}`));
+    });
+
+    const moreBtn = document.getElementById('show-more-btn');
+    if (displayLimit >= currentFiltered.length) {
+      moreBtn.disabled = true;
+      moreBtn.style.background = "#cbd5e0";
+    } else {
+      moreBtn.disabled = false;
+      moreBtn.style.background = "var(--accent-green)";
+    }
+    sysLog(`Rendered ${Math.min(displayLimit, currentFiltered.length)} cards.`);
+  }
+
+  function createPlantCard(p, id) {
+    const card = document.createElement('div');
+    card.className = 'plant-card';
+    
+    // Unique ID for Starring logic
+    const starId = p['Scientific Name'] + '|' + (p['L3_KEY'] || 'Global');
+    const isStarred = starred.includes(starId);
+
+    let soils = [];
+    ['CLAY','SAND','GRAVEL','LOAM','SILT','PEAT','CHALKY'].forEach(s => {
+      if (p[s+'_SOIL'] === 'Yes') soils.push(s);
+    });
+
+    const vKey = (p['Vendor'] || "").toLowerCase().trim();
+    const vUrl = vendorLinks[vKey] || "#";
+    const vDisplay = vKey ? `<a href="${vUrl}" target="_blank" style="color:var(--accent-green); text-decoration:none; font-weight:700;">${p['Vendor']}</a>` : "N/A";
+
+    let extraInfo = "";
+    Object.keys(p).forEach(k => {
+      if (p[k] && p[k] !== '0') {
+        extraInfo += `<div style="margin-bottom:5px;"><strong>${k.replace(/_/g,' ')}:</strong> <span>${p[k]}</span></div>`;
+      }
+    });
+
+    card.innerHTML = `
+      <button class="star-toggle ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}', '${p['L3_KEY']}')">★</button>
+      <h4>${p['Common Name'] || "Species"}</h4>
+      <div class="sci-name">${p['Scientific Name']}</div>
+      <img id="img-${id}" class="plant-img">
+      
+      <div class="card-cat">Preferred Soil Type</div>
+      <div class="card-val">${soils.length > 0 ? soils.join(', ') : "Any"}</div>
+      
+      <div class="card-cat">Roots</div>
+      <div class="card-val">${p['ROOT_TYPE'] || "N/A"} (${p['ROOT_DEPTH'] || "Depth N/A"})</div>
+      
+      <div class="card-cat">Vendor Link</div>
+      <div class="card-val">${vDisplay}</div>
+      
+      <div class="card-cat">Sunlight Needs</div>
+      <div class="card-val">${p['SUN_EXPOSURE'] || "N/A"}</div>
+      
+      <div style="margin-top:15px;">
+        <button id="toggle-${id}" class="more-info-btn" onclick="toggleDetails('${id}')">More Information</button>
+        <a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-btn">View Source</a>
+      </div>
+      
+      <div id="extra-${id}" class="details-pane" style="display:none; margin-top:15px; border-top:1px dashed #ccc; padding-top:10px;">
+        ${extraInfo}
+      </div>
+    `;
+    loadPhoto(p['Scientific Name'], `img-${id}`);
+    return card;
+  }
+
+  async function loadPhoto(sci, imgId) {
+    try {
+      const res = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(sci)}&rank=species`);
+      const data = await res.json();
+      const img = document.getElementById(imgId);
+      if (data.results?.[0]?.default_photo && img) img.src = data.results[0].default_photo.medium_url;
+      else if (img) img.style.display = 'none';
+    } catch(e) {}
+  }
+
+  function toggleDetails(id) {
+    const pane = document.getElementById(`extra-${id}`);
+    const btn = document.getElementById(`toggle-${id}`);
+    if (pane.style.display === "none") {
+      pane.style.display = "block";
+      btn.textContent = "Less Information";
+    } else {
+      pane.style.display = "none";
+      btn.textContent = "More Information";
+    }
+  }
+
+  function toggleStar(sci, l3) {
+    const starId = `${sci}|${l3 || 'Global'}`;
+    const idx = starred.indexOf(starId);
+    if (idx === -1) {
+      starred.push(starId);
+      sysLog(`Starred unique entry: ${starId}`);
+    } else {
+      starred.splice(idx, 1);
+      sysLog(`Unstarred: ${starId}`);
+    }
+    localStorage.setItem('spade_starred', JSON.stringify(starred));
+    renderResults(false);
+    if (document.getElementById('starred-overlay').style.display === 'block') openStarred();
+  }
+
+  function showMore() { displayLimit += 10; renderResults(false); }
+
+  function openStarred() {
+    const grid = document.getElementById('starred-grid');
+    grid.innerHTML = "";
+    const items = plantData.filter(p => {
+        const starId = p['Scientific Name'] + '|' + (p['L3_KEY'] || 'Global');
+        return starred.includes(starId);
+    });
+    if (items.length === 0) grid.innerHTML = "<p style='color:white; text-align:center; width:100%;'>No starred plants.</p>";
+    items.forEach((p, idx) => grid.appendChild(createPlantCard(p, `fav-${idx}`)));
+    document.getElementById('starred-overlay').style.display = 'block';
+  }
+  function closeStarred() { document.getElementById('starred-overlay').style.display = 'none'; }
+
+  function resetFilters() {
+    document.querySelectorAll('.p-filter').forEach(s => s.value = 'all');
+    renderResults(true);
+  }
+
+  function resetAllData() {
+    selectedL3 = null;
+    document.getElementById('selected-region').textContent = "None Selected";
+    ['zip-input','lat-input','lng-input'].forEach(id => document.getElementById(id).value = "");
+    if (geoLayer) geoLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1, weight: 1, color: '#27ae60' }));
+    map.setView([37.8, -96], 4);
+    resetFilters();
+  }
+
+  function exportXLSX() {
+    const ws = XLSX.utils.json_to_sheet(currentFiltered);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "SPADE_Plants");
+    XLSX.writeFile(wb, "SPADE_Filtered_Plants.xlsx");
+  }
+
+  function exportCSV() {
+    const csv = Papa.unparse(currentFiltered);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "SPADE_Filtered_Plants.csv"; a.click();
+  }
+
+  // Initialization
+  async function init() {
+    sysLog("Initializing Map...");
+    map = L.map('map').setView([37.8, -96], 4);
+    streetLayer.addTo(map);
+
+    sysLog("Fetching CSV Data...");
+    Papa.parse(CSV_URL, {
+      download: true,
+      header: true,
+      complete: results => {
+        plantData = results.data;
+        plantData.forEach(p => {
+          if (p.L3_KEY) ecoregionCounts[p.L3_KEY] = (ecoregionCounts[p.L3_KEY] || 0) + 1;
+        });
+        
+        // Populate Selects
+        const popMap = {
+          'type-filter': 'Plant Type', 'root-filter': 'ROOT_TYPE', 
+          'sun-filter': 'SUN_EXPOSURE', 'drought-filter': 'Drought Tolerance', 
+          'fire-filter': 'Fire Tolerance', 'growth-filter': 'Active Growth Period',
+          'moisture-filter': 'Soil Moisture'
+        };
+        Object.keys(popMap).forEach(id => {
+          const vals = new Set();
+          plantData.forEach(p => { if (p[popMap[id]]) p[popMap[id]].split(',').forEach(v => vals.add(v.trim())); });
+          const sel = document.getElementById(id);
+          Array.from(vals).sort().forEach(v => {
+            const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
+          });
+        });
+
+        loadGeoJSON();
+      }
     });
   }
 
-  async function useZipCode() { const zip = document.getElementById('zip-input').value; if (!/^\d{5}$/.test(zip)) return; try { const res = await fetch(`https://api.zippopotam.us/us/${zip}`); const data = await res.json(); const lat = parseFloat(data.places[0].latitude), lng = parseFloat(data.places[0].longitude); document.getElementById('lat-input').value = lat; document.getElementById('lng-input').value = lng; localStorage.setItem('spade_lat', lat); localStorage.setItem('spade_lng', lng); localStorage.setItem('spade_zip', zip); matchLocationToRegion(lat, lng); } catch (e) {} }
-  async function useMyLocation() { navigator.geolocation.getCurrentPosition(pos => { const lat = pos.coords.latitude, lng = pos.coords.longitude; document.getElementById('lat-input').value = lat.toFixed(4); document.getElementById('lng-input').value = lng.toFixed(4); localStorage.setItem('spade_lat', lat.toFixed(4)); localStorage.setItem('spade_lng', lng.toFixed(4)); matchLocationToRegion(lat, lng); }); }
-  function useCoordinates() { const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value); if (!isNaN(lat) && !isNaN(lng)) { localStorage.setItem('spade_lat', lat); localStorage.setItem('spade_lng', lng); matchLocationToRegion(lat, lng); } }
-  function matchLocationToRegion(lat, lng) { const results = leafletPip.pointInLayer([lng, lat], geoLayer); if (results.length > 0) { const f = results[0].feature; selectedL3Key = f.properties.L3_KEY; document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`; map.setView([lat, lng], 8); highlightRegion(selectedL3Key); renderResults(true); } }
-
-  async function init() {
-    const month = new Date().getMonth(); let season = "Year Round";
-    if (month >= 2 && month <= 4) season = "Spring"; else if (month >= 5 && month <= 7) season = "Summer"; else if (month >= 8 && month <= 10) season = "Fall"; else season = "Winter";
-    document.getElementById('season-filter').value = season;
-    Papa.parse(CSV_URL, { download: true, header: true, complete: res => { 
-      plantData = res.data; 
-      plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; }); 
-      
-      const filterConfig = {
-        'type-filter': 'Plant Type',
-        'root-filter': 'ROOT_TYPE',
-        'moisture-filter': 'Soil Moisture',
-        'sun-filter': 'SUN_EXPOSURE',
-        'drought-filter': 'Drought Tolerance',
-        'fire-filter': 'Fire Tolerance',
-        'growth-filter': 'Active Growth Period'
-      };
-      
-      Object.keys(filterConfig).forEach(id => populate(id, filterConfig[id], plantData));
-      
-      renderResults(); 
-      loadMap(); 
-    }});
-  }
-
-  async function loadMap() {
-    map = L.map('map').setView([37.8, -96], 4); streetTiles.addTo(map);
+  async function loadGeoJSON() {
+    sysLog("Loading GeoJSON Map Data...");
     try {
-      const geoRes = await fetch(ECO_URL), geoJSON = await geoRes.json();
-      geoLayer = L.geoJSON(geoJSON, { style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 }, onEachFeature: (f, l) => { const key = f.properties.L3_KEY; l.bindTooltip(`<b>${key}</b>`, { sticky: true }); l.on({ mouseover: () => geoLayer.eachLayer(ly => { if(ly.feature.properties.L3_KEY === key) ly.setStyle({ fillOpacity: 0.35 }); }), mouseout: () => geoLayer.eachLayer(ly => { if(ly.feature.properties.L3_KEY === key) ly.setStyle({ fillOpacity: (key === selectedL3Key ? 0.6 : 0.1) }); }), click: () => { selectedL3Key = key; document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`; highlightRegion(key); renderResults(true); } }); } }).addTo(map);
-      const sLat = localStorage.getItem('spade_lat'), sLng = localStorage.getItem('spade_lng'); if(sLat && sLng) { document.getElementById('lat-input').value = sLat; document.getElementById('lng-input').value = sLng; matchLocationToRegion(parseFloat(sLat), parseFloat(sLng)); }
-    } catch (e) {}
+      const res = await fetch(ECO_URL);
+      const data = await res.json();
+      geoLayer = L.geoJSON(data, {
+        style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
+        onEachFeature: (f, l) => {
+          const key = f.properties.L3_KEY;
+          l.bindTooltip(`<b>${f.properties.US_L3NAME}</b><br>ID: ${key}<br>Native Species: ${ecoregionCounts[key] || 0}`, { sticky: true });
+          l.on({
+            mouseover: () => { if(key !== selectedL3) l.setStyle({ fillOpacity: 0.3, weight: 2 }); },
+            mouseout: () => { if(key !== selectedL3) l.setStyle({ fillOpacity: 0.1, weight: 1 }); },
+            click: () => {
+              selectedL3 = key;
+              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
+              highlightRegion(key);
+              renderResults(true);
+            }
+          });
+        }
+      }).addTo(map);
+      renderResults(true);
+    } catch(e) { sysLog("GeoJSON Error: " + e); }
   }
 
-  function toggleDetails(idx) { const p = document.getElementById(`details-${idx}`), b = document.getElementById(`btn-${idx}`); p.classList.toggle('active'); b.textContent = p.classList.contains('active') ? 'Less' : 'Details'; }
-  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
+  document.querySelectorAll('.p-filter').forEach(el => el.addEventListener('change', () => renderResults(true)));
   window.onload = init;
 </script>
 </body>
