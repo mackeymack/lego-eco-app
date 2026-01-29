@@ -26,7 +26,7 @@
 
     body { margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg-light); color: var(--text-main); line-height: 1.5; }
     
-    /* Home Screen Install Banner */
+    /* Install Banner */
     #install-banner {
       display: none;
       background: var(--primary-green);
@@ -41,7 +41,7 @@
       font-size: 0.85em;
       border-bottom: 2px solid white;
     }
-    #install-banner div { display: flex; gap: 10px; }
+    .banner-btns { display: flex; gap: 10px; }
     #install-btn { background: white; color: var(--primary-green); border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 800; }
     #ignore-btn { background: transparent; color: white; border: 1px solid white; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
@@ -53,7 +53,7 @@
     h2 { margin: 0 0 4px; color: var(--primary-green); font-size: 1.8em; letter-spacing: -1px; font-weight: 800; }
     .subtitle { margin-bottom: 20px; color: #4a5568; font-weight: 600; font-size: 0.8em; text-transform: uppercase; }
     
-    #secret-dot { cursor: pointer; user-select: none; transition: opacity 0.2s; touch-action: manipulation; }
+    #secret-dot { cursor: pointer; user-select: none; touch-action: manipulation; }
 
     .btn-standard { width: 100%; border: none; padding: 14px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.9em; }
     #geo-btn { background: #3b82f6; color: white; margin-bottom: 12px; }
@@ -62,34 +62,38 @@
     input[type="text"], input[type="number"], select { flex: 1; min-width: 0; padding: 12px; border: 1.5px solid var(--border-color); border-radius: var(--soft-radius); font-size: 16px; height: 48px; box-sizing: border-box; background: #fff; }
     .action-btn { background: var(--accent-green); color: white; border: none; padding: 0 20px; border-radius: var(--soft-radius); font-weight: 700; height: 48px; }
 
-    h3 { margin: 25px 0 10px; font-size: 0.8em; border-bottom: 1px solid #cbd5e0; padding-bottom: 5px; color: #475569; text-transform: uppercase; letter-spacing: 1px; }
-    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-    label { font-weight: 700; font-size: 0.65em; display: block; margin-bottom: 2px; color: #4a5568; text-transform: uppercase; }
-    .soil-desc { font-size: 0.6em; color: #718096; margin-bottom: 8px; font-style: italic; line-height: 1.1; }
-
     #selected-region { font-weight: 700; color: #1e40af; background: #e6f0ff; padding: 10px; border-radius: var(--soft-radius); font-size: 0.8em; border: 1px solid #cbd5e0; margin-bottom: 15px; text-align: center; }
     
     .plant-card { border: 1px solid #d2b48c; padding: 15px; margin-bottom: 15px; border-radius: var(--soft-radius); background: var(--card-bg); position: relative; box-sizing: border-box; }
     .plant-img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; margin: 10px 0; background: #e2e8f0; display: block; }
-    .img-caption { font-size: 0.65em; color: #718096; display: block; margin-bottom: 8px; }
-    .soil-badge { background: #e2e8f0; color: #2d3436; font-size: 0.6em; font-weight: 700; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; }
+    .soil-badge { background: #e2e8f0; color: #2d3436; font-size: 0.6em; font-weight: 700; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; margin-right: 4px; }
+    
     .star-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; color: #cbd5e0; line-height: 1; }
     .star-btn.active { color: #f1c40f; }
 
     .details-pane { display: none; background: #fff; padding: 10px; margin-top: 10px; border-radius: 8px; font-size: 0.75em; border: 1px dashed #ccc; }
+    .details-pane div { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #f0f0f0; padding-bottom: 2px; }
 
-    #map-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 5px; }
-    .map-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 0.7em; }
+    .card-actions { display: flex; gap: 10px; margin-top: 10px; }
+    .more-info-btn { flex: 1; background: #f7fafc; border: 1px solid #cbd5e0; color: #4a5568; padding: 10px; border-radius: 8px; font-size: 0.8em; font-weight: 700; }
+    .source-link { flex: 1; background: var(--accent-green); color: white; text-align: center; text-decoration: none; padding: 10px; border-radius: 8px; font-size: 0.8em; font-weight: 700; }
+
+    #debug-overlay { display: none; position: fixed; top: 5%; left: 5%; right: 5%; bottom: 5%; background: #0f172a; color: #10b981; font-family: monospace; padding: 20px; z-index: 10000; overflow-y: auto; }
   </style>
 </head>
 <body>
 
 <div id="install-banner">
-  <span>Install S.P.A.D.E. to Home Screen?</span>
-  <div>
+  <span>Add S.P.A.D.E. to Home Screen?</span>
+  <div class="banner-btns">
     <button id="install-btn">Download</button>
     <button id="ignore-btn" onclick="document.getElementById('install-banner').style.display='none'">Ignore</button>
   </div>
+</div>
+
+<div id="debug-overlay">
+  <button onclick="document.getElementById('debug-overlay').style.display='none'" style="float:right;">Close</button>
+  <div id="debug-content" style="white-space: pre-wrap;"></div>
 </div>
 
 <div id="wrap">
@@ -131,21 +135,38 @@
   const CSV_URL = 'assets/Database-Deleted-Categories.csv';
   const ECO_URL = 'assets/us_eco_l3_state_boundaries.json';
 
+  const vendorLinkMap = {
+    "native west": { name: "Native West Nursery", url: "https://nativewest.com/" },
+    "prairie moon nursery": { name: "Prairie Moon Nursery", url: "https://www.prairiemoon.com/" },
+    "praire nursery": { name: "Prairie Nursery", url: "https://www.prairienursery.com/" },
+    "ernst seeds": { name: "Ernst Conservation Seeds", url: "https://www.ernstseed.com/" },
+    "gbnp": { name: "Great Bear Native Plants", url: "http://www.greatbearnativeplants.com/" },
+    "mellow marsh farm": { name: "Mellow Marsh Farm", url: "https://mellowmarshfarm.com/" },
+    "roots and shoots": { name: "Roots and Shoots Nursery", url: "https://www.rootsandshootsnursery.com/" },
+    "critsite_native_plants_full_list": { name: "Plant Picker", url: "https://plantsman.com/" }
+  };
+
   // PWA Prompt Logic
   let deferredPrompt;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('install-banner').style.display = 'flex';
-  });
+  const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+  const isInStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+  if (!isInStandalone) {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-banner').style.display = 'flex';
+    });
+    if (isIos) document.getElementById('install-banner').style.display = 'flex';
+  }
 
   document.getElementById('install-btn').addEventListener('click', async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       deferredPrompt = null;
       document.getElementById('install-banner').style.display = 'none';
-    } else {
-      alert('iPhone Users: Tap the "Share" icon below and select "Add to Home Screen".');
+    } else if (isIos) {
+      alert('To install: Tap the "Share" button at the bottom of your screen and select "Add to Home Screen".');
     }
   });
 
@@ -186,10 +207,8 @@
     }
   }
 
-  async function useMyLocation() {
-    navigator.geolocation.getCurrentPosition(pos => {
-      matchLocationToRegion(pos.coords.latitude, pos.coords.longitude);
-    });
+  function useMyLocation() {
+    navigator.geolocation.getCurrentPosition(pos => matchLocationToRegion(pos.coords.latitude, pos.coords.longitude));
   }
 
   async function useZipCode() {
@@ -197,7 +216,7 @@
     if(zip.length === 5) {
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
       const data = await res.json();
-      matchLocationToRegion(parseFloat(data.places[0].latitude), parseFloat(data.places[0].longitude));
+      if(data.places) matchLocationToRegion(parseFloat(data.places[0].latitude), parseFloat(data.places[0].longitude));
     }
   }
 
@@ -220,15 +239,25 @@
     currentFilteredItems.slice(0, displayLimit).forEach((p, idx) => {
       const isStarred = starredPlants.includes(p['Scientific Name']);
       const card = document.createElement('div'); card.className = 'plant-card';
-      let soils = []; ['CLAY','SAND','GRAVEL','LOAM'].forEach(s => { if(p[s+'_SOIL'] === 'Yes') soils.push(`<span class="soil-badge">${s}</span>`); });
+      let soils = []; ['CLAY','SAND','GRAVEL','LOAM','SILT','PEAT','CHALKY'].forEach(s => { if(p[s+'_SOIL'] === 'Yes') soils.push(`<span class="soil-badge">${s}</span>`); });
+      const vKey = (p['Vendor'] || '').toLowerCase().trim();
+      const vendorHtml = vendorLinkMap[vKey] ? `<a href="${vendorLinkMap[vKey].url}" target="_blank" style="color:var(--accent-green); text-decoration:none;">${vendorLinkMap[vKey].name}</a>` : p['Vendor'];
       let det = ''; Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') det += `<div><strong>${k.replace(/_/g,' ')}</strong><span>${p[k]}</span></div>`; });
-      card.innerHTML = `<button class="star-btn ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}')">${isStarred?'★':'☆'}</button><h4>${p['Common Name']}</h4><p><em>${p['Scientific Name']}</em></p><img id="img-${idx}" class="plant-img"><div class="soil-category-container">${soils.join('')}</div><div class="card-actions" style="display:flex; gap:10px;"><button class="action-btn" onclick="this.parentElement.nextElementSibling.style.display='block'">Details</button><a href="${p['SOURCE_LINK_1']}" target="_blank" class="action-btn" style="background:#3b82f6; text-decoration:none;">USDA Profile</a></div><div id="details-${idx}" class="details-pane">${det}</div>`;
+      card.innerHTML = `<button class="star-btn ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}')">${isStarred?'★':'☆'}</button><h4>${p['Common Name'] || 'Species'}</h4><p><em>${p['Scientific Name'] || ''}</em></p><img id="img-${idx}" class="plant-img"><div class="soil-category-container">${soils.join('')}</div><p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'}</p><p><strong>Nursery:</strong> ${vendorHtml}</p><p><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p><div class="card-actions"><button class="more-info-btn" onclick="toggleDetails(${idx})">Details</button><a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">USDA Profile</a></div><div id="details-${idx}" class="details-pane">${det}</div>`;
       list.appendChild(card); loadPlantPhoto(p['Scientific Name'], idx);
     });
   }
 
   async function loadPlantPhoto(sciName, idx) { const img = document.getElementById(`img-${idx}`); try { const res = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(sciName)}&rank=species`); const d = await res.json(); if (d.results?.[0]?.default_photo) img.src = d.results[0].default_photo.medium_url; else img.style.display='none'; } catch (e) { img.style.display='none'; } }
+  function toggleDetails(idx) { const p = document.getElementById(`details-${idx}`); p.style.display = p.style.display === 'block' ? 'none' : 'block'; }
   function showMore() { displayLimit += 10; renderResults(false); }
+
+  let dotCount = 0;
+  document.getElementById('secret-dot').addEventListener('click', () => {
+    dotCount++;
+    if(dotCount === 2) { if(prompt("Key:") === "numpy") document.getElementById('debug-overlay').style.display='block'; dotCount=0; }
+    setTimeout(() => dotCount = 0, 500);
+  });
 
   async function init() {
     Papa.parse(CSV_URL, { download: true, header: true, complete: res => { plantData = res.data; renderResults(); loadMap(); }});
