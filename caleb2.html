@@ -30,40 +30,38 @@
       border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 10px;
     }
 
-    .zip-container { display: flex; gap: 5px; margin-bottom: 15px; }
-    #zip-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; }
-    #zip-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; }
+    .zip-container { display: flex; gap: 5px; margin-bottom: 10px; }
+    #zip-input, #lat-input, #lng-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; min-width: 0; }
+    .action-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .row { margin-bottom: 12px; }
     label { font-weight: bold; font-size: 0.8em; display: block; margin-bottom: 4px; color: #4b4b4b; }
     select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.85em; }
     
-    .region-display-container { display: flex; align-items: center; gap: 8px; }
-    #selected-region { flex-grow: 1; font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.85em; }
+    #selected-region { flex-grow: 1; font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; }
     
     .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; position: relative; }
     .plant-card.invasive { border-left: 5px solid #e74c3c; background: #fff5f5; }
-    .invasive-badge { position: absolute; top: 10px; right: 10px; background: #e74c3c; color: white; font-size: 0.7em; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
+    .invasive-badge { position: absolute; top: 10px; right: 10px; background: #e74c3c; color: white; font-size: 0.65em; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
 
-    .export-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 15px 0; }
-    .export-btn { flex: 1; min-width: 120px; padding: 10px; border-radius: 6px; border: 1px solid #27ae60; background: white; color: #27ae60; font-weight: bold; cursor: pointer; font-size: 0.75em; }
+    .export-row { display: flex; gap: 10px; margin: 15px 0; }
+    .export-btn { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #27ae60; background: white; color: #27ae60; font-weight: bold; cursor: pointer; font-size: 0.75em; }
     .export-btn:hover { background: #27ae60; color: white; }
-    .print-btn { background: #27ae60; color: white; }
-
-    /* Print Styling for Feature 10 */
-    @media print {
-      #sidebar, #map-container, #debug-trigger, .card-actions, #show-more-container, .export-row, .reset-filters-btn { display: none !important; }
-      body { background: white; }
-      #wrap { display: block; height: auto; }
-      #results-list { width: 100%; }
-      .plant-card { border: 1px solid #ccc; page-break-inside: avoid; margin-bottom: 20px; }
-      .details-pane { display: block !important; }
-      #results-count::before { content: "S.P.A.D.E. Site Prescription Report\n"; font-size: 24px; font-weight: bold; display: block; margin-bottom: 10px; color: #1a5d1a; }
-    }
+    .print-btn { background: #1a5d1a; color: white; border: none; }
 
     .details-pane { display: none; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; font-size: 0.8em; }
     .details-pane.active { display: block; }
+    
+    #status { font-size: 11px; color: #e67e22; margin-top: 10px; font-style: italic; }
+
+    @media print {
+      #sidebar, #map-container, .card-actions, #show-more-container { display: none !important; }
+      #wrap { display: block; }
+      .plant-card { page-break-inside: avoid; border: 1px solid #ccc; }
+      .details-pane { display: block !important; }
+      body { background: white; }
+    }
   </style>
 </head>
 <body>
@@ -77,26 +75,36 @@
 
     <div class="zip-container">
       <input type="text" id="zip-input" placeholder="Enter Zip Code" maxlength="5">
-      <button id="zip-btn" onclick="useZipCode()">Go</button>
+      <button class="action-btn" onclick="useZipCode()">Go</button>
+    </div>
+
+    <div class="zip-container">
+      <input type="number" id="lat-input" placeholder="Latitude (e.g. 34.05)" step="any">
+      <input type="number" id="lng-input" placeholder="Longitude (e.g. -118.24)" step="any">
+      <button class="action-btn" onclick="useCoordinates()" style="background: #2980b9;">Go</button>
     </div>
 
     <div class="row">
-      <label>Target Ecoregion</label>
-      <div class="region-display-container">
+      <label>Target Excavation Ecoregion</label>
+      <div style="display: flex; gap: 5px;">
         <div id="selected-region">Click map or use location</div>
+        <button onclick="resetSelection()" style="padding: 5px 10px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer;">Clear</button>
       </div>
     </div>
 
     <h3>Stability & Growth</h3>
     <div class="filter-grid">
       <div class="row"><label>Plant Type</label><select id="type-filter" class="plant-filter"><option value="all">Any Type</option></select></div>
-      <div class="row"><label>Pollinator/Host</label><select id="pollinator-filter" class="plant-filter"><option value="all">Any Pollinator</option></select></div>
+      <div class="row"><label>Pollinator Host</label><select id="pollinator-filter" class="plant-filter"><option value="all">Any Host</option></select></div>
+      <div class="row"><label>Moisture</label><select id="moisture-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Sun</label><select id="sun-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Drought Tol.</label><select id="drought-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Fire Tol.</label><select id="fire-filter" class="plant-filter"><option value="all">Any</option></select></div>
     </div>
 
-    <button class="export-btn" style="width:100%; margin-bottom:10px;" onclick="resetFilters()">Reset All Filters</button>
+    <button class="export-btn" style="width: 100%; margin-bottom: 10px;" onclick="resetFilters()">Reset All Filters</button>
 
+    <div id="status">System starting...</div>
     <div id="results-count"></div>
 
     <div class="export-row">
@@ -105,20 +113,42 @@
     </div>
 
     <div id="results-list"></div>
-    <div id="show-more-container"><button id="show-more-btn" onclick="showMore()">Show More</button></div>
+    <div id="show-more-container"><button id="show-more-btn" onclick="showMore()" class="export-btn">Show More</button></div>
   </div>
 
   <div id="map-container"><div id="map"></div></div>
 </div>
 
 <script>
-  let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10;
-  const mapCenter = [37.8, -96], ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
+  let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer;
+
+  const ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
   function populate(id, col, data) {
     const sel = document.getElementById(id), vals = new Set();
     data.forEach(r => { if(r[col] && r[col] !== '0') r[col].split(';').forEach(v => vals.add(v.trim())); });
     Array.from(vals).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
+  }
+
+  function highlightRegion(key) {
+    if (!geoLayer) return;
+    geoLayer.eachLayer(layer => {
+      if (layer.feature.properties.L3_KEY === key) {
+        layer.setStyle({ fillOpacity: 0.6, weight: 3, color: '#1a5d1a', opacity: 1 });
+        layer.bringToFront();
+      } else {
+        layer.setStyle({ fillOpacity: 0.05, weight: 1, color: '#27ae60', opacity: 0.3 });
+      }
+    });
+  }
+
+  function useCoordinates() {
+    const lat = parseFloat(document.getElementById('lat-input').value);
+    const lng = parseFloat(document.getElementById('lng-input').value);
+    const status = document.getElementById('status');
+    if (isNaN(lat) || isNaN(lng)) { status.textContent = "Please enter valid coordinates."; return; }
+    status.textContent = `🔍 Searching: ${lat}, ${lng}`;
+    matchLocationToRegion(lat, lng);
   }
 
   function resetFilters() {
@@ -129,10 +159,11 @@
   function renderResults(resetLimit = true) {
     if (!plantData) return;
     if (resetLimit) displayLimit = 10;
-
     const f = {
       type: document.getElementById('type-filter').value,
       pollinator: document.getElementById('pollinator-filter').value,
+      moisture: document.getElementById('moisture-filter').value,
+      sun: document.getElementById('sun-filter').value,
       drought: document.getElementById('drought-filter').value,
       fire: document.getElementById('fire-filter').value
     };
@@ -141,12 +172,14 @@
       if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
       if (f.type !== 'all' && !(p['Plant Type'] || '').includes(f.type)) return false;
       if (f.pollinator !== 'all' && !(p['Pollinators'] || '').includes(f.pollinator)) return false;
+      if (f.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(f.moisture)) return false;
+      if (f.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(f.sun)) return false;
       if (f.drought !== 'all' && !(p['Drought Tolerance'] || '').includes(f.drought)) return false;
       if (f.fire !== 'all' && !(p['Fire Tolerance'] || '').includes(f.fire)) return false;
       return true;
     });
 
-    document.getElementById('results-count').textContent = `Matches: ${currentFilteredItems.length}`;
+    document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, currentFilteredItems.length)} of ${currentFilteredItems.length}`;
     const list = document.getElementById('results-list');
     list.innerHTML = '';
     
@@ -155,23 +188,44 @@
       const card = document.createElement('div');
       card.className = `plant-card ${isInvasive ? 'invasive' : ''}`;
       card.innerHTML = `
-        ${isInvasive ? '<div class="invasive-badge">Invasive Warning</div>' : ''}
+        ${isInvasive ? '<div class="invasive-badge">Invasive</div>' : ''}
         <h4>${p['Common Name'] || 'Unknown'}</h4>
         <p><em>${p['Scientific Name'] || ''}</em></p>
-        <p><strong>Pollinators:</strong> ${p['Pollinators'] || 'N/A'}</p>
         <p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
+        <p><strong>Tolerance:</strong> Drought: ${p['Drought Tolerance'] || 'N/A'}, Fire: ${p['Fire Tolerance'] || 'N/A'}</p>
         <div class="card-actions">
-           <button class="export-btn" onclick="document.getElementById('details-${index}').classList.toggle('active')">Info</button>
-           ${p['SOURCE_LINK_1'] !== '0' ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="export-btn" style="text-decoration:none; text-align:center">Link</a>` : ''}
+          <button class="export-btn" onclick="document.getElementById('details-${index}').classList.toggle('active')">Details</button>
         </div>
         <div id="details-${index}" class="details-pane">
-          <div><strong>Growth Period:</strong> ${p['Active Growth Period'] || 'N/A'}</div>
+          <div><strong>Pollinators:</strong> ${p['Pollinators'] || 'None listed'}</div>
           <div><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</div>
           <div><strong>Moisture:</strong> ${p['Soil Moisture'] || 'N/A'}</div>
         </div>
       `;
       list.appendChild(card);
     });
+  }
+
+  async function useZipCode() {
+    const zip = document.getElementById('zip-input').value;
+    if (!/^\d{5}$/.test(zip)) return;
+    try {
+      const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
+      const data = await res.json();
+      matchLocationToRegion(parseFloat(data.places[0].latitude), parseFloat(data.places[0].longitude));
+    } catch (err) { document.getElementById('status').textContent = "ZIP error."; }
+  }
+
+  function matchLocationToRegion(lat, lng) {
+    const results = leafletPip.pointInLayer([lng, lat], geoLayer);
+    if (results.length > 0) {
+      const f = results[0].feature;
+      selectedL3Key = f.properties.L3_KEY;
+      document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`;
+      map.setView([lat, lng], 8);
+      highlightRegion(selectedL3Key);
+      renderResults(true);
+    }
   }
 
   async function init() {
@@ -182,8 +236,11 @@
         plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
         populate('type-filter', 'Plant Type', plantData);
         populate('pollinator-filter', 'Pollinators', plantData);
+        populate('moisture-filter', 'Soil Moisture', plantData);
+        populate('sun-filter', 'SUN_EXPOSURE', plantData);
         populate('drought-filter', 'Drought Tolerance', plantData);
         populate('fire-filter', 'Fire Tolerance', plantData);
+        document.getElementById('status').textContent = 'Database Active';
         renderResults();
         loadMap();
       }
@@ -191,23 +248,24 @@
   }
 
   async function loadMap() {
-    let map = L.map('map').setView(mapCenter, 4);
+    map = L.map('map').setView([37.8, -96], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     const geoRes = await fetch(ECO_URL);
     const geoJSON = await geoRes.json();
-    L.geoJSON(geoJSON, {
+    geoLayer = L.geoJSON(geoJSON, {
       style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
       onEachFeature: (f, l) => {
-        l.on('click', () => {
+        l.on('click', (e) => {
           selectedL3Key = f.properties.L3_KEY;
-          document.getElementById('selected-region').textContent = f.properties.US_L3NAME;
+          document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`;
+          highlightRegion(selectedL3Key);
           renderResults(true);
         });
       }
     }).addTo(map);
   }
 
-  document.querySelectorAll('.plant-filter').forEach(el => el.addEventListener('change', () => renderResults(true)));
+  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
   window.onload = init;
 </script>
 
