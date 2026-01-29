@@ -56,9 +56,8 @@
 
     .plant-card { border: 1px solid #d2b48c; padding: 20px; margin-bottom: 20px; border-radius: var(--soft-radius); background: var(--card-bg); position: relative; }
     .plant-card h4 { margin: 0 0 6px; color: var(--text-main); font-size: 1.25em; font-weight: 800; padding-right: 35px; }
-    .plant-img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin: 12px 0 8px; background: #e2e8f0; }
-    .img-caption { font-size: 0.75em; color: #718096; display: block; margin-bottom: 15px; }
-    .soil-badge { background: #e2e8f0; color: #2d3748; font-size: 0.7em; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; border: 1px solid var(--border-color); margin-right: 4px; display: inline-block; }
+    .plant-img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin: 12px 0 8px; background: #e2e8f0; display: block; }
+    .soil-badge { background: #e2e8f0; color: #2d3436; font-size: 0.7em; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; border: 1px solid var(--border-color); margin-right: 4px; display: inline-block; }
     .source-link { display: inline-block; color: var(--accent-green); text-decoration: none; font-weight: 700; font-size: 0.8em; border: 1.5px solid var(--accent-green); padding: 8px 16px; border-radius: 8px; }
     .more-info-btn { background: #f7fafc; border: 1.5px solid #cbd5e0; color: #4a5568; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8em; font-weight: 700; }
     .details-pane { display: none; margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); font-size: 0.85em; color: #4a5568; }
@@ -124,17 +123,11 @@
 
     <div class="row">
       <label>Target Ecoregion</label>
-      <div class="region-display-container">
-        <div id="selected-region">Select a site on the map</div>
-        <button id="clear-selection-btn" onclick="resetSelection()">Clear</button>
-      </div>
+      <div id="selected-region" style="background: #e6f0ff; padding: 12px; border-radius: 12px; font-weight: bold; margin-bottom: 10px;">Select a site on the map</div>
+      <button id="clear-selection-btn" class="btn-standard" style="background: #fed7d7; color: #c53030; height: 35px; padding: 0;" onclick="resetSelection()">Clear Selection</button>
     </div>
 
     <input type="text" id="search-box" placeholder="Search Plants..." style="width:100%; margin: 20px 0;" />
-
-    <h3>Filters</h3>
-    <div class="filter-grid" id="filter-grid">
-      </div>
 
     <div id="results-count">Ready...</div>
     <div class="export-row" style="display:flex; gap:10px;">
@@ -179,36 +172,27 @@
   const streetTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
   const satelliteTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
 
-  function setMapLayer(type) { 
-    sysLog("Switching layer: " + type);
-    if (type === 'satellite') { map.removeLayer(streetTiles); satelliteTiles.addTo(map); } 
-    else { map.removeLayer(satelliteTiles); streetTiles.addTo(map); } 
-  }
+  function setMapLayer(type) { if (type === 'satellite') { map.removeLayer(streetTiles); satelliteTiles.addTo(map); } else { map.removeLayer(satelliteTiles); streetTiles.addTo(map); } }
 
-  // Region-specific Star logic
-  function toggleStar(sciName, l3key, isFromOverlay = false) {
+  function toggleStar(sciName, l3key, isOverlay = false) {
     const starId = `${sciName}|${l3key || 'Global'}`;
     const idx = starredPlants.indexOf(starId);
-    if (idx === -1) { starredPlants.push(starId); sysLog(`Starred: ${starId}`); }
-    else { starredPlants.splice(idx, 1); sysLog(`Unstarred: ${starId}`); }
+    if (idx === -1) starredPlants.push(starId);
+    else starredPlants.splice(idx, 1);
     localStorage.setItem('spade_starred', JSON.stringify(starredPlants));
     renderResults(false);
-    if(isFromOverlay) showStarred();
+    if(isOverlay) showStarred();
   }
 
-  // Render Full Plant Cards in Favorites Overlay
   function showStarred() {
-    sysLog("Rendering Favorites Overlay...");
     const grid = document.getElementById('starred-grid');
     grid.innerHTML = '';
-    const items = plantData.filter(p => {
-        const starId = `${p['Scientific Name']}|${p['L3_KEY'] || 'Global'}`;
-        return starredPlants.includes(starId);
-    });
+    const items = plantData.filter(p => starredPlants.includes(`${p['Scientific Name']}|${p['L3_KEY'] || 'Global'}`));
     if (items.length === 0) grid.innerHTML = '<p style="color:white; text-align:center; width:100%;">No starred plants yet.</p>';
-    
     items.forEach((p, idx) => {
-        grid.appendChild(createPlantCard(p, `fav-${idx}`, true));
+      const card = createPlantCard(p, `fav-${idx}`, true);
+      grid.appendChild(card);
+      loadPlantPhoto(p['Scientific Name'], `img-fav-${idx}`);
     });
     document.getElementById('starred-overlay').style.display = 'block';
   }
@@ -223,9 +207,9 @@
     ['CLAY','SAND','GRAVEL','LOAM','SILT','PEAT','CHALKY'].forEach(s => { 
       if(p[s+'_SOIL'] === 'Yes') soils.push(`<span class="soil-badge">${s}</span>`); 
     });
-    
-    const vKey = (p['Vendor'] || '').toLowerCase().trim();
-    const vendorHtml = vendorLinkMap[vKey] ? `<a href="${vendorLinkMap[vKey].url}" target="_blank" style="color:var(--accent-green); text-decoration:none;">${vendorLinkMap[vKey].name}</a>` : p['Vendor'];
+
+    const vRaw = (p['Vendor'] || '').toLowerCase().trim();
+    const vendorLink = vendorLinkMap[vRaw] ? `<a href="${vendorLinkMap[vRaw].url}" target="_blank" style="color:var(--accent-green); text-decoration:none;">${vendorLinkMap[vRaw].name}</a>` : p['Vendor'] || 'N/A';
     let det = ''; 
     Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') det += `<div><strong>${k.replace(/_/g,' ')}</strong><span>${p[k]}</span></div>`; });
 
@@ -233,22 +217,24 @@
       <button class="star-btn ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}', '${p['L3_KEY']}', ${isOverlay})">★</button>
       <h4>${p['Common Name'] || 'Species'}</h4>
       <p><em>${p['Scientific Name']}</em></p>
-      <p style="font-size:0.7em; color:#718096;">Region: ${p['L3_KEY'] || 'N/A'}</p>
       <img id="img-${uniqueId}" class="plant-img">
       <div class="soil-category-container">${soils.join('')}</div>
-      <p><strong>Nursery:</strong> ${vendorHtml}</p>
+      <p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'}</p>
+      <p><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
+      <p><strong>Moisture:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
+      <p><strong>Nursery:</strong> ${vendorLink}</p>
       <div class="card-actions" style="display:flex; gap:10px; margin-top:10px;">
         <button class="more-info-btn" onclick="toggleDetails('${uniqueId}')">Details</button>
         <a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">USDA Profile</a>
       </div>
       <div id="details-${uniqueId}" class="details-pane">${det}</div>
     `;
-    loadPlantPhoto(p['Scientific Name'], `img-${uniqueId}`);
     return card;
   }
 
   async function loadPlantPhoto(sciName, imgId) {
     const img = document.getElementById(imgId);
+    if(!img) return;
     try {
       const res = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(sciName)}&rank=species`);
       const data = await res.json();
@@ -257,7 +243,7 @@
     } catch (e) { img.style.display = 'none'; }
   }
 
-  function toggleDetails(id) { const p = document.getElementById(`details-${id}`); p.classList.toggle('active'); }
+  function toggleDetails(id) { document.getElementById(`details-${id}`).classList.toggle('active'); }
 
   function renderResults(resetLimit = true) {
     if (!plantData) return; if (resetLimit) displayLimit = 10;
@@ -273,7 +259,9 @@
     
     const list = document.getElementById('results-list'); list.innerHTML = '';
     currentFilteredItems.slice(0, displayLimit).forEach((p, idx) => {
-      list.appendChild(createPlantCard(p, `list-${idx}`, false));
+      const card = createPlantCard(p, `list-${idx}`, false);
+      list.appendChild(card);
+      loadPlantPhoto(p['Scientific Name'], `img-list-${idx}`);
     });
   }
 
@@ -291,6 +279,8 @@
       selectedL3Key = results[0].feature.properties.L3_KEY;
       document.getElementById('selected-region').textContent = `${selectedL3Key}: ${results[0].feature.properties.US_L3NAME}`;
       map.setView([lat, lng], 8);
+      document.getElementById('lat-input').value = lat.toFixed(4);
+      document.getElementById('lng-input').value = lng.toFixed(4);
       if (source !== 'zip') reverseLookupZip(lat, lng);
       renderResults(true);
     }
@@ -301,30 +291,18 @@
   function useCoordinates() { const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value); if(!isNaN(lat)) matchLocationToRegion(lat, lng, 'coords'); }
   function resetSelection() { selectedL3Key = null; document.getElementById('selected-region').textContent = "Select a site on the map"; map.setView([37.8, -96], 4); renderResults(true); }
 
-  async function init() {
-    sysLog("Initializing...");
-    Papa.parse(CSV_URL, { download: true, header: true, complete: res => { 
-      plantData = res.data; 
-      sysLog(`DB Loaded: ${plantData.length} records.`);
-      renderResults(); 
-      loadMap(); 
-    }});
-  }
-
+  async function init() { Papa.parse(CSV_URL, { download: true, header: true, complete: res => { plantData = res.data; renderResults(); loadMap(); }}); }
   async function loadMap() {
     map = L.map('map').setView([37.8, -96], 4); streetTiles.addTo(map);
     try {
       const res = await fetch(ECO_URL), geoJSON = await res.json();
       geoLayer = L.geoJSON(geoJSON, { style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 }, onEachFeature: (f, l) => {
-        l.on('click', () => { 
-          selectedL3Key = f.properties.L3_KEY; 
-          document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`;
-          renderResults(true); 
-        });
+        l.on('click', () => { selectedL3Key = f.properties.L3_KEY; document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`; renderResults(true); });
       }}).addTo(map);
-    } catch (e) { sysLog("Map Error: " + e); }
+    } catch (e) {}
   }
   window.onload = init;
+  let dCount=0, dTimer; document.getElementById('secret-dot').addEventListener('click', () => { dCount++; clearTimeout(dTimer); if(dCount===2) { if(prompt("Key:")==="numpy") document.getElementById('debug-overlay').style.display='flex'; dCount=0; } dTimer=setTimeout(()=>dCount=0, 500); });
 </script>
 </body>
 </html>
