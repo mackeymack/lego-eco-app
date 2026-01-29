@@ -106,7 +106,7 @@
 <body>
   <div id="wrap">
     <div id="sidebar">
-      <h2>🐢 S<span id="debugDot" title="Open debug log" style="cursor:pointer; user-select:none;">.</span>P.A.D.E 🔥</h2>
+      <h2>🐢 S<span id="debugDot" title="Debug" style="cursor:pointer; user-select:none;">.</span>P.A.D.E 🔥</h2>
       <div class="small">
         Click an ecoregion on the map → see matching plants from your CSV.
       </div>
@@ -141,7 +141,7 @@
     <div id="map"></div>
   </div>
 
-  <!-- Debug floating button + modal (button hidden; modal accessible via secret dot) -->
+  <!-- Debug floating button + modal (button hidden; modal accessible via secret dot + password) -->
   <button id="debugFab" title="Open debug log">Debug</button>
   <div id="debugModalBackdrop"></div>
   <div id="debugModal">
@@ -163,6 +163,11 @@
   // ============================================================
   const ECOREGIONS_URL = '/assets/us_eco_l3_state_boundaries.json';
   const DATABASE_CSV_URL = '/assets/Database-Deleted-Categories.csv';
+
+  // ============================================================
+  // 🔐 Debug password (exactly four dots)
+  // ============================================================
+  const DEBUG_PASSWORD = '....';
 
   // ============================================================
   // Debug logger
@@ -192,6 +197,16 @@
     document.getElementById('debugModal').style.display = 'none';
   }
 
+  function tryOpenDebugWithPassword() {
+    const attempt = window.prompt('Enter debug password:');
+    if (attempt === null) return; // cancelled
+    if (attempt === DEBUG_PASSWORD) {
+      openDebug();
+    } else {
+      alert('Wrong password.');
+    }
+  }
+
   window.addEventListener('error', (e) => {
     logDebug('❌ window.error', { message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno });
   });
@@ -200,9 +215,9 @@
   });
 
   window.addEventListener('DOMContentLoaded', () => {
-    // ✅ Hidden access: click the dot after "S"
+    // ✅ Hidden access: click the dot after "S" → password prompt → debug
     const dot = document.getElementById('debugDot');
-    if (dot) dot.addEventListener('click', openDebug);
+    if (dot) dot.addEventListener('click', tryOpenDebugWithPassword);
 
     document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
     document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
@@ -223,7 +238,7 @@
       }
     });
 
-    logDebug('✅ Debug UI ready (hidden trigger)');
+    logDebug('✅ Debug UI ready (hidden trigger + password)');
   });
 
   // ============================================================
@@ -316,7 +331,6 @@
 
   function getPlantCountForL3Key(l3Key) {
     if (!l3Key) return 0;
-    // Exact match first
     const exact = plantsByL3.get(l3Key);
     if (exact) return exact.length;
 
@@ -324,7 +338,6 @@
     const tMatch = plantsByL3.get(trimmed);
     if (tMatch) return tMatch.length;
 
-    // Fuzzy fallback (normalized)
     const nk = normalizeKey(trimmed);
     for (const [k, arr] of plantsByL3.entries()) {
       if (normalizeKey(k) === nk) return arr.length;
@@ -412,9 +425,7 @@
     if (layer.bringToFront) layer.bringToFront();
   }
 
-  function restoreAfterHover() {
-    updateSelectionStyles();
-  }
+  function restoreAfterHover() { updateSelectionStyles(); }
 
   function renderResults() {
     elResults.innerHTML = '';
@@ -508,7 +519,6 @@
     indexPlantsByL3();
     rebuildTypeDropdown();
     setStatus(`Loaded ${plants.length.toLocaleString()} rows from CSV.`);
-
     updateSelectionStyles();
   }
 
@@ -530,7 +540,6 @@
     function onEachFeature(feature, layer) {
       const p = feature.properties || {};
 
-      // Hover tooltip: L3 code + name + plant count
       layer.bindTooltip(() => tooltipHTML(p), {
         sticky: true,
         direction: 'auto',
@@ -547,12 +556,10 @@
         restoreAfterHover();
       });
 
-      // Click select + highlight (dim others)
       layer.on('click', () => {
         const props = feature.properties || {};
         const clickedKey = props.L3_KEY || null;
 
-        // click same region again to clear selection
         if (selectedL3Key && clickedKey && keysMatch(clickedKey, selectedL3Key)) {
           selectedL3Key = null;
           selectedL3Name = null;
@@ -577,7 +584,6 @@
       });
     }
 
-    // Skip null geometries (this file contains some)
     ecoregionsLayer = L.geoJSON(geojson, {
       filter: (feature) => !!(feature && feature.geometry && feature.geometry.type),
       style: STYLE_BASE,
@@ -587,13 +593,9 @@
     setStatus('Map loaded. Hover for details, click to select!');
   }
 
-  // UI events
   elTypeFilter.addEventListener('change', renderResults);
   elSearch.addEventListener('input', renderResults);
 
-  // ============================================================
-  // Boot (loads map even if CSV fails)
-  // ============================================================
   (async function start() {
     try {
       logDebug('🚀 App starting', { ECOREGIONS_URL, DATABASE_CSV_URL });
@@ -605,7 +607,7 @@
       } catch (e) {
         logDebug('❌ CSV failed to load', String(e));
         setStatus('ERROR loading CSV: ' + e.message);
-        openDebug();
+        // If CSV fails, you can still open debug with password via the dot.
       }
 
       renderResults();
@@ -613,7 +615,7 @@
     } catch (err) {
       logDebug('❌ App start error', String(err));
       setStatus('ERROR: ' + err.message);
-      openDebug();
+      // You can open debug with password via the dot.
     }
   })();
 </script>
