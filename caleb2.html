@@ -23,7 +23,6 @@
     .acronym { font-size: 0.85em; color: #27ae60; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
     .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
     
-    /* Secret Trigger Styling */
     #secret-dot { cursor: default; user-select: none; }
 
     h3 { margin: 25px 0 10px; font-size: 1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; text-transform: uppercase; }
@@ -34,7 +33,6 @@
       transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     #geo-btn:hover { background: #1f6391; }
-    #geo-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
 
     .zip-container { display: flex; gap: 5px; margin-bottom: 15px; }
     #zip-input, #lat-input, #lng-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; min-width: 0; }
@@ -55,11 +53,9 @@
     
     .region-display-container { display: flex; align-items: center; gap: 8px; }
     #selected-region { flex-grow: 1; font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #clear-selection-btn { background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75em; transition: background 0.2s; }
-    #clear-selection-btn:hover { background: #c0392b; }
+    #clear-selection-btn { background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75em; }
 
     .reset-filters-btn { width: 100%; background: #f8f9fa; border: 1px solid #cbd5e0; color: #4b4b4b; padding: 8px; border-radius: 6px; font-size: 0.8em; font-weight: bold; cursor: pointer; margin-top: 5px; margin-bottom: 15px; }
-    .reset-filters-btn:hover { background: #e2e8f0; }
 
     .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; }
     .plant-card h4 { margin: 0 0 5px; color: #2d3436; font-size: 1.1em; }
@@ -69,17 +65,13 @@
     .source-link { display: inline-block; color: #27ae60; text-decoration: none; font-weight: bold; font-size: 0.8em; border: 1px solid #27ae60; padding: 4px 10px; border-radius: 4px; }
     .source-link:hover { background: #27ae60; color: white; }
     .more-info-btn { background: #f1f3f5; border: 1px solid #dee2e6; color: #495057; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+    
     .details-pane { display: none; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; font-size: 0.8em; color: #444; }
     .details-pane.active { display: block; }
     .details-pane div { margin: 4px 0; border-bottom: 1px solid #f9f9f9; padding-bottom: 2px; }
     .details-pane strong { color: #1a5d1a; text-transform: uppercase; font-size: 0.75em; display: inline-block; width: 130px; }
 
-    #show-more-container { text-align: center; margin: 20px 0; display: none; }
-    #show-more-btn { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9em; width: 100%; }
-    #results-count { margin: 15px 0; font-weight: bold; font-size: 0.9em; color: #27ae60; }
-    #status { font-size: 11px; color: #e67e22; margin-top: 10px; font-style: italic; }
-
-    /* Updated Secret Debug Console Styles */
+    /* Debug Overlays */
     #debug-overlay {
       display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%;
       background: #1e1e1e; color: #00ff00; font-family: 'Consolas', monospace; padding: 20px; z-index: 10000;
@@ -87,19 +79,19 @@
     }
     #debug-content { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; font-size: 12px; border: 1px solid #333; padding: 10px; margin-top: 10px; }
     .debug-toolbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
-    .debug-btn { background: #444; color: white; border: none; padding: 5px 15px; cursor: pointer; border-radius: 4px; font-size: 12px; font-weight: bold; }
-    .debug-btn:hover { background: #555; }
+    .debug-btn { background: #444; color: white; border: none; padding: 5px 15px; cursor: pointer; border-radius: 4px; font-size: 12px; }
     .debug-btn.close-btn { background: #c0392b; }
-    .debug-btn.close-btn:hover { background: #e74c3c; }
 
-    .leaflet-tooltip-custom { background: rgba(26, 93, 26, 0.9); color: white; border: none; font-weight: bold; padding: 5px 10px; border-radius: 4px; }
+    #status { font-size: 11px; color: #e67e22; margin-top: 10px; font-style: italic; }
+    #results-count { margin: 15px 0; font-weight: bold; font-size: 0.9em; color: #27ae60; }
+    .leaflet-tooltip-custom { background: rgba(26, 93, 26, 0.9); color: white; border: none; font-weight: bold; padding: 8px 12px; border-radius: 6px; line-height: 1.4; }
   </style>
 </head>
 <body>
 
 <div id="debug-overlay">
   <div class="debug-toolbar">
-    <span style="color: #27ae60; font-weight: bold;">S.P.A.D.E. INTERNAL SYSTEM LOG</span>
+    <span style="color: #27ae60; font-weight: bold;">S.P.A.D.E. INTERNAL LOGS</span>
     <div style="display: flex; gap: 8px;">
       <button class="debug-btn" onclick="copyDebugLog()">Copy</button>
       <button class="debug-btn" onclick="clearDebugLog()">Clear</button>
@@ -123,8 +115,8 @@
     </div>
 
     <div class="zip-container">
-      <input type="number" id="lat-input" placeholder="Latitude" step="any">
-      <input type="number" id="lng-input" placeholder="Longitude" step="any">
+      <input type="number" id="lat-input" placeholder="Lat" step="any">
+      <input type="number" id="lng-input" placeholder="Lng" step="any">
       <button class="action-btn" onclick="useCoordinates()" style="background: #2980b9;">Go</button>
     </div>
 
@@ -183,19 +175,15 @@
   let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
   const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
-  // Secret Debug Initialization
-  let dotClickCount = 0;
-  let dotTimer;
+  // Secret Debug Handler
+  let dotClickCount = 0, dotTimer;
   document.getElementById('secret-dot').addEventListener('click', () => {
     dotClickCount++;
     clearTimeout(dotTimer);
     if (dotClickCount === 2) {
-      const accessCode = prompt("Enter Authentication Key:");
-      if (accessCode === "blazin turtles") {
+      if (prompt("Enter Authentication Key:") === "blazin turtles") {
         document.getElementById('debug-overlay').style.display = 'flex';
-        sysLog("SYSTEM LOG ACCESS GRANTED.");
-      } else if (accessCode !== null) {
-        sysLog("UNAUTHORIZED ACCESS ATTEMPT DETECTED.");
+        sysLog("AUTHORIZED ACCESS: Debugger opened.");
       }
       dotClickCount = 0;
     } else {
@@ -211,21 +199,10 @@
     }
   }
 
-  function clearDebugLog() { document.getElementById('debug-content').innerHTML = ''; sysLog("Log manually cleared."); }
-  
-  function copyDebugLog() {
-    const text = document.getElementById('debug-content').innerText;
-    navigator.clipboard.writeText(text).then(() => {
-      alert("System log copied to clipboard.");
-      sysLog("Log content copied to clipboard.");
-    });
-  }
+  function clearDebugLog() { document.getElementById('debug-content').innerHTML = ''; sysLog("Log cleared."); }
+  function copyDebugLog() { navigator.clipboard.writeText(document.getElementById('debug-content').innerText); alert("Copied."); }
 
-  function showMore() { 
-    displayLimit += increment; 
-    sysLog(`Results expansion requested. New limit: ${displayLimit}`);
-    renderResults(false); 
-  }
+  function showMore() { displayLimit += increment; renderResults(false); sysLog("Display expanded."); }
 
   function populate(id, col, data) {
     const sel = document.getElementById(id), vals = new Set();
@@ -235,7 +212,6 @@
 
   function highlightRegion(key) {
     if (!geoLayer) return;
-    sysLog(`Highlighting map feature: ${key}`);
     geoLayer.eachLayer(layer => {
       if (layer.feature.properties.L3_KEY === key) {
         layer.setStyle({ fillOpacity: 0.6, weight: 3, color: '#1a5d1a', opacity: 1 });
@@ -247,20 +223,20 @@
   }
 
   function resetFilters() {
-    sysLog("Resetting all plant filters to default 'all'.");
     document.getElementById('search-box').value = "";
-    document.querySelectorAll('.plant-filter').forEach(select => select.value = 'all');
+    document.querySelectorAll('.plant-filter').forEach(s => s.value = 'all');
     renderResults(true);
+    sysLog("Filters reset.");
   }
 
   function resetSelection() {
-    sysLog("Clearing ecoregion selection and resetting map view.");
     selectedL3Key = null;
     document.getElementById('selected-region').textContent = "Click map or use location";
     ['zip-input', 'lat-input', 'lng-input'].forEach(id => document.getElementById(id).value = "");
     if (geoLayer) geoLayer.eachLayer(layer => layer.setStyle({ fillOpacity: 0.1, weight: 1, color: '#27ae60', opacity: 1 }));
     map.setView([37.8, -96], 4);
     renderResults(true);
+    sysLog("Selection cleared.");
   }
 
   function renderResults(resetLimit = true) {
@@ -303,26 +279,39 @@
       return true;
     });
 
-    sysLog(`Filter applied. Results found: ${currentFilteredItems.length}`);
     document.getElementById('results-count').textContent = `Showing ${Math.min(displayLimit, currentFilteredItems.length)} of ${currentFilteredItems.length} matches`;
     document.getElementById('show-more-container').style.display = (currentFilteredItems.length > displayLimit) ? 'block' : 'none';
 
     const list = document.getElementById('results-list');
     list.innerHTML = '';
-    
     currentFilteredItems.slice(0, displayLimit).forEach((p, index) => {
       const card = document.createElement('div');
       card.className = 'plant-card';
+      
+      let soils = [];
+      if(p['CLAY_SOIL'] === 'Yes') soils.push('Clay');
+      if(p['SAND_SOIL'] === 'Yes') soils.push('Sand');
+      if(p['GRAVEL_SOIL'] === 'Yes') soils.push('Gravel');
+      if(p['LOAM_SOIL'] === 'Yes') soils.push('Loam');
+      if(p['SILT_SOIL'] === 'Yes') soils.push('Silt');
+      if(p['PEAT_SOIL'] === 'Yes') soils.push('Peat');
+      if(p['CHALKY_SOIL'] === 'Yes') soils.push('Chalky');
+      const soilStr = soils.length > 0 ? soils.join(', ') : 'Any';
+
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
       const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
+      
       let allFieldsHtml = '';
-      Object.keys(p).forEach(key => { if(p[key] && p[key] !== '0' && p[key] !== '') allFieldsHtml += `<div><strong>${key}:</strong> ${p[key]}</div>`; });
+      Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') allFieldsHtml += `<div><strong>${k}:</strong> ${p[k]}</div>`; });
 
       card.innerHTML = `
         <h4>${p['Common Name'] || 'Unknown'}</h4>
         <p><em>${p['Scientific Name'] || ''}</em></p>
         <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
-        <p><strong>TOLERANCE:</strong> Drought: ${p['Drought Tolerance'] || 'N/A'}, Fire: ${p['Fire Tolerance'] || 'N/A'}</p>
+        <p><strong>VENDOR:</strong> ${p['Vendor'] || 'None Listed'}</p>
+        <p><strong>SOIL:</strong> ${soilStr}</p>
+        <p><strong>WATER:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
+        <p><strong>SUN:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
         <div class="card-actions"><button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>${sourceHtml}</div>
         <div id="details-${index}" class="details-pane">${allFieldsHtml}</div>
       `;
@@ -333,45 +322,36 @@
   async function useZipCode() {
     const zip = document.getElementById('zip-input').value;
     if (!/^\d{5}$/.test(zip)) return;
-    sysLog(`Initiating ZIP lookup: ${zip}`);
     try {
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
-      if (!res.ok) throw new Error("ZIP database error.");
       const data = await res.json();
       const lat = parseFloat(data.places[0].latitude), lng = parseFloat(data.places[0].longitude);
       document.getElementById('lat-input').value = lat;
       document.getElementById('lng-input').value = lng;
-      sysLog(`ZIP resolved to ${lat}, ${lng}`);
       matchLocationToRegion(lat, lng);
-    } catch (err) { sysLog(`ZIP lookup failure: ${err.message}`); }
+      sysLog(`ZIP solved: ${zip}`);
+    } catch (err) { sysLog("ZIP lookup failed."); }
   }
 
   async function useMyLocation() {
-    if (!navigator.geolocation) { sysLog("Geolocation hardware not detected."); return; }
-    sysLog("Requesting GPS signal...");
+    sysLog("Requesting GPS...");
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const lat = pos.coords.latitude, lng = pos.coords.longitude;
         document.getElementById('lat-input').value = lat.toFixed(4);
         document.getElementById('lng-input').value = lng.toFixed(4);
-        sysLog(`GPS Lock: ${lat}, ${lng}`);
         matchLocationToRegion(lat, lng);
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-          const data = await res.json();
-          if (data.address && data.address.postcode) document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
-        } catch (e) { sysLog("Reverse geocoding suppressed/failed."); }
-      }, (err) => sysLog(`GPS Lock Failure: ${err.message}`), { enableHighAccuracy: true });
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        if (data.address && data.address.postcode) document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
+        sysLog("GPS Lock acquired.");
+      }, (err) => sysLog("GPS Error."));
   }
 
   function useCoordinates() {
     const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value);
     if (!isNaN(lat) && !isNaN(lng)) {
-      sysLog(`Manual coordinate search: ${lat}, ${lng}`);
       matchLocationToRegion(lat, lng);
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-        .then(res => res.json()).then(data => {
-          if (data.address && data.address.postcode) document.getElementById('zip-input').value = data.address.postcode.split('-')[0];
-        }).catch(() => sysLog("Reverse geocoding unavailable for manually entered coords."));
+      sysLog(`Coords lookup: ${lat}, ${lng}`);
     }
   }
 
@@ -380,19 +360,16 @@
     if (results.length > 0) {
       const f = results[0].feature;
       selectedL3Key = f.properties.L3_KEY;
-      sysLog(`Location successfully mapped to Ecoregion ${selectedL3Key}: ${f.properties.US_L3NAME}`);
       document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`;
       map.setView([lat, lng], 8);
       highlightRegion(selectedL3Key);
       renderResults(true);
-    } else { sysLog("Location validated but falls outside defined Ecoregion boundaries."); }
+    }
   }
 
   async function init() {
-    sysLog("Initializing Database sequence...");
     Papa.parse(CSV_URL, { download: true, header: true, complete: (res) => {
         plantData = res.data;
-        sysLog(`CSV Database Loaded. Records count: ${plantData.length}`);
         plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
         ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter'].forEach(id => {
           const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : 'Fire Tolerance';
@@ -401,11 +378,11 @@
         document.getElementById('status').textContent = 'Database Active';
         renderResults();
         loadMap();
+        sysLog("Database active.");
     }});
   }
 
   async function loadMap() {
-    sysLog("Initializing map engine...");
     map = L.map('map').setView([37.8, -96], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     try {
@@ -414,17 +391,29 @@
       geoLayer = L.geoJSON(geoJSON, {
         style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
         onEachFeature: (f, l) => {
-          l.on({ click: (e) => {
-              selectedL3Key = f.properties.L3_KEY;
-              sysLog(`Manual Map Click: ${selectedL3Key}`);
-              document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`;
+          const key = f.properties.L3_KEY;
+          const count = regionCounts[key] || 0;
+          const states = f.properties.STATE_NAME || f.properties.STATE || "USA";
+          l.bindTooltip(`
+            <div style="font-size:14px">
+              <b>Ecoregion #:</b> ${key}<br/>
+              <b>Region Name:</b> ${f.properties.US_L3NAME}<br/>
+              <b>Total Plants:</b> ${count}<br/>
+              <b>Located in States:</b> ${states}
+            </div>
+          `, { sticky: true, className: 'leaflet-tooltip-custom' });
+          l.on({ 
+            mouseover: (e) => e.target.setStyle({ fillOpacity: 0.4 }),
+            mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
+            click: (e) => {
+              selectedL3Key = key;
+              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
               highlightRegion(selectedL3Key);
               renderResults(true);
           }});
         }
       }).addTo(map);
-      sysLog("Map layers synchronized successfully.");
-    } catch (e) { sysLog("Map Layer Critical Error: " + e.message); }
+    } catch (e) { sysLog("Map Error."); }
   }
 
   function toggleDetails(idx) { document.getElementById(`details-${idx}`).classList.toggle('active'); }
