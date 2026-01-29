@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>S.P.A.D.E.</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- CSV parser -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Turf for point-in-polygon -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+  <style>
+    :root{
+      --panel-bg:#dff6e5;
+      --card-bg:#eefdf3;
+      --card-white:#ffffff;
+      --border:#bfe7c8;
+      --border-2:#a7dcb3;
+
+      --green-900:#0f4a1c;
+      --green-800:#1b5e20;
+      --green-700:#2e7d32;
+
+      --text:#0f2b16;
+      --muted:#2c5a3a;
+
+      --radius:18px;
+      --radius-sm:14px;
+      --shadow-soft: 0 6px 18px rgba(0,0,0,.06);
+
+      /* Text scaling: title stays fixed; everything else uses this */
+      --scale: 0.87; /* default 87% */
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: #f6fff8;
+      height:100vh;
+      overflow:hidden;
+    }
+
+    .app{
+      display:grid;
+      grid-template-columns: 520px 1fr;
+      height:100vh;
+      width:100vw;
+    }
+
+    @media (max-width: 1050px){
+      body{ overflow:auto; }
+      .app{ grid-template-columns: 1fr; height:auto; }
+      #mapWrap{ height: 60vh; }
+      #map{ height: 60vh; }
+      .left{ height:auto; overflow:visible; }
+      .mapControls{ top: 10px; right: 10px; }
+    }
+
+    /* LEFT PANEL */
+    .left{
+      background: var(--panel-bg);
+      padding: 18px 18px 22px;
+      overflow:auto;
+      border-right: 1px solid var(--border-2);
+      font-size: calc(16px * var(--scale));
+    }
+
+    /* Title stays big */
+    .title{
+      margin:0;
+      font-size: 44px;
+      letter-spacing: 1.5px;
+      font-weight: 900;
+      color: var(--green-800);
+      user-select:none;
+    }
+
+    .subtitle{
+      margin: 6px 0 0;
+      font-size: calc(16px * var(--scale));
+      font-weight: 800;
+      color: var(--green-900);
+    }
+    .subtitle.small{
+      font-size: calc(14px * var(--scale));
+      font-weight: 800;
+      color: var(--green-900);
+    }
+
+    .hint{
+      margin-top: 14px;
+      font-size: calc(14px * var(--scale));
+      color: var(--muted);
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .sectionTitle{
+      margin: 18px 0 10px;
+      font-size: calc(22px * var(--scale));
+      font-weight: 950;
+      color: var(--green-900);
+    }
+
+    .card{
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow-soft);
+    }
+    .card.white{ background: var(--card-white); }
+
+    .row{
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+    .row.tight{ gap:10px; }
+
+    label{
+      display:block;
+      font-size: calc(14px * var(--scale));
+      font-weight: 800;
+      color: var(--green-900);
+      margin: 6px 0 6px;
+    }
+
+    .tiny{
+      font-size: calc(13px * var(--scale));
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    input[type="text"], input[type="number"], select{
+      width:100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border-2);
+      background: #ffffff;
+      color: var(--text);
+      outline:none;
+      font-size: calc(16px * var(--scale));
+      font-weight: 650;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus, select:focus{
+      border-color: var(--green-700);
+      box-shadow: 0 0 0 3px rgba(46,125,50,.18);
+    }
+
+    .btn{
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 3px solid var(--green-800);
+      background: transparent;
+      color: var(--green-900);
+      font-weight: 950;
+      font-size: calc(15px * var(--scale));
+      cursor:pointer;
+      transition: background .15s ease, transform .05s ease;
+      white-space: nowrap;
+    }
+    .btn:hover{ background: rgba(27,94,32,.08); }
+    .btn:active{ transform: translateY(1px); }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+    .btn.small{
+      padding: 10px 14px;
+      border-width: 3px;
+      font-size: calc(14px * var(--scale));
+      font-weight: 950;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: 2px solid var(--border-2);
+      background: #e9fff0;
+      color: var(--green-900);
+      font-weight: 950;
+      font-size: calc(18px * var(--scale));
+      box-shadow: 0 3px 10px rgba(0,0,0,.05);
+    }
+
+    .statusLine{
+      margin-top: 10px;
+      font-size: calc(15px * var(--scale));
+      color: var(--green-900);
+      font-weight: 800;
+    }
+
+    /* Filters */
+    .filtersHeader{
+      display:flex;
+      justify-content: space-between;
+      align-items:flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .filtersHeader h3{
+      margin:0;
+      font-size: calc(24px * var(--scale));
+      font-weight: 950;
+      color: var(--green-900);
+    }
+    .filtersHeader .sub{
+      margin-top: 6px;
+      font-size: calc(13px * var(--scale));
+      color: var(--muted);
+      line-height: 1.3;
+      font-weight: 650;
+    }
+    .filtersBtns{
+      display:flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+      margin-top: 4px;
+    }
+
+    .filtersGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 560px){
+      .filtersGrid{ grid-template-columns: 1fr; }
+    }
+
+    .filterCard{
+      background: var(--card-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow-soft);
+    }
+    .filterCard h4{
+      margin:0 0 10px;
+      font-size: calc(18px * var(--scale));
+      font-weight: 950;
+      color: var(--green-900);
+    }
+    .filterCard .help{
+      margin-top: 10px;
+      font-size: calc(14px * var(--scale));
+      color: var(--muted);
+      font-weight: 650;
+      line-height: 1.25;
+    }
+
+    /* Plant list */
+    .plantsHeader{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .plantsHeader h3{
+      margin:0;
+      font-size: calc(22px * var(--scale));
+      font-weight: 950;
+      color: var(--green-900);
+    }
+    .countPill{
+      display:inline-flex;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border-2);
+      background: #f4fff7;
+      color: var(--muted);
+      font-weight: 900;
+      font-size: calc(14px * var(--scale));
+    }
+
+    .plantCard{
+      background: var(--card-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      box-shadow: var(--shadow-soft);
+      margin-top: 12px;
+    }
+
+    .plantTop{
+      display:flex;
+      justify-content: space-between;
+      align-items:flex-start;
+      gap: 12px;
+    }
+    .plantName{
+      margin:0;
+      font-size: calc(18px * var(--scale));
+      font-weight: 950;
+      color: var(--green-900);
+    }
+    .plantSci{
+      margin: 5px 0 0;
+      font-size: calc(14px * var(--scale));
+      font-style: italic;
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .moreBtn{
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 2px solid var(--green-800);
+      background: transparent;
+      color: var(--green-900);
+      font-weight: 950;
+      cursor:pointer;
+      white-space: nowrap;
+      font-size: calc(14px * var(--scale));
+    }
+    .moreBtn:hover{ background: rgba(27,94,32,.08); }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 180px 1fr;
+      gap: 8px 12px;
+      margin-top: 12px;
+      font-size: calc(14px * var(--scale));
+    }
+    .k{ color: var(--muted); font-weight: 900; }
+    .v{ color: var(--text); font-weight: 750; word-break: break-word; }
+
+    .pagination{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .hidden{ display:none !important; }
+
+    /* Suggestions */
+    .suggestions{
+      margin-top: 10px;
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .suggestion{
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      cursor:pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,.05);
+    }
+    .suggestion:hover{ background: #f6fff8; }
+    .suggestion .main{
+      font-weight: 950;
+      color: var(--green-900);
+      font-size: calc(15px * var(--scale));
+    }
+    .suggestion .sub{
+      font-weight: 750;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 2px;
+      font-size: calc(13px * var(--scale));
+    }
+
+    /* MAP */
+    #mapWrap{ position:relative; height:100vh; overflow:hidden; background:#fff; }
+    #map{ height:100%; width:100%; }
+
+    .leaflet-tooltip{
+      background: rgba(255,255,255,.96);
+      border: 1px solid var(--border);
+      color: var(--text);
+      box-shadow: var(--shadow-soft);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 750;
+    }
+
+    /* Tiny slider “off to the side above the map” */
+    .mapControls{
+      position:absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 1000;
+      display:flex;
+      align-items:center;
+      gap: 8px;
+
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,.12);
+      background: rgba(255,255,255,.72);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 8px 20px rgba(0,0,0,.10);
+
+      opacity: .72;
+      transition: opacity .12s ease, transform .12s ease;
+    }
+    .mapControls:hover{
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+
+    .mapControls .tLabel{
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--muted);
+      user-select:none;
+      letter-spacing: .2px;
+    }
+    .mapControls input[type="range"]{
+      width: 120px;
+      height: 18px;
+      accent-color: var(--green-800);
+      cursor:pointer;
+    }
+    .mapControls .tPct{
+      font-size: 12px;
+      font-weight: 950;
+      color: var(--green-900);
+      background: rgba(233,255,240,.9);
+      border: 1px solid var(--border-2);
+      padding: 3px 8px;
+      border-radius: 999px;
+      min-width: 52px;
+      text-align:center;
+    }
+
+    #unlockBox{
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px dashed var(--border-2);
+      background: rgba(255,255,255,.75);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="left">
+      <h1 class="title">S.P.A.D.E.</h1>
+      <div class="subtitle">“Site Preservation and Dirt Erosion-Control”</div>
+      <div class="subtitle small">“Made by Blazing Turtles Robotics”</div>
+
+      <div class="hint">
+        Browse plants right away (no ecoregion required). Hover regions for tooltip details; click a region to highlight it and dim others.
+      </div>
+
+      <div class="sectionTitle">Selected Ecoregion (optional)</div>
+      <div class="card">
+        <div class="row tight">
+          <span class="pill" id="regionPill">All regions</span>
+          <button class="btn small" id="clearRegionBtn">Clear</button>
+        </div>
+        <div class="tiny">
+          Pick a region by clicking the map, use ZIP, enter lat/lng, or “Use my location”.
+        </div>
+      </div>
+
+      <div class="sectionTitle">Quick plant lookup (no ecoregion needed)</div>
+      <div class="card white">
+        <input id="searchInput" type="text" placeholder="Search a plant name (common or scientific)..." />
+        <div class="tiny">Click a result to open it in the list below with “More info”.</div>
+        <div id="suggestions" class="suggestions"></div>
+      </div>
+
+      <div class="sectionTitle">Find my ecoregion</div>
+      <div class="card">
+        <div style="font-weight:950;color:var(--green-900);margin-bottom:6px;">Option A — ZIP code</div>
+        <div class="row">
+          <div style="flex: 1 1 260px;">
+            <input id="zipInput" type="text" inputmode="numeric" placeholder="Enter ZIP (US)" />
+          </div>
+          <button class="btn small" id="zipFindBtn">Find</button>
+          <button class="btn small" id="zipUseMyLocBtn">Use my location (ZIP)</button>
+        </div>
+
+        <div style="height:12px;"></div>
+
+        <div style="font-weight:950;color:var(--green-900);margin-bottom:6px;">Option B — Latitude / Longitude</div>
+        <div class="row">
+          <div style="flex: 1 1 190px;">
+            <input id="latInput" type="number" step="any" placeholder="Latitude (e.g., 41.8)" />
+          </div>
+          <div style="flex: 1 1 190px;">
+            <input id="lngInput" type="number" step="any" placeholder="Longitude (e.g., -87.6)" />
+          </div>
+          <button class="btn small" id="latLngGoBtn">Go</button>
+          <button class="btn small" id="latLngUseMyLocBtn">Use my location (Lat/Lng)</button>
+        </div>
+
+        <div class="statusLine" id="statusLine">
+          Ready: search plants, use filters, or find ecoregion by ZIP or Lat/Lng.
+        </div>
+      </div>
+
+      <!-- Debug unlock: double-click D in title, type dirt -->
+      <div id="unlockBox" class="hidden">
+        <label for="debugPass">Debug password</label>
+        <div class="row">
+          <div style="flex: 1 1 260px;">
+            <input id="debugPass" type="text" placeholder="type dirt" />
+          </div>
+          <button class="btn small" id="debugUnlockBtn">Unlock</button>
+        </div>
+        <div class="tiny">
+          GitHub Pages can cache old files. Try Ctrl+F5 or add “?v=123” to the URL temporarily.
+        </div>
+      </div>
+
+      <div id="debugPanel" class="hidden" style="margin-top:12px;">
+        <button class="btn small" id="debugBtn">Debug</button>
+      </div>
+
+      <div class="filtersHeader">
+        <div>
+          <h3>Filters (separate per category)</h3>
+          <div class="sub">Vendor + link columns removed. “Advanced” hides very large dropdowns.</div>
+        </div>
+        <div class="filtersBtns">
+          <button class="btn small" id="clearFiltersBtn">Clear filters</button>
+          <button class="btn small" id="advancedToggleBtn">Show advanced</button>
+        </div>
+      </div>
+
+      <div id="filtersBasic" class="filtersGrid"></div>
+      <div id="filtersAdvanced" class="filtersGrid hidden"></div>
+
+      <div class="plantsHeader">
+        <h3>Search results list (Common or Scientific name)</h3>
+        <span class="countPill" id="countPill">Loading…</span>
+      </div>
+
+      <div id="plantList"></div>
+
+      <div class="pagination">
+        <button class="btn small" id="prevBtn">Prev</button>
+        <span class="countPill" id="pagePill">Page 1</span>
+        <button class="btn small" id="nextBtn">Next</button>
+      </div>
+
+      <div style="height:16px;"></div>
+    </div>
+
+    <!-- MAP PANEL -->
+    <div id="mapWrap">
+      <!-- subtle slider floating above map -->
+      <div class="mapControls" title="Text size (title stays the same)">
+        <span class="tLabel">Text</span>
+        <input id="textScaleSlider" type="range" min="70" max="140" value="87" />
+        <span class="tPct" id="scaleVal">87%</span>
+      </div>
+      <div id="map"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const CSV_PATH = "assets/Database-Deleted-Categories.csv";
+  const GEOJSON_PATH = "assets/us_eco_l3_state_boundaries.json";
+
+  const regionPill = document.getElementById("regionPill");
+  const countPill = document.getElementById("countPill");
+  const plantListEl = document.getElementById("plantList");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const pagePill = document.getElementById("pagePill");
+  const clearRegionBtn = document.getElementById("clearRegionBtn");
+
+  const searchInput = document.getElementById("searchInput");
+  const suggestionsEl = document.getElementById("suggestions");
+
+  const filtersBasicEl = document.getElementById("filtersBasic");
+  const filtersAdvancedEl = document.getElementById("filtersAdvanced");
+  const advancedToggleBtn = document.getElementById("advancedToggleBtn");
+  const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+
+  const zipInput = document.getElementById("zipInput");
+  const zipFindBtn = document.getElementById("zipFindBtn");
+  const zipUseMyLocBtn = document.getElementById("zipUseMyLocBtn");
+
+  const latInput = document.getElementById("latInput");
+  const lngInput = document.getElementById("lngInput");
+  const latLngGoBtn = document.getElementById("latLngGoBtn");
+  const latLngUseMyLocBtn = document.getElementById("latLngUseMyLocBtn");
+
+  const statusLine = document.getElementById("statusLine");
+
+  // Debug unlock elements
+  const unlockBox = document.getElementById("unlockBox");
+  const debugPass = document.getElementById("debugPass");
+  const debugUnlockBtn = document.getElementById("debugUnlockBtn");
+  const debugPanel = document.getElementById("debugPanel");
+  const debugBtn = document.getElementById("debugBtn");
+
+  // Slider (above map)
+  const textScaleSlider = document.getElementById("textScaleSlider");
+  const scaleVal = document.getElementById("scaleVal");
+
+  let plants = [];
+  let geo = null;
+  let regionCounts = new Map();
+  let selectedRegionCode = null;
+
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+
+  let advancedOn = false;
+
+  let filterColumnsBasic = [];
+  let filterColumnsAdvanced = [];
+  const activeFilters = new Map();
+
+  let map = null;
+  let geoLayer = null;
+  let layerByCode = new Map();
+
+  let expandFirstAfterRender = false;
+
+  // -------- Text size slider behavior (persist) --------
+  function setScalePercent(pct){
+    const clamped = Math.max(70, Math.min(140, pct));
+    const val = (clamped / 100).toFixed(2);
+    document.documentElement.style.setProperty("--scale", val);
+    scaleVal.textContent = `${clamped}%`;
+    textScaleSlider.value = String(clamped);
+    localStorage.setItem("spadeTextScalePct", String(clamped));
+  }
+
+  // DEFAULT 87%
+  const savedPct = parseInt(localStorage.getItem("spadeTextScalePct") || "87", 10);
+  setScalePercent(Number.isFinite(savedPct) ? savedPct : 87);
+
+  textScaleSlider.addEventListener("input", () => {
+    setScalePercent(parseInt(textScaleSlider.value, 10));
+  });
+
+  // ---------------- Helpers ----------------
+  const norm = (v) => (v ?? "").toString().trim();
+  const upper = (v) => norm(v).toUpperCase();
+
+  function escapeHtml(str){
+    return (str ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function isEmptyValue(v){
+    const t = upper(v);
+    return t === "" || t === "N/A" || t === "NA" || t === "NULL" || t === "NONE";
+  }
+
+  function guessNameField(row){
+    const keys = Object.keys(row || {});
+    const candidates = ["COMMON_NAME","Common Name","common_name","COMMONNAME","PLANT","Plant","NAME","Name"];
+    for (const c of candidates) if (keys.includes(c)) return c;
+    return keys.find(k => k.toLowerCase().includes("common")) || null;
+  }
+
+  function guessSciField(row){
+    const keys = Object.keys(row || {});
+    const candidates = ["SCIENTIFIC_NAME","Scientific Name","scientific_name","BOTANICAL_NAME","Botanical Name","GENUS_SPECIES"];
+    for (const c of candidates) if (keys.includes(c)) return c;
+    return keys.find(k => k.toLowerCase().includes("scient")) || null;
+  }
+
+  function guessL3KeyField(row){
+    const keys = Object.keys(row || {});
+    const candidates = ["L3_KEY","L3Key","L3KEY","L3 Key","L3_key"];
+    for (const c of candidates) if (keys.includes(c)) return c;
+    return null;
+  }
+
+  function guessUSL3CodeField(obj){
+    if (!obj) return null;
+    const keys = Object.keys(obj);
+    const candidates = ["US_L3CODE","USL3CODE","L3CODE","L3_CODE","NA_L3CODE","ECO_L3CODE"];
+    for (const c of candidates) if (keys.includes(c)) return c;
+    return keys.find(x => x.toLowerCase().includes("l3") && x.toLowerCase().includes("code")) || null;
+  }
+
+  function guessEcoNameField(obj){
+    if (!obj) return null;
+    const keys = Object.keys(obj);
+    const candidates = ["NA_L3NAME","L3_NAME","L3NAME","ECO_NAME","NAME","Ecoregion","ECOREGION"];
+    for (const c of candidates) if (keys.includes(c)) return c;
+    return keys.find(x => x.toLowerCase().includes("name")) || null;
+  }
+
+  function isExcludedColumn(col){
+    const c = col.toLowerCase();
+    if (c.includes("vendor")) return true;
+    if (c.includes("link")) return true;
+    if (c.includes("source")) return true;
+    if (c.includes("url")) return true;
+    return false;
+  }
+
+  function isYesNoColumn(valuesUpper){
+    const allowed = new Set(["YES","NO","UNCERTAIN"]);
+    if (valuesUpper.size === 0) return false;
+    for (const v of valuesUpper){
+      if (!allowed.has(v)) return false;
+    }
+    return true;
+  }
+
+  function rowRegionCode(row){
+    const l3KeyField = guessL3KeyField(row);
+    const usL3CodeField = guessUSL3CodeField(row);
+
+    let code = null;
+    if (l3KeyField && !isEmptyValue(row[l3KeyField])) code = norm(row[l3KeyField]);
+    if (!code && usL3CodeField && !isEmptyValue(row[usL3CodeField])) code = norm(row[usL3CodeField]);
+    return code;
+  }
+
+  function computeRegionCounts(){
+    regionCounts = new Map();
+    const l3KeyField = guessL3KeyField(plants[0] || {});
+    const usL3CodeField = guessUSL3CodeField(plants[0] || {});
+    for (const row of plants){
+      let code = null;
+      if (l3KeyField && !isEmptyValue(row[l3KeyField])) code = norm(row[l3KeyField]);
+      if (!code && usL3CodeField && !isEmptyValue(row[usL3CodeField])) code = norm(row[usL3CodeField]);
+      if (code) regionCounts.set(code, (regionCounts.get(code) || 0) + 1);
+    }
+  }
+
+  // ---------------- Leaflet styling ----------------
+  const baseStyle = {
+    color: "#2e7d32",
+    weight: 2,
+    opacity: 0.9,
+    fillColor: "#7bbf7b",
+    fillOpacity: 0.28
+  };
+
+  function styleForFeature(code){
+    if (!selectedRegionCode) return { ...baseStyle };
+    if (code === selectedRegionCode){
+      return { ...baseStyle, weight: 4, opacity: 1, fillOpacity: 0.45 };
+    }
+    return { ...baseStyle, opacity: 0.25, fillOpacity: 0.10 };
+  }
+
+  function initMap(){
+    map = L.map("map", { zoomControl:true }).setView([39.5, -98.35], 4);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+  }
+
+  function addGeoLayer(){
+    layerByCode = new Map();
+    const sampleProps = geo?.features?.[0]?.properties || {};
+    const codeField = guessUSL3CodeField(sampleProps) || "US_L3CODE";
+    const nameField = guessEcoNameField(sampleProps);
+
+    geoLayer = L.geoJSON(geo, {
+      style: (feature) => {
+        const code = norm(feature?.properties?.[codeField] ?? "");
+        return styleForFeature(code);
+      },
+      onEachFeature: (feature, layer) => {
+        const code = norm(feature?.properties?.[codeField] ?? "");
+        const name = nameField ? norm(feature?.properties?.[nameField]) : "";
+        layerByCode.set(code, layer);
+
+        layer.on("mouseover", () => {
+          const count = regionCounts.get(code) || 0;
+          const safeName = name || "(Unnamed ecoregion)";
+          const html = `
+            <div style="font-weight:950;color:#0f4a1c;margin-bottom:4px;">L3 ${escapeHtml(code)}</div>
+            <div style="margin-bottom:6px;">${escapeHtml(safeName)}</div>
+            <div style="color:#2c5a3a;font-size:13px;"><b>${count}</b> plant${count===1?"":"s"}</div>
+          `;
+          layer.bindTooltip(html, { sticky:true, direction:"top" }).openTooltip();
+          layer.setStyle({ weight: Math.max(styleForFeature(code).weight, 3) });
+        });
+
+        layer.on("mouseout", () => {
+          layer.closeTooltip();
+          layer.setStyle(styleForFeature(code));
+        });
+
+        layer.on("click", () => {
+          selectRegion(code, layer.getBounds());
+        });
+      }
+    }).addTo(map);
+  }
+
+  function refreshGeoStyles(){
+    if (!geoLayer) return;
+    geoLayer.eachLayer((layer) => {
+      const props = layer.feature?.properties || {};
+      const codeField = guessUSL3CodeField(props) || "US_L3CODE";
+      const code = norm(props?.[codeField] ?? "");
+      layer.setStyle(styleForFeature(code));
+    });
+  }
+
+  function selectRegion(code, boundsToZoom){
+    selectedRegionCode = code || null;
+
+    if (selectedRegionCode){
+      const cnt = regionCounts.get(selectedRegionCode) || 0;
+      regionPill.textContent = `L3 ${selectedRegionCode} (${cnt} plant${cnt===1?"":"s"})`;
+    } else {
+      regionPill.textContent = "All regions";
+    }
+
+    refreshGeoStyles();
+    currentPage = 1;
+    renderPlants();
+
+    if (boundsToZoom && selectedRegionCode){
+      try { map.fitBounds(boundsToZoom, { padding:[18,18] }); } catch {}
+    }
+  }
+
+  // ---------------- Filters ----------------
+  function buildFiltersFromCSV(){
+    filtersBasicEl.innerHTML = "";
+    filtersAdvancedEl.innerHTML = "";
+    activeFilters.clear();
+
+    if (!plants.length){
+      filterColumnsBasic = [];
+      filterColumnsAdvanced = [];
+      return;
+    }
+
+    const sample = plants[0];
+    const allCols = Object.keys(sample).filter(c => !isExcludedColumn(c));
+
+    const alwaysAdvanced = new Set(
+      allCols.filter(c => {
+        const lc = c.toLowerCase();
+        return lc.includes("note") || lc.includes("description") || lc.includes("comment") || lc.includes("detail") || lc.includes("summary");
+      })
+    );
+
+    const stats = allCols.map(col => {
+      const values = [];
+      for (const r of plants){
+        const v = norm(r[col]);
+        if (!isEmptyValue(v)) values.push(v);
+      }
+      const uniq = new Set(values.map(v => upper(v)));
+      const avgLen = values.length ? values.reduce((a,b)=>a+b.length,0)/values.length : 0;
+      return { col, uniqCount: uniq.size, avgLen, uniqUpper: uniq };
+    });
+
+    const basic = [];
+    const advanced = [];
+
+    for (const s of stats){
+      const { col, uniqCount, avgLen } = s;
+      const lc = col.toLowerCase();
+
+      if (lc.includes("scient")) { advanced.push(col); continue; }
+      if (lc.includes("common")) { advanced.push(col); continue; }
+
+      const isHuge = uniqCount >= 25;
+      const isTexty = avgLen >= 40;
+
+      if (alwaysAdvanced.has(col) || isHuge || isTexty) advanced.push(col);
+      else basic.push(col);
+    }
+
+    filterColumnsBasic = basic;
+    filterColumnsAdvanced = advanced;
+
+    for (const col of filterColumnsBasic) filtersBasicEl.appendChild(makeFilterCard(col));
+    for (const col of filterColumnsAdvanced) filtersAdvancedEl.appendChild(makeFilterCard(col));
+  }
+
+  function makeFilterCard(col){
+    const wrap = document.createElement("div");
+    wrap.className = "filterCard";
+
+    const h = document.createElement("h4");
+    h.textContent = col;
+
+    const sel = document.createElement("select");
+
+    const values = [];
+    for (const r of plants){
+      const v = norm(r[col]);
+      if (!isEmptyValue(v)) values.push(v);
+    }
+    const uniqUpper = new Set(values.map(v => upper(v)));
+    const yesNo = isYesNoColumn(uniqUpper);
+
+    sel.appendChild(new Option("Any", "Any"));
+
+    if (yesNo){
+      sel.appendChild(new Option("Yes", "YES"));
+      sel.appendChild(new Option("No", "NO"));
+      if (uniqUpper.has("UNCERTAIN")) sel.appendChild(new Option("UNCERTAIN", "UNCERTAIN"));
+    } else {
+      const uniq = Array.from(new Set(values.map(v => norm(v)))).sort((a,b)=>a.localeCompare(b));
+      for (const v of uniq) sel.appendChild(new Option(v, v));
+    }
+
+    sel.addEventListener("change", () => {
+      const val = sel.value;
+      if (!val || val === "Any") activeFilters.delete(col);
+      else activeFilters.set(col, val);
+      currentPage = 1;
+      renderPlants();
+    });
+
+    const help = document.createElement("div");
+    help.className = "help";
+    help.textContent = yesNo ? "Dropdown (Yes/No + UNCERTAIN if present)" : "Dropdown (values pulled from spreadsheet)";
+
+    wrap.appendChild(h);
+    wrap.appendChild(sel);
+    wrap.appendChild(help);
+    return wrap;
+  }
+
+  function clearAllFilters(){
+    activeFilters.clear();
+    for (const sel of document.querySelectorAll(".filterCard select")){
+      sel.value = "Any";
+    }
+    currentPage = 1;
+    renderPlants();
+  }
+
+  // ---------------- Plants ----------------
+  function applyAllFilters(){
+    const nameField = guessNameField(plants[0] || {});
+    const sciField = guessSciField(plants[0] || {});
+    const q = upper(searchInput.value);
+
+    return plants.filter(row => {
+      if (selectedRegionCode){
+        const rc = rowRegionCode(row);
+        if (!rc || norm(rc) !== norm(selectedRegionCode)) return false;
+      }
+
+      if (q){
+        const cn = nameField ? upper(row[nameField]) : "";
+        const sn = sciField ? upper(row[sciField]) : "";
+        if (!cn.includes(q) && !sn.includes(q)) return false;
+      }
+
+      for (const [col, val] of activeFilters.entries()){
+        const cell = norm(row[col]);
+        if (val === "YES" || val === "NO" || val === "UNCERTAIN"){
+          if (upper(cell) !== val) return false;
+        } else {
+          if (cell !== val) return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  function renderPlants(){
+    const filtered = applyAllFilters();
+    const total = filtered.length;
+
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const pageRows = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+    countPill.textContent = `${total} plant${total===1?"":"s"} found`;
+    pagePill.textContent = `Page ${currentPage} / ${totalPages}`;
+
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+
+    plantListEl.innerHTML = "";
+
+    if (!pageRows.length){
+      const empty = document.createElement("div");
+      empty.className = "tiny";
+      empty.textContent = "No plants match your filters.";
+      plantListEl.appendChild(empty);
+      return;
+    }
+
+    for (const row of pageRows){
+      plantListEl.appendChild(makePlantCard(row));
+    }
+
+    if (expandFirstAfterRender){
+      expandFirstAfterRender = false;
+      const firstMore = plantListEl.querySelector(".moreBtn");
+      if (firstMore) firstMore.click();
+    }
+  }
+
+  function makePlantCard(row){
+    const card = document.createElement("div");
+    card.className = "plantCard";
+
+    const nameField = guessNameField(row);
+    const sciField = guessSciField(row);
+
+    const commonName = nameField ? norm(row[nameField]) : "(No common name)";
+    const sciName = sciField ? norm(row[sciField]) : "";
+
+    const preferredBasics = [
+      "ROOT_TYPE","ROOT_DEPTH","MAXIMUM_ROOT_DEPTH",
+      "MATURE_ROOT_DEPTH","AVERAGE_ROOT_DEPTH","VEGETATIVE_ROOT_DEPTH",
+      "Depth, Minimum (inches)","DEPTH_MINIMUM","DEPTH_MIN"
+    ].filter(k => Object.prototype.hasOwnProperty.call(row, k) && !isEmptyValue(row[k]));
+    const basicFields = preferredBasics.slice(0, 3);
+
+    const filterColsAll = Array.from(new Set([...filterColumnsBasic, ...filterColumnsAdvanced]));
+    const expandedCols = filterColsAll.filter(c => Object.prototype.hasOwnProperty.call(row, c));
+
+    const top = document.createElement("div");
+    top.className = "plantTop";
+
+    const left = document.createElement("div");
+    left.style.flex = "1 1 auto";
+
+    const h = document.createElement("h3");
+    h.className = "plantName";
+    h.textContent = commonName;
+
+    left.appendChild(h);
+    if (sciName){
+      const s = document.createElement("div");
+      s.className = "plantSci";
+      s.textContent = sciName;
+      left.appendChild(s);
+    }
+
+    const moreBtn = document.createElement("button");
+    moreBtn.className = "moreBtn";
+    moreBtn.textContent = "More info";
+
+    top.appendChild(left);
+    top.appendChild(moreBtn);
+    card.appendChild(top);
+
+    if (basicFields.length){
+      const kv = document.createElement("div");
+      kv.className = "kv";
+      for (const k of basicFields){
+        kv.appendChild(makeKV(k, norm(row[k])));
+      }
+      card.appendChild(kv);
+    }
+
+    const more = document.createElement("div");
+    more.className = "kv hidden";
+    more.style.marginTop = "12px";
+
+    for (const col of expandedCols){
+      if (isExcludedColumn(col)) continue;
+      const val = norm(row[col]);
+      if (isEmptyValue(val)) continue;
+      more.appendChild(makeKV(col, val));
+    }
+
+    card.appendChild(more);
+
+    let open = false;
+    moreBtn.addEventListener("click", () => {
+      open = !open;
+      more.classList.toggle("hidden", !open);
+      moreBtn.textContent = open ? "Less info" : "More info";
+    });
+
+    return card;
+  }
+
+  function makeKV(k, v){
+    const kk = document.createElement("div");
+    kk.className = "k";
+    kk.textContent = k;
+
+    const vv = document.createElement("div");
+    vv.className = "v";
+    vv.textContent = v;
+
+    const frag = document.createDocumentFragment();
+    frag.appendChild(kk);
+    frag.appendChild(vv);
+    return frag;
+  }
+
+  // ---------------- Suggestions ----------------
+  function renderSuggestions(){
+    suggestionsEl.innerHTML = "";
+    const q = norm(searchInput.value);
+    if (!q) return;
+
+    const nameField = guessNameField(plants[0] || {});
+    const sciField = guessSciField(plants[0] || {});
+    const U = q.toUpperCase();
+
+    const matches = plants
+      .filter(r => {
+        const cn = nameField ? (r[nameField] || "") : "";
+        const sn = sciField ? (r[sciField] || "") : "";
+        return cn.toUpperCase().includes(U) || sn.toUpperCase().includes(U);
+      })
+      .slice(0, 8);
+
+    for (const row of matches){
+      const cn = nameField ? norm(row[nameField]) : "(No common name)";
+      const sn = sciField ? norm(row[sciField]) : "";
+      const div = document.createElement("div");
+      div.className = "suggestion";
+      div.innerHTML = `
+        <div class="main">${escapeHtml(cn)}</div>
+        ${sn ? `<div class="sub">${escapeHtml(sn)}</div>` : ``}
+      `;
+      div.addEventListener("click", () => {
+        searchInput.value = cn || sn;
+        expandFirstAfterRender = true;
+        currentPage = 1;
+        renderPlants();
+        suggestionsEl.innerHTML = "";
+        plantListEl.scrollIntoView({ behavior:"smooth", block:"start" });
+      });
+      suggestionsEl.appendChild(div);
+    }
+  }
+
+  // ---------------- Location tools ----------------
+  async function geocodeZip(zip){
+    const z = norm(zip);
+    if (!/^\d{5}(-\d{4})?$/.test(z)) throw new Error("Please enter a valid 5-digit ZIP (or ZIP+4).");
+    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&postalcode=${encodeURIComponent(z)}&limit=1`;
+    const res = await fetch(url, { headers: { "Accept":"application/json" }});
+    if (!res.ok) throw new Error("ZIP lookup failed.");
+    const data = await res.json();
+    if (!data?.length) throw new Error("No result found for that ZIP.");
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }
+
+  async function reverseGeocodeToZip(lat, lng){
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+    const res = await fetch(url, { headers: { "Accept":"application/json" }});
+    if (!res.ok) throw new Error("Reverse geocode failed.");
+    const data = await res.json();
+    const pc = data?.address?.postcode;
+    if (!pc) throw new Error("No ZIP found for your location.");
+    return pc.toString().slice(0,5);
+  }
+
+  function getBrowserLocation(){
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("Geolocation not supported in this browser."));
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => reject(new Error(err.message || "Could not get location.")),
+        { enableHighAccuracy:true, timeout: 12000, maximumAge: 30000 }
+      );
+    });
+  }
+
+  function setStatus(msg){ statusLine.textContent = msg; }
+
+  function selectRegionByLatLng(lat, lng){
+    if (!geo?.features?.length) throw new Error("Ecoregion data not loaded yet.");
+    const pt = turf.point([lng, lat]);
+    for (const f of geo.features){
+      try{
+        if (turf.booleanPointInPolygon(pt, f)){
+          const props = f.properties || {};
+          const codeField = guessUSL3CodeField(props) || "US_L3CODE";
+          const code = norm(props[codeField] ?? "");
+          const layer = layerByCode.get(code);
+          const bounds = layer ? layer.getBounds() : null;
+          selectRegion(code, bounds);
+          map.setView([lat, lng], Math.max(map.getZoom(), 7));
+          return true;
+        }
+      } catch {}
+    }
+    throw new Error("No matching ecoregion found for that point.");
+  }
+
+  // ---------------- Debug unlock ----------------
+  // NOTE: We removed any visible debug button. Unlock path remains:
+  // Double-click the D in S.P.A.D.E. -> password "dirt" -> show debug.
+  // We'll rebuild the title "D" as a hidden click target via overlay:
+  // (Since title is static now, we attach to the first "D" letter by wrapping it)
+  // Easiest: create an invisible overlay region in the top-left where the D sits.
+
+  // Create an invisible overlay where the “D” is (approx)
+  const dOverlay = document.createElement("div");
+  dOverlay.style.position = "absolute";
+  dOverlay.style.left = "18px";
+  dOverlay.style.top = "18px";
+  dOverlay.style.width = "200px";
+  dOverlay.style.height = "60px";
+  dOverlay.style.cursor = "default";
+  dOverlay.style.background = "transparent";
+  dOverlay.title = "Double-click the D to unlock debug";
+  // attach to left panel
+  document.querySelector(".left").style.position = "relative";
+  document.querySelector(".left").appendChild(dOverlay);
+
+  dOverlay.addEventListener("dblclick", () => {
+    unlockBox.classList.toggle("hidden");
+    debugPass?.focus();
+  });
+
+  function unlockDebug(){
+    if (norm(debugPass.value).toLowerCase() === "dirt"){
+      debugPanel.classList.remove("hidden");
+      unlockBox.classList.add("hidden");
+      setStatus("Debug unlocked ✅ (check console after clicking Debug)");
+    } else {
+      alert("Wrong password.");
+    }
+  }
+  debugUnlockBtn.addEventListener("click", unlockDebug);
+  debugPass.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") unlockDebug();
+  });
+
+  debugBtn.addEventListener("click", () => {
+    const info = {
+      selectedRegionCode,
+      plantRows: plants.length,
+      regionCountEntries: regionCounts.size,
+      activeFilters: Object.fromEntries(activeFilters.entries()),
+      search: norm(searchInput.value),
+      page: currentPage,
+      textScalePct: parseInt(textScaleSlider.value, 10)
+    };
+    console.log("S.P.A.D.E. DEBUG:", info);
+    alert("Debug info logged to console.");
+  });
+
+  // ---------------- Events ----------------
+  prevBtn.addEventListener("click", () => { currentPage = Math.max(1, currentPage - 1); renderPlants(); });
+  nextBtn.addEventListener("click", () => { currentPage += 1; renderPlants(); });
+
+  clearRegionBtn.addEventListener("click", () => {
+    selectRegion(null, null);
+    try { map.setView([39.5, -98.35], 4); } catch {}
+  });
+
+  searchInput.addEventListener("input", () => {
+    currentPage = 1;
+    renderPlants();
+    renderSuggestions();
+  });
+
+  advancedToggleBtn.addEventListener("click", () => {
+    advancedOn = !advancedOn;
+    advancedToggleBtn.textContent = advancedOn ? "Hide advanced" : "Show advanced";
+    filtersAdvancedEl.classList.toggle("hidden", !advancedOn);
+  });
+
+  clearFiltersBtn.addEventListener("click", () => { clearAllFilters(); });
+
+  zipFindBtn.addEventListener("click", async () => {
+    try{
+      zipFindBtn.disabled = true;
+      setStatus("Looking up ZIP…");
+      const { lat, lng } = await geocodeZip(zipInput.value);
+      latInput.value = lat;
+      lngInput.value = lng;
+      map.setView([lat, lng], 9);
+      selectRegionByLatLng(lat, lng);
+      setStatus("Ecoregion selected from ZIP ✅");
+    } catch(e){
+      setStatus("Ready: search plants, use filters, or find ecoregion by ZIP or Lat/Lng.");
+      alert(e.message || String(e));
+    } finally {
+      zipFindBtn.disabled = false;
+    }
+  });
+
+  zipUseMyLocBtn.addEventListener("click", async () => {
+    try{
+      zipUseMyLocBtn.disabled = true;
+      setStatus("Getting your location…");
+      const { lat, lng } = await getBrowserLocation();
+      const zip = await reverseGeocodeToZip(lat, lng);
+      zipInput.value = zip;
+      map.setView([lat, lng], 9);
+      selectRegionByLatLng(lat, lng);
+      setStatus("Ecoregion selected from your location ✅");
+    } catch(e){
+      try{
+        const { lat, lng } = await getBrowserLocation();
+        latInput.value = lat;
+        lngInput.value = lng;
+        map.setView([lat, lng], 9);
+        selectRegionByLatLng(lat, lng);
+        setStatus("Ecoregion selected from your location ✅");
+      } catch(e2){
+        setStatus("Ready: search plants, use filters, or find ecoregion by ZIP or Lat/Lng.");
+        alert((e2.message || e.message) || String(e2));
+      }
+    } finally {
+      zipUseMyLocBtn.disabled = false;
+    }
+  });
+
+  latLngGoBtn.addEventListener("click", () => {
+    try{
+      const lat = parseFloat(latInput.value);
+      const lng = parseFloat(lngInput.value);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Enter valid latitude and longitude.");
+      map.setView([lat, lng], 9);
+      selectRegionByLatLng(lat, lng);
+      setStatus("Ecoregion selected from Lat/Lng ✅");
+    } catch(e){
+      setStatus("Ready: search plants, use filters, or find ecoregion by ZIP or Lat/Lng.");
+      alert(e.message || String(e));
+    }
+  });
+
+  latLngUseMyLocBtn.addEventListener("click", async () => {
+    try{
+      latLngUseMyLocBtn.disabled = true;
+      setStatus("Getting your location…");
+      const { lat, lng } = await getBrowserLocation();
+      latInput.value = lat;
+      lngInput.value = lng;
+      map.setView([lat, lng], 9);
+      selectRegionByLatLng(lat, lng);
+      setStatus("Ecoregion selected from your location ✅");
+    } catch(e){
+      setStatus("Ready: search plants, use filters, or find ecoregion by ZIP or Lat/Lng.");
+      alert(e.message || String(e));
+    } finally {
+      latLngUseMyLocBtn.disabled = false;
+    }
+  });
+
+  // ---------------- Loading ----------------
+  async function loadCSV(){
+    const res = await fetch(CSV_PATH, { cache: "no-store" });
+    if (!res.ok) throw new Error(`CSV not found at ${CSV_PATH}`);
+    const text = await res.text();
+
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+    if (parsed.errors?.length) console.warn("CSV parse warnings:", parsed.errors);
+
+    plants = (parsed.data || []).map(r => {
+      const out = {};
+      for (const k of Object.keys(r)) out[k] = norm(r[k]);
+      return out;
+    }).filter(r => Object.keys(r).length > 0);
+
+    computeRegionCounts();
+    buildFiltersFromCSV();
+    renderPlants();
+  }
+
+  async function loadGeoJSON(){
+    const res = await fetch(GEOJSON_PATH, { cache: "no-store" });
+    if (!res.ok) throw new Error(`GeoJSON not found at ${GEOJSON_PATH}`);
+    geo = await res.json();
+  }
+
+  async function boot(){
+    initMap();
+    try{
+      countPill.textContent = "Loading…";
+      setStatus("Loading plants & ecoregions…");
+
+      await Promise.all([loadCSV(), loadGeoJSON()]);
+
+      addGeoLayer();
+      refreshGeoStyles();
+
+      countPill.textContent = `${plants.length} plants loaded`;
+      setStatus("Ready: search plants, use filters, or find ecoregion by ZIP or Lat/Lng.");
+      regionPill.textContent = "All regions";
+    } catch(e){
+      console.error(e);
+      countPill.textContent = "Load failed";
+      setStatus("Load failed.");
+      alert(e.message || String(e));
+    }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
