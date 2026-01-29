@@ -70,7 +70,6 @@
 
     .zip-container { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; width: 100%; }
     
-    /* Input grouping for button alignment */
     .input-group { display: flex; flex: 1; gap: 10px; }
 
     input[type="text"], input[type="number"], select { 
@@ -135,7 +134,7 @@
 
     .source-link { display: inline-block; color: var(--accent-green); text-decoration: none; font-weight: 700; font-size: 0.8em; border: 1.5px solid var(--accent-green); padding: 8px 16px; border-radius: 8px; }
     .source-link:hover { background: var(--accent-green); color: white; }
-    .more-info-btn { background: #f7fafc; border: 1.5px solid #border-color; color: #4a5568; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8em; font-weight: 700; }
+    .more-info-btn { background: #f7fafc; border: 1.5px solid #cbd5e0; color: #4a5568; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8em; font-weight: 700; }
 
     .details-pane { display: none; margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); font-size: 0.85em; color: #4a5568; }
     .details-pane.active { display: block; }
@@ -154,20 +153,21 @@
 
 <div id="debug-overlay">
   <div class="debug-toolbar" style="display:flex; justify-content: space-between; margin-bottom: 15px;">
-    <span style="font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">S.P.A.D.E. Core System</span>
+    <span style="font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">S.P.A.D.E. Core System Logs</span>
     <div style="display: flex; gap: 10px;">
       <button onclick="copyDebugLog()">Copy</button>
       <button onclick="clearDebugLog()">Clear</button>
       <button style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px;" onclick="document.getElementById('debug-overlay').style.display = 'none'">Close</button>
     </div>
   </div>
-  <div id="debug-content" style="flex-grow:1; overflow-y:auto; background:#1e293b; padding:15px; border-radius:8px; font-size:12px;"></div>
+  <div id="debug-content" style="flex-grow:1; overflow-y:auto; background:#1e293b; padding:15px; border-radius:8px; font-size:12px; white-space: pre-wrap;"></div>
 </div>
 
 <div id="wrap">
   <div id="sidebar">
     <h2>S<span id="secret-dot">.</span>P.A.D.E.</h2>
-    <div class="acronym">Site Preservation & Dirt Erosion</div>
+    <div class="acronym">Site P
+reservation & Dirt Erosion</div>
     <div class="subtitle">Designed By the Blazin Turtles</div>
     
     <button id="geo-btn" class="btn-standard" onclick="useMyLocation()">📍 Use My Location</button>
@@ -247,13 +247,25 @@
       <button id="show-more-btn" class="action-btn" style="width:100%;" onclick="showMore()">Show More Results</button>
     </div>
     
-    <div id="status">Live • v3.7</div>
+    <div id="status">System Status: Monitoring...</div>
   </div>
 
   <div id="map-container"><div id="map"></div></div>
 </div>
 
 <script>
+  function sysLog(msg) {
+    const content = document.getElementById('debug-content');
+    const timestamp = new Date().toLocaleTimeString();
+    if(content) {
+        content.innerHTML += `[${timestamp}] ${msg}\n`;
+        content.scrollTop = content.scrollHeight;
+    }
+    console.log(`[${timestamp}] S.P.A.D.E. Log: ${msg}`);
+  }
+
+  sysLog("Application script loaded. Initializing internal components...");
+
   let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
   const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
@@ -268,13 +280,20 @@
     "critsite_native_plants_full_list": { name: "Plant Picker", url: "https://plantsman.com/" }
   };
 
+  sysLog("Vendor Link Map defined.");
+
   let dotClickCount = 0, dotTimer;
   document.getElementById('secret-dot').addEventListener('click', () => {
     dotClickCount++;
+    sysLog(`Secret dot clicked. Current count: ${dotClickCount}`);
     clearTimeout(dotTimer);
     if (dotClickCount === 2) {
+      sysLog("Authentication trigger activated.");
       if (prompt("Enter System Key:") === "numpy") {
         document.getElementById('debug-overlay').style.display = 'flex';
+        sysLog("Core System Accessed: Debugger opened.");
+      } else {
+        sysLog("Authentication failed: Incorrect key.");
       }
       dotClickCount = 0;
     } else {
@@ -282,18 +301,32 @@
     }
   });
 
-  function clearDebugLog() { document.getElementById('debug-content').innerHTML = ''; }
-  function copyDebugLog() { navigator.clipboard.writeText(document.getElementById('debug-content').innerText); alert("Logs copied."); }
+  function clearDebugLog() { 
+    document.getElementById('debug-content').innerHTML = ''; 
+    sysLog("System Log Buffer cleared.");
+  }
+  
+  function copyDebugLog() { 
+    navigator.clipboard.writeText(document.getElementById('debug-content').innerText); 
+    alert("Logs copied to clipboard."); 
+    sysLog("User copied debug logs to clipboard.");
+  }
 
-  function showMore() { displayLimit += increment; renderResults(false); }
+  function showMore() { 
+    displayLimit += increment; 
+    sysLog(`Display limit increased to ${displayLimit}. Re-rendering...`);
+    renderResults(false); 
+  }
 
   function populate(id, col, data) {
+    sysLog(`Populating filter: ${id} from column: ${col}`);
     const sel = document.getElementById(id), vals = new Set();
     data.forEach(r => { if(r[col] && r[col] !== '0') r[col].split(',').forEach(v => vals.add(v.trim())); });
     Array.from(vals).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
   }
 
   function highlightRegion(key) {
+    sysLog(`Highlighting Ecoregion: ${key}`);
     if (!geoLayer) return;
     geoLayer.eachLayer(layer => {
       if (layer.feature.properties.L3_KEY === key) {
@@ -306,12 +339,14 @@
   }
 
   function resetFilters() {
+    sysLog("Resetting all plant filters to default.");
     document.getElementById('search-box').value = "";
     document.querySelectorAll('.plant-filter').forEach(s => s.value = 'all');
     renderResults(true);
   }
 
   function resetSelection() {
+    sysLog("Clearing location selection and resetting map view.");
     selectedL3Key = null;
     document.getElementById('selected-region').textContent = "Select a site on the map";
     ['zip-input', 'lat-input', 'lng-input'].forEach(id => document.getElementById(id).value = "");
@@ -321,6 +356,7 @@
   }
 
   async function loadPlantPhoto(sciName, idx, source1) {
+    sysLog(`Attempting to fetch photo for: ${sciName}`);
     const img = document.getElementById(`img-${idx}`);
     const caption = document.getElementById(`caption-${idx}`);
     try {
@@ -329,17 +365,28 @@
       if (data.results && data.results.length > 0 && data.results[0].default_photo) {
         img.src = data.results[0].default_photo.medium_url;
         caption.textContent = `Source: iNaturalist (USDA Designation)`;
+        sysLog(`Photo loaded successfully for ${sciName}`);
       } else {
         img.style.display = 'none';
         caption.style.display = 'none';
+        sysLog(`No photo found for ${sciName}`);
       }
-    } catch (e) { img.style.display = 'none'; }
+    } catch (e) { 
+      img.style.display = 'none'; 
+      sysLog(`Error fetching photo for ${sciName}: ${e.message}`);
+    }
   }
 
   function renderResults(resetLimit = true) {
-    if (!plantData) return;
+    sysLog(`Rendering results... (ResetLimit: ${resetLimit})`);
+    if (!plantData) {
+        sysLog("Render aborted: No plant data available.");
+        return;
+    }
     if (resetLimit) displayLimit = 10;
     const query = document.getElementById('search-box').value.toLowerCase();
+    sysLog(`Search query: "${query}"`);
+
     const f = {
       type: document.getElementById('type-filter').value,
       root: document.getElementById('root-filter').value,
@@ -383,6 +430,7 @@
       return true;
     });
 
+    sysLog(`Filtered results count: ${currentFilteredItems.length}`);
     document.getElementById('results-count').textContent = `Matched ${currentFilteredItems.length} Plant Species`;
     document.getElementById('show-more-container').style.display = (currentFilteredItems.length > displayLimit) ? 'block' : 'none';
     const list = document.getElementById('results-list');
@@ -419,73 +467,100 @@
       list.appendChild(card);
       loadPlantPhoto(p['Scientific Name'], index, p['SOURCE_LINK_1']);
     });
+    sysLog(`Batch of ${Math.min(displayLimit, currentFilteredItems.length)} cards generated.`);
   }
 
   async function useZipCode() {
     const zip = document.getElementById('zip-input').value;
-    if (!/^\d{5}$/.test(zip)) return;
+    sysLog(`Initiating search for ZIP Code: ${zip}`);
+    if (!/^\d{5}$/.test(zip)) {
+        sysLog("Error: Invalid ZIP format.");
+        return;
+    }
     try {
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
       const data = await res.json();
       const lat = parseFloat(data.places[0].latitude), lng = parseFloat(data.places[0].longitude);
       document.getElementById('lat-input').value = lat;
       document.getElementById('lng-input').value = lng;
+      sysLog(`ZIP solved: ${zip} -> Lat: ${lat}, Lng: ${lng}`);
       matchLocationToRegion(lat, lng);
-    } catch (err) { }
+    } catch (err) { 
+        sysLog(`ZIP resolution failed for ${zip}: ${err.message}`);
+    }
   }
 
   async function useMyLocation() {
+    sysLog("Requesting device GPS location...");
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const lat = pos.coords.latitude, lng = pos.coords.longitude;
         document.getElementById('lat-input').value = lat.toFixed(4);
         document.getElementById('lng-input').value = lng.toFixed(4);
+        sysLog(`GPS lock acquired: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
         matchLocationToRegion(lat, lng);
+      }, (err) => {
+        sysLog(`GPS Error: ${err.message}`);
       });
   }
 
   function useCoordinates() {
     const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value);
+    sysLog(`Manual coordinate lookup: Lat ${lat}, Lng ${lng}`);
     if (!isNaN(lat) && !isNaN(lng)) matchLocationToRegion(lat, lng);
   }
 
   function matchLocationToRegion(lat, lng) {
+    sysLog(`Mapping coordinates to Ecoregion polygons...`);
     const results = leafletPip.pointInLayer([lng, lat], geoLayer);
     if (results.length > 0) {
       const f = results[0].feature;
-      selectedL3Key = f.properties.L3_KEY;
-      document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`;
+      const key = f.properties.L3_KEY;
+      selectedL3Key = key;
+      document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
+      sysLog(`Location match found: Ecoregion ${key} (${f.properties.US_L3NAME})`);
       map.setView([lat, lng], 8);
-      highlightRegion(selectedL3Key);
+      highlightRegion(key);
       renderResults(true);
+    } else {
+        sysLog("No Ecoregion match found for these coordinates.");
     }
   }
 
   async function init() {
+    sysLog("Starting main initialization sequence...");
+    sysLog(`Requesting plant database from: ${CSV_URL}`);
     Papa.parse(CSV_URL, { download: true, header: true, complete: (res) => {
+        sysLog(`CSV parsing complete. Loaded ${res.data.length} records.`);
         plantData = res.data;
         plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
         ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter', 'growth-filter'].forEach(id => {
           const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : 'Active Growth Period';
           populate(id, col, plantData);
         });
-        document.getElementById('status').textContent = 'Live • v3.7';
+        document.getElementById('status').textContent = 'Live • Monitoring active';
+        sysLog("Internal filters populated. Ready for user input.");
         renderResults();
         loadMap();
     }});
   }
 
   async function loadMap() {
+    sysLog("Initializing Leaflet map engine...");
     map = L.map('map').setView([37.8, -96], 4);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    sysLog("Tile layers attached.");
     try {
+      sysLog(`Requesting ecoregion boundaries from: ${ECO_URL}`);
       const geoRes = await fetch(ECO_URL);
       const geoJSON = await geoRes.json();
+      sysLog("Boundary data received. Processing state aggregation...");
       const eStates = {};
       geoJSON.features.forEach(f => {
         const k = f.properties.L3_KEY;
         const s = f.properties.STATE_NAME || f.properties.STATE || "";
         if (k && s) { if (!eStates[k]) eStates[k] = new Set(); eStates[k].add(s); }
       });
+      sysLog("State data aggregated. Rendering map overlay...");
       geoLayer = L.geoJSON(geoJSON, {
         style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
         onEachFeature: (f, l) => {
@@ -493,9 +568,22 @@
           const sList = eStates[key] ? Array.from(eStates[key]).sort().join(', ') : "USA";
           l.bindTooltip(`<div style=\"font-size:14px\"><b>${key}:</b> ${f.properties.US_L3NAME}<br/>${regionCounts[key] || 0} Species • ${sList}</div>`, { sticky: true });
           l.on({ 
-            mouseover: (e) => e.target.setStyle({ fillOpacity: 0.3 }),
-            mouseout: (e) => e.target.setStyle({ fillOpacity: 0.1 }),
+            mouseover: (e) => {
+              sysLog(`Map Hover: Ecoregion ${key}`);
+              geoLayer.eachLayer(layer => {
+                if (layer.feature.properties.L3_KEY === key) { layer.setStyle({ fillOpacity: 0.35 }); }
+              });
+            },
+            mouseout: (e) => {
+              geoLayer.eachLayer(layer => {
+                if (layer.feature.properties.L3_KEY === key) {
+                  if (key === selectedL3Key) { layer.setStyle({ fillOpacity: 0.6 }); }
+                  else { layer.setStyle({ fillOpacity: 0.1 }); }
+                }
+              });
+            },
             click: (e) => {
+              sysLog(`Map Selection: Ecoregion ${key} clicked.`);
               selectedL3Key = key;
               document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
               highlightRegion(key);
@@ -503,17 +591,25 @@
           }});
         }
       }).addTo(map);
-    } catch (e) { }
+      sysLog("Map overlay successfully rendered.");
+    } catch (e) { sysLog(`Map Critical Error: ${e.message}`); }
   }
 
   function toggleDetails(idx) { 
     const pane = document.getElementById(`details-${idx}`);
-    const btn = document.getElementById(`btn-${idx}`);
     pane.classList.toggle('active');
+    sysLog(`Details pane ${idx} ${pane.classList.contains('active') ? 'expanded' : 'collapsed'}.`);
+    const btn = document.getElementById(`btn-${idx}`);
     btn.textContent = pane.classList.contains('active') ? 'Less' : 'Details';
   }
-  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
-  window.onload = init;
+  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => {
+    sysLog(`Input Change detected on element: ${el.id}`);
+    renderResults(true);
+  }));
+  window.onload = () => {
+    sysLog("Window loaded. Triggering Init sequence.");
+    init();
+  };
 </script>
 
 </body>
