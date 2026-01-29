@@ -185,6 +185,18 @@
   let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
   const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
+  // Vendor Links Mapping from Spreadsheet
+  const vendorLinkMap = {
+    "native west": { name: "Native West Nursery", url: "https://nativewest.com/" },
+    "prairie moon nursery": { name: "Prairie Moon Nursery", url: "https://www.prairiemoon.com/" },
+    "praire nursery": { name: "Prairie Nursery", url: "https://www.prairienursery.com/" },
+    "ernst seeds": { name: "Ernst Conservation Seeds", url: "https://www.ernstseed.com/" },
+    "gbnp": { name: "Great Bear Native Plants", url: "http://www.greatbearnativeplants.com/" },
+    "mellow marsh farm": { name: "Mellow Marsh Farm", url: "https://mellowmarshfarm.com/" },
+    "roots and shoots": { name: "Roots and Shoots Nursery", url: "https://www.rootsandshootsnursery.com/" },
+    "critsite_native_plants_full_list": { name: "Plant Picker", url: "https://plantsman.com/" }
+  };
+
   let dotClickCount = 0, dotTimer;
   document.getElementById('secret-dot').addEventListener('click', () => {
     dotClickCount++;
@@ -323,6 +335,12 @@
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
       const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
       
+      // Vendor Link Logic
+      const vRaw = p['Vendor'] || 'None Listed';
+      const vKey = vRaw.toLowerCase().trim();
+      const vInfo = vendorLinkMap[vKey] || null;
+      const vendorHtml = vInfo ? `<a href="${vInfo.url}" target="_blank" style="color: #27ae60; font-weight: bold;">${vInfo.name}</a>` : vRaw;
+
       let allFieldsHtml = '';
       Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') allFieldsHtml += `<div><strong>${k}:</strong> ${p[k]}</div>`; });
 
@@ -330,7 +348,7 @@
         <h4>${p['Common Name'] || 'Unknown'}</h4>
         <p><em>${p['Scientific Name'] || ''}</em></p>
         <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
-        <p><strong>VENDOR:</strong> ${p['Vendor'] || 'None Listed'}</p>
+        <p><strong>VENDOR LINK:</strong> ${vendorHtml}</p>
         <p><strong>SOIL:</strong> ${soilStr}</p>
         <p><strong>WATER:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
         <p><strong>SUN:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
@@ -410,18 +428,31 @@
     try {
       const geoRes = await fetch(ECO_URL);
       const geoJSON = await geoRes.json();
+      
+      const ecoregionStates = {};
+      geoJSON.features.forEach(f => {
+        const key = f.properties.L3_KEY;
+        const state = f.properties.STATE_NAME || f.properties.STATE || "";
+        if (key && state) {
+          if (!ecoregionStates[key]) ecoregionStates[key] = new Set();
+          ecoregionStates[key].add(state);
+        }
+      });
+
       geoLayer = L.geoJSON(geoJSON, {
         style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
         onEachFeature: (f, l) => {
           const key = f.properties.L3_KEY;
           const count = regionCounts[key] || 0;
-          const states = f.properties.STATE_NAME || f.properties.STATE || "USA";
+          const statesSet = ecoregionStates[key];
+          const statesList = statesSet ? Array.from(statesSet).sort().join(', ') : "USA";
+          
           l.bindTooltip(`
             <div style="font-size:14px">
               <b>Ecoregion #:</b> ${key}<br/>
               <b>Region Name:</b> ${f.properties.US_L3NAME}<br/>
               <b>Total Plants:</b> ${count}<br/>
-              <b>Located in States:</b> ${states}
+              <b>Located in States:</b> ${statesList}
             </div>
           `, { sticky: true, className: 'leaflet-tooltip-custom' });
           l.on({ 
@@ -430,7 +461,7 @@
             click: (e) => {
               selectedL3Key = key;
               document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
-              highlightRegion(key);
+              highlightRegion(selectedL3Key);
               renderResults(true);
           }});
         }
