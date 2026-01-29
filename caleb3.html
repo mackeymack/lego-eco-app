@@ -15,28 +15,29 @@
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; color: #2d3436; }
     #wrap { display: grid; grid-template-columns: 420px 1fr; height: 100vh; }
     
-    #sidebar { padding: 20px; border-right: 1px solid #ddd; overflow-y: auto; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 10; }
+    #sidebar { padding: 25px; border-right: 1px solid #ddd; overflow-y: auto; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 10; }
     #map-container { position: relative; height: 100vh; overflow: hidden; }
     #map { height: 100%; width: 100%; }
     
     h2 { margin: 0 0 2px; color: #1a5d1a; font-size: 2.2em; letter-spacing: 2px; }
     .acronym { font-size: 0.85em; color: #27ae60; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
-    .subtitle { margin-bottom: 20px; color: #636e72; font-weight: bold; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
+    .subtitle { margin-bottom: 25px; color: #636e72; font-weight: bold; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
     
     #secret-dot { cursor: default; user-select: none; }
 
-    h3 { margin: 25px 0 10px; font-size: 1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; text-transform: uppercase; }
+    h3 { margin: 25px 0 15px; font-size: 1em; border-bottom: 2px solid #27ae60; padding-bottom: 5px; color: #27ae60; text-transform: uppercase; }
     
     #geo-btn { 
       width: 100%; background: #2980b9; color: white; border: none; padding: 12px; 
-      border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 10px;
+      border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 15px;
       transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     #geo-btn:hover { background: #1f6391; }
 
-    .zip-container { display: flex; gap: 5px; margin-bottom: 15px; }
-    #zip-input, #lat-input, #lng-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; min-width: 0; }
-    .action-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .zip-container { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    #zip-input, #lat-input, #lng-input { flex-grow: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em; min-width: 0; height: 40px; box-sizing: border-box; }
+    .action-btn { background: #27ae60; color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 40px; display: flex; align-items: center; justify-content: center; }
+    .action-btn:hover { background: #1e8449; }
 
     .export-row { display: flex; gap: 10px; margin: 15px 0; }
     .export-btn { 
@@ -46,30 +47,27 @@
     }
     .export-btn:hover { background: #27ae60; color: white; }
 
-    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .row { margin-bottom: 12px; }
-    label { font-weight: bold; font-size: 0.8em; display: block; margin-bottom: 4px; color: #4b4b4b; }
-    select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.85em; }
+    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+    .row { margin-bottom: 5px; }
+    label { font-weight: bold; font-size: 0.75em; display: block; margin-bottom: 6px; color: #4b4b4b; text-transform: uppercase; }
+    select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.85em; background: #fff; height: 36px; }
     
     .region-display-container { display: flex; align-items: center; gap: 8px; }
-    #selected-region { flex-grow: 1; font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 8px; border-radius: 6px; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #clear-selection-btn { background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75em; }
+    #selected-region { flex-grow: 1; font-weight: bold; color: #2980b9; background: #e1f0fa; padding: 10px; border-radius: 6px; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 40px; display: flex; align-items: center; box-sizing: border-box; }
+    #clear-selection-btn { background: #e74c3c; color: white; border: none; padding: 0 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75em; height: 40px; }
 
-    .reset-filters-btn { width: 100%; background: #f8f9fa; border: 1px solid #cbd5e0; color: #4b4b4b; padding: 8px; border-radius: 6px; font-size: 0.8em; font-weight: bold; cursor: pointer; margin-top: 5px; margin-bottom: 15px; }
+    .reset-filters-btn { width: 100%; background: #f8f9fa; border: 1px solid #cbd5e0; color: #4b4b4b; padding: 10px; border-radius: 6px; font-size: 0.8em; font-weight: bold; cursor: pointer; margin-top: 10px; margin-bottom: 20px; }
 
     .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; }
-    .plant-card h4 { margin: 0 0 5px; color: #2d3436; font-size: 1.1em; }
-    .plant-card p { margin: 5px 0; font-size: 0.9em; }
-    
     .card-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-    .source-link { display: inline-block; color: #27ae60; text-decoration: none; font-weight: bold; font-size: 0.8em; border: 1px solid #27ae60; padding: 4px 10px; border-radius: 4px; }
-    .source-link:hover { background: #27ae60; color: white; }
-    .more-info-btn { background: #f1f3f5; border: 1px solid #dee2e6; color: #495057; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+    .more-info-btn { background: #f1f3f5; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
     
     .details-pane { display: none; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; font-size: 0.8em; color: #444; }
     .details-pane.active { display: block; }
-    .details-pane div { margin: 4px 0; border-bottom: 1px solid #f9f9f9; padding-bottom: 2px; }
-    .details-pane strong { color: #1a5d1a; text-transform: uppercase; font-size: 0.75em; display: inline-block; width: 130px; }
+
+    /* Centered Show More Button matching Go button style */
+    #show-more-container { text-align: center; margin: 30px 0; display: none; }
+    #show-more-btn { display: inline-block; width: auto; min-width: 180px; }
 
     #debug-overlay {
       display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%;
@@ -127,7 +125,7 @@
       </div>
     </div>
 
-    <div class="row">
+    <div class="row" style="margin-top:15px;">
       <label for="search-box">Quick Search</label>
       <input type="text" id="search-box" placeholder="e.g. Oak, Sagebrush..." />
     </div>
@@ -176,7 +174,9 @@
     </div>
 
     <div id="results-list"></div>
-    <div id="show-more-container"><button id="show-more-btn" onclick="showMore()">Show More Results</button></div>
+    <div id="show-more-container">
+      <button id="show-more-btn" class="action-btn" onclick="showMore()">Show More Results</button>
+    </div>
   </div>
 
   <div id="map-container"><div id="map"></div></div>
@@ -186,7 +186,6 @@
   let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
   const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
-  // Secret Debug Handler
   let dotClickCount = 0, dotTimer;
   document.getElementById('secret-dot').addEventListener('click', () => {
     dotClickCount++;
@@ -283,7 +282,6 @@
       if (f.fire !== 'all' && !(p['Fire Tolerance'] || '').includes(f.fire)) return false;
       if (f.growth !== 'all' && !(p['Active Growth Period'] || '').includes(f.growth)) return false;
       
-      // Simplified Season Logic
       if (f.season !== 'all') {
         const sVal = (p['PLANTING_SEASON'] || '').toLowerCase();
         if (f.season === 'Year Round') {
@@ -337,7 +335,7 @@
         <p><strong>SOIL:</strong> ${soilStr}</p>
         <p><strong>WATER:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
         <p><strong>SUN:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
-        <div class="card-actions"><button class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>${sourceHtml}</div>
+        <div class="card-actions"><button id="btn-${index}" class="more-info-btn" onclick="toggleDetails(${index})">More Information</button>${sourceHtml}</div>
         <div id="details-${index}" class="details-pane">${allFieldsHtml}</div>
       `;
       list.appendChild(card);
@@ -441,7 +439,12 @@
     } catch (e) { sysLog("Map Error."); }
   }
 
-  function toggleDetails(idx) { document.getElementById(`details-${idx}`).classList.toggle('active'); }
+  function toggleDetails(idx) { 
+    const pane = document.getElementById(`details-${idx}`);
+    const btn = document.getElementById(`btn-${idx}`);
+    pane.classList.toggle('active');
+    btn.textContent = pane.classList.contains('active') ? 'Less Information' : 'More Information';
+  }
   document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
   window.onload = init;
 </script>
