@@ -46,6 +46,15 @@
     .action-btn { background: var(--accent-green); color: white; border: none; padding: 0 24px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; height: 48px; transition: background 0.2s; flex-shrink: 0; }
     .export-btn { flex: 1; padding: 12px; border-radius: var(--soft-radius); border: 1.5px solid var(--accent-green); background: #fff; color: var(--accent-green); font-weight: 700; cursor: pointer; font-size: 0.8em; transition: all 0.2s; }
 
+    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+    label { font-weight: 700; font-size: 0.7em; display: block; margin-bottom: 4px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
+    .soil-desc { font-size: 0.65em; color: #718096; margin-bottom: 10px; line-height: 1.2; font-style: italic; }
+
+    .region-display-container { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    #selected-region { flex-grow: 1; font-weight: 700; color: #1e40af; background: #e6f0ff; padding: 12px; border-radius: var(--soft-radius); font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 48px; display: flex; align-items: center; border: 1px solid #cbd5e0; }
+    #clear-selection-btn { background: #fed7d7; color: #c53030; border: none; padding: 0 16px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; height: 48px; font-size: 0.8em; }
+    .reset-filters-btn { width: 100%; background: #cbd5e0; border: none; color: #2d3748; padding: 12px; border-radius: var(--soft-radius); font-size: 0.85em; font-weight: 700; cursor: pointer; margin-top: 10px; margin-bottom: 25px; }
+
     .plant-card { border: 1px solid #d2b48c; padding: 20px; margin-bottom: 20px; border-radius: var(--soft-radius); background: var(--card-bg); position: relative; }
     .plant-card h4 { margin: 0 0 6px; color: var(--text-main); font-size: 1.25em; font-weight: 800; padding-right: 35px; }
     .plant-img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin: 12px 0 8px; background: #e2e8f0; display: block; }
@@ -121,6 +130,31 @@
     </div>
 
     <input type="text" id="search-box" placeholder="Search Plants..." style="width:100%; margin: 20px 0;" />
+
+    <h3>Environment & Season</h3>
+    <div class="filter-grid">
+      <div class="row"><label>Type</label><select id="type-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Roots</label><select id="root-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Moisture</label><select id="moisture-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Sun</label><select id="sun-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Drought</label><select id="drought-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Fire</label><select id="fire-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Growth</label><select id="growth-filter" class="plant-filter"><option value="all">Any</option></select></div>
+      <div class="row"><label>Season</label><select id="season-filter" class="plant-filter"><option value="all">Any</option><option value="Spring">Spring</option><option value="Fall">Fall</option><option value="Summer">Summer</option><option value="Winter">Winter</option><option value="Year Round">Year Round</option></select></div>
+    </div>
+
+    <h3>Soil Analysis</h3>
+    <div class="filter-grid">
+      <div class="row"><label>Clay</label><select id="clay-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Dense, holds water.</div></div>
+      <div class="row"><label>Sand</label><select id="sand-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Fast-draining, gritty.</div></div>
+      <div class="row"><label>Gravel</label><select id="gravel-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Stony, no pooling.</div></div>
+      <div class="row"><label>Loam</label><select id="loam-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Balanced soil.</div></div>
+      <div class="row"><label>Silt</label><select id="silt-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Fine particles.</div></div>
+      <div class="row"><label>Peat</label><select id="peat-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Organic matter.</div></div>
+      <div class="row"><label>Chalky</label><select id="chalky-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select><div class="soil-desc">Alkaline.</div></div>
+    </div>
+
+    <button class="reset-filters-btn" onclick="resetFilters()">Reset All Filters</button>
 
     <div id="results-count">Ready...</div>
     <div class="export-row" style="display:flex; gap:10px;">
@@ -212,6 +246,9 @@
       <p><em>${p['Scientific Name']}</em></p>
       <img id="img-${uniqueId}" class="plant-img">
       <div class="soil-category-container">${soils.join('')}</div>
+      <p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'}</p>
+      <p><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
+      <p><strong>Moisture:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
       <p><strong>Nursery:</strong> ${vendorLink}</p>
       <div class="card-actions" style="display:flex; gap:10px; margin-top:10px;">
         <button class="more-info-btn" onclick="toggleDetails('${uniqueId}')">Details</button>
@@ -238,8 +275,35 @@
   function renderResults(resetLimit = true) {
     if (!plantData) return; if (resetLimit) displayLimit = 10;
     const q = document.getElementById('search-box').value.toLowerCase();
+    
+    const f = {
+      type: document.getElementById('type-filter').value, root: document.getElementById('root-filter').value,
+      moisture: document.getElementById('moisture-filter').value, sun: document.getElementById('sun-filter').value,
+      drought: document.getElementById('drought-filter').value, fire: document.getElementById('fire-filter').value,
+      growth: document.getElementById('growth-filter').value, season: document.getElementById('season-filter').value,
+      clay: document.getElementById('clay-filter').value, sand: document.getElementById('sand-filter').value,
+      gravel: document.getElementById('gravel-filter').value, loam: document.getElementById('loam-filter').value,
+      silt: document.getElementById('silt-filter').value, peat: document.getElementById('peat-filter').value,
+      chalky: document.getElementById('chalky-filter').value
+    };
+
     currentFilteredItems = plantData.filter(p => {
       if (selectedL3Key && p.L3_KEY !== selectedL3Key) return false;
+      if (f.type !== 'all' && !(p['Plant Type'] || '').includes(f.type)) return false;
+      if (f.root !== 'all' && !(p['ROOT_TYPE'] || '').includes(f.root)) return false;
+      if (f.moisture !== 'all' && !(p['Soil Moisture'] || '').includes(f.moisture)) return false;
+      if (f.sun !== 'all' && !(p['SUN_EXPOSURE'] || '').includes(f.sun)) return false;
+      if (f.drought !== 'all' && !(p['Drought Tolerance'] || '').includes(f.drought)) return false;
+      if (f.fire !== 'all' && !(p['Fire Tolerance'] || '').includes(f.fire)) return false;
+      if (f.growth !== 'all' && !(p['Active Growth Period'] || '').includes(f.growth)) return false;
+      if (f.season !== 'all') { const v = (p['PLANTING_SEASON'] || '').toLowerCase(); if (f.season === 'Year Round') { if (!(v.includes('spring') && v.includes('summer'))) return false; } else if (!v.includes(f.season.toLowerCase())) return false; }
+      if (f.clay !== 'all' && p['CLAY_SOIL'] !== f.clay) return false;
+      if (f.sand !== 'all' && p['SAND_SOIL'] !== f.sand) return false;
+      if (f.gravel !== 'all' && p['GRAVEL_SOIL'] !== f.gravel) return false;
+      if (f.loam !== 'all' && p['LOAM_SOIL'] !== f.loam) return false;
+      if (f.silt !== 'all' && p['SILT_SOIL'] !== f.silt) return false;
+      if (f.peat !== 'all' && p['PEAT_SOIL'] !== f.peat) return false;
+      if (f.chalky !== 'all' && p['CHALKY_SOIL'] !== f.chalky) return false;
       if (q && !((p['Common Name'] || '').toLowerCase().includes(q) || (p['Scientific Name'] || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -254,6 +318,8 @@
       loadPlantPhoto(p['Scientific Name'], `img-list-${idx}`);
     });
   }
+
+  function resetFilters() { document.querySelectorAll('.plant-filter').forEach(s => s.value = 'all'); document.getElementById('search-box').value = ""; renderResults(true); }
 
   async function reverseLookupZip(lat, lng) {
     try {
@@ -281,7 +347,20 @@
   function useCoordinates() { const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value); if(!isNaN(lat)) matchLocationToRegion(lat, lng, 'coords'); }
   function resetSelection() { selectedL3Key = null; document.getElementById('selected-region').textContent = "Select a site on the map"; map.setView([37.8, -96], 4); renderResults(true); }
 
-  async function init() { Papa.parse(CSV_URL, { download: true, header: true, complete: res => { plantData = res.data; renderResults(); loadMap(); }}); }
+  function populate(id, col, data) { const sel = document.getElementById(id), vals = new Set(); data.forEach(r => { if(r[col] && r[col] !== '0') r[col].split(',').forEach(v => vals.add(v.trim())); }); Array.from(vals).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); }); }
+
+  async function init() { 
+    Papa.parse(CSV_URL, { download: true, header: true, complete: res => { 
+      plantData = res.data; 
+      ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter', 'growth-filter'].forEach(id => {
+        const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : 'Active Growth Period';
+        populate(id, col, plantData);
+      });
+      renderResults(); 
+      loadMap(); 
+    }}); 
+  }
+
   async function loadMap() {
     map = L.map('map').setView([37.8, -96], 4); streetTiles.addTo(map);
     try {
@@ -292,6 +371,7 @@
     } catch (e) {}
   }
   window.onload = init;
+  document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
   let dCount=0, dTimer; document.getElementById('secret-dot').addEventListener('click', () => { dCount++; clearTimeout(dTimer); if(dCount===2) { if(prompt("Key:")==="numpy") document.getElementById('debug-overlay').style.display='flex'; dCount=0; } dTimer=setTimeout(()=>dCount=0, 500); });
 </script>
 </body>
