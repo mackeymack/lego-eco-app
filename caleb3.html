@@ -59,6 +59,11 @@
     .reset-filters-btn { width: 100%; background: #f8f9fa; border: 1px solid #cbd5e0; color: #4b4b4b; padding: 10px; border-radius: 6px; font-size: 0.8em; font-weight: bold; cursor: pointer; margin-top: 10px; margin-bottom: 20px; }
 
     .plant-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 10px; background: #fff; border-left: 5px solid #27ae60; }
+    
+    /* New Photo Styles */
+    .plant-img { width: 100%; height: 200px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; background: #f1f3f5; }
+    .img-caption { font-size: 0.7em; color: #777; margin-top: -8px; margin-bottom: 12px; font-style: italic; display: block; }
+
     .card-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
     .more-info-btn { background: #f1f3f5; border: 1px solid #dee2e6; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
     
@@ -185,6 +190,17 @@
   let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
   const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
+  const vendorLinkMap = {
+    "native west": { name: "Native West Nursery", url: "https://nativewest.com/" },
+    "prairie moon nursery": { name: "Prairie Moon Nursery", url: "https://www.prairiemoon.com/" },
+    "praire nursery": { name: "Prairie Nursery", url: "https://www.prairienursery.com/" },
+    "ernst seeds": { name: "Ernst Conservation Seeds", url: "https://www.ernstseed.com/" },
+    "gbnp": { name: "Great Bear Native Plants", url: "http://www.greatbearnativeplants.com/" },
+    "mellow marsh farm": { name: "Mellow Marsh Farm", url: "https://mellowmarshfarm.com/" },
+    "roots and shoots": { name: "Roots and Shoots Nursery", url: "https://www.rootsandshootsnursery.com/" },
+    "critsite_native_plants_full_list": { name: "Plant Picker", url: "https://plantsman.com/" }
+  };
+
   let dotClickCount = 0, dotTimer;
   document.getElementById('secret-dot').addEventListener('click', () => {
     dotClickCount++;
@@ -246,6 +262,28 @@
     map.setView([37.8, -96], 4);
     renderResults(true);
     sysLog("Selection cleared.");
+  }
+
+  // Dynamic Photo Loader
+  async function loadPlantPhoto(sciName, idx, source1) {
+    const img = document.getElementById(`img-${idx}`);
+    const caption = document.getElementById(`caption-${idx}`);
+    try {
+      // Fetching from outside site (iNaturalist API) matching USDA designations
+      const res = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(sciName)}&rank=species`);
+      const data = await res.json();
+      if (data.results && data.results.length > 0 && data.results[0].default_photo) {
+        img.src = data.results[0].default_photo.medium_url;
+        let provider = source1 && source1.includes("usda.gov") ? "USDA Designation" : "Outside Source";
+        caption.textContent = `Photo: ${provider} via iNaturalist`;
+      } else {
+        img.style.display = 'none';
+        caption.style.display = 'none';
+      }
+    } catch (e) { 
+      img.style.display = 'none'; 
+      caption.style.display = 'none';
+    }
   }
 
   function renderResults(resetLimit = true) {
@@ -323,14 +361,21 @@
       const hasLink = p['SOURCE_LINK_1'] && p['SOURCE_LINK_1'] !== '0';
       const sourceHtml = hasLink ? `<a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">View Source</a>` : '';
       
+      const vRaw = p['Vendor'] || 'None Listed';
+      const vKey = vRaw.toLowerCase().trim();
+      const vInfo = vendorLinkMap[vKey] || null;
+      const vendorHtml = vInfo ? `<a href="${vInfo.url}" target="_blank" style="color: #27ae60; font-weight: bold;">${vInfo.name}</a>` : vRaw;
+
       let allFieldsHtml = '';
       Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') allFieldsHtml += `<div><strong>${k}:</strong> ${p[k]}</div>`; });
 
       card.innerHTML = `
         <h4>${p['Common Name'] || 'Unknown'}</h4>
         <p><em>${p['Scientific Name'] || ''}</em></p>
+        <img id="img-${index}" class="plant-img" src="" alt="Plant Image">
+        <span id="caption-${index}" class="img-caption">Loading...</span>
         <p><strong>ROOTS:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
-        <p><strong>VENDOR:</strong> ${p['Vendor'] || 'None Listed'}</p>
+        <p><strong>VENDOR LINK:</strong> ${vendorHtml}</p>
         <p><strong>SOIL:</strong> ${soilStr}</p>
         <p><strong>WATER:</strong> ${p['Soil Moisture'] || 'N/A'}</p>
         <p><strong>SUN:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
@@ -338,6 +383,7 @@
         <div id="details-${index}" class="details-pane">${allFieldsHtml}</div>
       `;
       list.appendChild(card);
+      loadPlantPhoto(p['Scientific Name'], index, p['SOURCE_LINK_1']);
     });
   }
 
@@ -411,7 +457,6 @@
       const geoRes = await fetch(ECO_URL);
       const geoJSON = await geoRes.json();
       
-      // Aggregate all states for each L3_KEY
       const ecoregionStates = {};
       geoJSON.features.forEach(f => {
         const key = f.properties.L3_KEY;
@@ -427,8 +472,6 @@
         onEachFeature: (f, l) => {
           const key = f.properties.L3_KEY;
           const count = regionCounts[key] || 0;
-          
-          // Use the aggregated state list instead of a single state property
           const statesSet = ecoregionStates[key];
           const statesList = statesSet ? Array.from(statesSet).sort().join(', ') : "USA";
           
