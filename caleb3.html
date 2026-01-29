@@ -16,7 +16,7 @@
       --primary-green: #1a5d1a;
       --accent-green: #27ae60;
       --bg-light: #e8f5e9; /* Pale green background */
-      --card-bg: #f9f6f2;   /* Light brown-ish color for cards */
+      --card-bg: #f9f6f2;   /* Slightly lighter brown/warm cream */
       --border-color: #cbd5e0;
       --text-main: #2d3436;
       --soft-radius: 12px;
@@ -134,7 +134,7 @@
 
     .source-link { display: inline-block; color: var(--accent-green); text-decoration: none; font-weight: 700; font-size: 0.8em; border: 1.5px solid var(--accent-green); padding: 8px 16px; border-radius: 8px; }
     .source-link:hover { background: var(--accent-green); color: white; }
-    .more-info-btn { background: #f7fafc; border: 1.5px solid var(--border-color); color: #4a5568; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8em; font-weight: 700; }
+    .more-info-btn { background: #f7fafc; border: 1.5px solid #cbd5e0; color: #4a5568; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8em; font-weight: 700; }
 
     .details-pane { display: none; margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); font-size: 0.85em; color: #4a5568; }
     .details-pane.active { display: block; }
@@ -153,21 +153,21 @@
 
 <div id="debug-overlay">
   <div class="debug-toolbar" style="display:flex; justify-content: space-between; margin-bottom: 15px;">
-    <span style="font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">S.P.A.D.E. Core System</span>
+    <span style="font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">S.P.A.D.E. Core System Logs</span>
     <div style="display: flex; gap: 10px;">
       <button onclick="copyDebugLog()">Copy</button>
       <button onclick="clearDebugLog()">Clear</button>
       <button style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px;" onclick="document.getElementById('debug-overlay').style.display = 'none'">Close</button>
     </div>
   </div>
-  <div id="debug-content" style="flex-grow:1; overflow-y:auto; background:#1e293b; padding:15px; border-radius:8px; font-size:12px;"></div>
+  <div id="debug-content" style="flex-grow:1; overflow-y:auto; background:#1e293b; padding:15px; border-radius:8px; font-size:12px; white-space: pre-wrap;"></div>
 </div>
 
 <div id="wrap">
   <div id="sidebar">
     <h2>S<span id="secret-dot">.</span>P.A.D.E.</h2>
     <div class="acronym">Site Preservation & Dirt Erosion</div>
-    <div class="subtitle">Designed By the Blazin Turtles</div>
+    <div class="subtitle">Created By The Blazin Turtles</div>
     
     <button id="geo-btn" class="btn-standard" onclick="useMyLocation()">📍 Use My Location</button>
 
@@ -226,7 +226,7 @@
       <div class="row"><label>Clay</label><select id="clay-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
       <div class="row"><label>Sand</label><select id="sand-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
       <div class="row"><label>Gravel</label><select id="gravel-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Loam</label><select id="loam-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="row"><label>Loam</label><select id="loam-filter" class="plant-filter"><option value="all">Any</option><select id="loam-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
       <div class="row"><label>Silt</label><select id="silt-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
       <div class="row"><label>Peat</label><select id="peat-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
       <div class="row"><label>Chalky</label><select id="chalky-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
@@ -238,7 +238,7 @@
 
     <div class="export-row">
       <button class="export-btn" onclick="exportExcel()">Export (XLSX)</button>
-      <button class="export-btn" onclick="exportSheets()">Export (Sheets)</button>
+      <button class="export-btn" onclick="exportCSV()">Export (CSV)</button>
     </div>
 
     <div id="results-list"></div>
@@ -246,13 +246,24 @@
       <button id="show-more-btn" class="action-btn" style="width:100%;" onclick="showMore()">Show More Results</button>
     </div>
     
-    <div id="status">Live • v3.7</div>
+    <div id="status">System Status: Monitoring...</div>
   </div>
 
   <div id="map-container"><div id="map"></div></div>
 </div>
 
 <script>
+  function sysLog(msg) {
+    const content = document.getElementById('debug-content');
+    const timestamp = new Date().toLocaleTimeString();
+    if(content) {
+        content.innerHTML += `[${timestamp}] ${msg}\n`;
+        content.scrollTop = content.scrollHeight;
+    }
+  }
+
+  sysLog("Application script loaded. Initializing internal components...");
+
   let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
   const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
@@ -267,6 +278,32 @@
     "critsite_native_plants_full_list": { name: "Plant Picker", url: "https://plantsman.com/" }
   };
 
+  function exportExcel() {
+    sysLog("Exporting filtered data to Excel...");
+    const dataToExport = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData;
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Plant List");
+    XLSX.writeFile(workbook, "SPADE_Export.xlsx");
+    sysLog("Excel export complete.");
+  }
+
+  function exportCSV() {
+    sysLog("Exporting filtered data to CSV...");
+    const dataToExport = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData;
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "SPADE_Export.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    sysLog("CSV export complete.");
+  }
+
   let dotClickCount = 0, dotTimer;
   document.getElementById('secret-dot').addEventListener('click', () => {
     dotClickCount++;
@@ -274,6 +311,7 @@
     if (dotClickCount === 2) {
       if (prompt("Enter System Key:") === "numpy") {
         document.getElementById('debug-overlay').style.display = 'flex';
+        sysLog("Core System Accessed.");
       }
       dotClickCount = 0;
     } else {
@@ -468,7 +506,7 @@
           const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : 'Active Growth Period';
           populate(id, col, plantData);
         });
-        document.getElementById('status').textContent = 'Live • v3.7';
+        document.getElementById('status').textContent = 'Live • Monitoring active';
         renderResults();
         loadMap();
     }});
