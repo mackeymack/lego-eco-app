@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <title>S.P.A.D.E. – by Blazin Turtles</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -15,38 +18,16 @@
     :root {
       --primary-green: #1a5d1a;
       --accent-green: #27ae60;
-      --bg-light: #e8f5e9; /* Pale green background */
-      --card-bg: #f9f6f2;   /* Slightly lighter brown/warm cream */
+      --bg-light: #e8f5e9;
+      --card-bg: #f9f6f2;
       --border-color: #cbd5e0;
       --text-main: #2d3436;
       --soft-radius: 12px;
     }
 
-    body { 
-      margin: 0; 
-      font-family: 'Inter', 'Segoe UI', sans-serif; 
-      background: var(--bg-light); 
-      color: var(--text-main); 
-      line-height: 1.5; 
-      overflow: hidden; 
-    }
-    
-    #wrap { 
-      display: grid; 
-      grid-template-columns: 550px 1fr; 
-      height: 100vh; 
-    }
-    
-    #sidebar { 
-      padding: 30px; 
-      border-right: 1px solid var(--border-color); 
-      overflow-y: auto; 
-      overflow-x: hidden; 
-      background: var(--bg-light); 
-      z-index: 10; 
-      scroll-behavior: smooth; 
-    }
-
+    body { margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg-light); color: var(--text-main); line-height: 1.5; overflow: hidden; }
+    #wrap { display: grid; grid-template-columns: 550px 1fr; height: 100vh; }
+    #sidebar { padding: 30px; border-right: 1px solid var(--border-color); overflow-y: auto; overflow-x: hidden; background: var(--bg-light); z-index: 10; scroll-behavior: smooth; }
     #map-container { position: relative; height: 100vh; overflow: hidden; }
     #map { height: 100%; width: 100%; }
     
@@ -55,105 +36,69 @@
     .subtitle { margin-bottom: 30px; color: #4a5568; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
     
     #secret-dot { cursor: pointer; user-select: none; transition: opacity 0.2s; }
-    #secret-dot:hover { opacity: 0.7; }
-
     h3 { margin: 35px 0 15px; font-size: 0.9em; border-bottom: 2px solid #cbd5e0; padding-bottom: 8px; color: #475569; text-transform: uppercase; letter-spacing: 1px; }
     
-    .btn-standard { 
-      width: 100%; border: none; padding: 14px; border-radius: var(--soft-radius); 
-      font-weight: 700; cursor: pointer; transition: all 0.2s ease; 
-      display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.9em;
-    }
-    
+    .btn-standard { width: 100%; border: none; padding: 14px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.9em; }
     #geo-btn { background: #3b82f6; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); }
-    #geo-btn:hover { background: #2563eb; transform: translateY(-1px); }
-
     .zip-container { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; width: 100%; }
-    
     .input-group { display: flex; flex: 1; gap: 10px; }
 
-    input[type="text"], input[type="number"], select { 
-      flex: 1; 
-      min-width: 0; 
-      padding: 12px; 
-      border: 1.5px solid var(--border-color); 
-      border-radius: var(--soft-radius); 
-      font-size: 0.9em; 
-      height: 48px; 
-      box-sizing: border-box; 
-      transition: border-color 0.2s; 
-      background: #fff;
-    }
-
-    input:focus, select:focus { outline: none; border-color: var(--accent-green); box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1); }
-
-    .action-btn { 
-      background: var(--accent-green); 
-      color: white; 
-      border: none; 
-      padding: 0 24px; 
-      border-radius: var(--soft-radius); 
-      font-weight: 700; 
-      cursor: pointer; 
-      height: 48px; 
-      transition: background 0.2s; 
-      flex-shrink: 0; 
-    }
-    .action-btn:hover { background: #1e8449; }
-
-    .export-btn { 
-      flex: 1; padding: 12px; border-radius: var(--soft-radius); border: 1.5px solid var(--accent-green); 
-      background: #fff; color: var(--accent-green); font-weight: 700; cursor: pointer; font-size: 0.8em; transition: all 0.2s;
-    }
-    .export-btn:hover { background: var(--accent-green); color: white; }
+    input[type="text"], input[type="number"], select { flex: 1; min-width: 0; padding: 12px; border: 1.5px solid var(--border-color); border-radius: var(--soft-radius); font-size: 0.9em; height: 48px; box-sizing: border-box; transition: border-color 0.2s; background: #fff; }
+    .action-btn { background: var(--accent-green); color: white; border: none; padding: 0 24px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; height: 48px; transition: background 0.2s; flex-shrink: 0; }
+    .export-btn { flex: 1; padding: 12px; border-radius: var(--soft-radius); border: 1.5px solid var(--accent-green); background: #fff; color: var(--accent-green); font-weight: 700; cursor: pointer; font-size: 0.8em; transition: all 0.2s; }
 
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-    label { font-weight: 700; font-size: 0.7em; display: block; margin-bottom: 8px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
+    label { font-weight: 700; font-size: 0.7em; display: block; margin-bottom: 4px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
     
+    .soil-desc { font-size: 0.65em; color: #718096; margin-bottom: 10px; line-height: 1.2; font-style: italic; }
+
     .region-display-container { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-    #selected-region { 
-      flex-grow: 1; font-weight: 700; color: #1e40af; background: #e6f0ff; 
-      padding: 12px; border-radius: var(--soft-radius); font-size: 0.85em; 
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 48px; 
-      display: flex; align-items: center; border: 1px solid #cbd5e0;
-    }
+    #selected-region { flex-grow: 1; font-weight: 700; color: #1e40af; background: #e6f0ff; padding: 12px; border-radius: var(--soft-radius); font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 48px; display: flex; align-items: center; border: 1px solid #cbd5e0; }
     #clear-selection-btn { background: #fed7d7; color: #c53030; border: none; padding: 0 16px; border-radius: var(--soft-radius); font-weight: 700; cursor: pointer; height: 48px; font-size: 0.8em; }
-
     .reset-filters-btn { width: 100%; background: #cbd5e0; border: none; color: #2d3748; padding: 12px; border-radius: var(--soft-radius); font-size: 0.85em; font-weight: 700; cursor: pointer; margin-top: 10px; margin-bottom: 25px; }
-    .reset-filters-btn:hover { background: #a0aec0; }
 
-    .plant-card { border: 1px solid #d2b48c; padding: 20px; margin-bottom: 20px; border-radius: var(--soft-radius); background: var(--card-bg); transition: transform 0.2s, box-shadow 0.2s; }
-    .plant-card h4 { margin: 0 0 6px; color: var(--text-main); font-size: 1.25em; font-weight: 800; }
-    .plant-card p { margin: 8px 0; font-size: 0.9em; color: #2d3748; }
-    
+    .plant-card { border: 1px solid #d2b48c; padding: 20px; margin-bottom: 20px; border-radius: var(--soft-radius); background: var(--card-bg); position: relative; }
+    .plant-card h4 { margin: 0 0 6px; color: var(--text-main); font-size: 1.25em; font-weight: 800; padding-right: 30px; }
     .plant-img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin: 12px 0 8px; background: #e2e8f0; }
     .img-caption { font-size: 0.75em; color: #718096; display: block; margin-bottom: 15px; }
-
     .soil-category-container { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
     .soil-badge { background: #e2e8f0; color: #2d3748; font-size: 0.7em; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; border: 1px solid var(--border-color); }
-
     .source-link { display: inline-block; color: var(--accent-green); text-decoration: none; font-weight: 700; font-size: 0.8em; border: 1.5px solid var(--accent-green); padding: 8px 16px; border-radius: 8px; }
-    .source-link:hover { background: var(--accent-green); color: white; }
     .more-info-btn { background: #f7fafc; border: 1.5px solid #cbd5e0; color: #4a5568; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8em; font-weight: 700; }
-
     .details-pane { display: none; margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); font-size: 0.85em; color: #4a5568; }
     .details-pane.active { display: block; }
     .details-pane div { margin-bottom: 8px; display: flex; justify-content: space-between; }
-
     #results-count { margin: 20px 0; font-weight: 800; font-size: 1em; color: var(--accent-green); text-align: center; background: #e6fffa; padding: 10px; border-radius: 8px; border: 1px solid var(--accent-green); }
 
-    #debug-overlay {
-      display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%;
-      background: #0f172a; color: #10b981; font-family: 'Fira Code', monospace; padding: 25px; z-index: 10000;
-      border: 1px solid #334155; border-radius: var(--soft-radius); flex-direction: column;
-    }
+    /* Starring Styles (Feature 7) */
+    .star-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; transition: transform 0.2s; color: #cbd5e0; }
+    .star-btn.active { color: #f1c40f; transform: scale(1.2); }
+    #starred-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; overflow-y: auto; padding: 40px 20px; }
+    .starred-header { display: flex; justify-content: space-between; align-items: center; color: white; max-width: 1200px; margin: 0 auto 30px; }
+    .close-starred { font-size: 35px; cursor: pointer; color: white; background: none; border: none; }
+    .starred-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+
+    /* Map Controls (Feature 3) */
+    #map-controls { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .map-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 700; font-size: 0.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .map-btn:hover { background: #f8fafc; }
+
+    #debug-overlay { display: none; position: fixed; top: 10%; left: 10%; right: 10%; bottom: 10%; background: #0f172a; color: #10b981; font-family: 'Fira Code', monospace; padding: 25px; z-index: 10000; border: 1px solid #334155; border-radius: var(--soft-radius); flex-direction: column; }
   </style>
 </head>
 <body>
 
+<div id="starred-overlay">
+  <div class="starred-header">
+    <h2 style="color:white; margin:0;">⭐ Starred Comparisons</h2>
+    <button class="close-starred" onclick="document.getElementById('starred-overlay').style.display='none'">✕</button>
+  </div>
+  <div id="starred-grid" class="starred-grid"></div>
+</div>
+
 <div id="debug-overlay">
   <div class="debug-toolbar" style="display:flex; justify-content: space-between; margin-bottom: 15px;">
-    <span style="font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">S.P.A.D.E. Core System Logs</span>
+    <span style="font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">S.P.A.D.E. Logs</span>
     <div style="display: flex; gap: 10px;">
       <button onclick="copyDebugLog()">Copy</button>
       <button onclick="clearDebugLog()">Clear</button>
@@ -172,9 +117,7 @@
     <button id="geo-btn" class="btn-standard" onclick="useMyLocation()">📍 Use My Location</button>
 
     <div class="zip-container">
-      <div class="input-group">
-        <input type="text" id="zip-input" placeholder="Zip Code" maxlength="5">
-      </div>
+      <div class="input-group"><input type="text" id="zip-input" placeholder="Zip Code" maxlength="5"></div>
       <button class="action-btn" onclick="useZipCode()">Go</button>
     </div>
 
@@ -185,6 +128,8 @@
       </div>
       <button class="action-btn" onclick="useCoordinates()">Go</button>
     </div>
+
+    <button class="btn-standard" style="background: #f1c40f; color: #2d3436; margin-bottom: 25px;" onclick="showStarred()">⭐ View Starred Plants</button>
 
     <div class="row">
       <label>Target Ecoregion</label>
@@ -208,63 +153,81 @@
       <div class="row"><label>Drought Tol.</label><select id="drought-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Fire Tol.</label><select id="fire-filter" class="plant-filter"><option value="all">Any</option></select></div>
       <div class="row"><label>Growth</label><select id="growth-filter" class="plant-filter"><option value="all">Any Period</option></select></div>
-      <div class="row">
-        <label>Season</label>
-        <select id="season-filter" class="plant-filter">
-          <option value="all">Any Season</option>
-          <option value="Spring">Spring</option>
-          <option value="Fall">Fall</option>
-          <option value="Summer">Summer</option>
-          <option value="Winter">Winter</option>
-          <option value="Year Round">Year Round</option>
-        </select>
-      </div>
+      <div class="row"><label>Season</label><select id="season-filter" class="plant-filter"><option value="all">Any Season</option><option value="Spring">Spring</option><option value="Fall">Fall</option><option value="Summer">Summer</option><option value="Winter">Winter</option><option value="Year Round">Year Round</option></select></div>
     </div>
 
     <h3>Soil Analysis</h3>
     <div class="filter-grid">
-      <div class="row"><label>Clay</label><select id="clay-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Sand</label><select id="sand-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Gravel</label><select id="gravel-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Loam</label><select id="loam-filter" class="plant-filter"><option value="all">Any</option><select id="loam-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Silt</label><select id="silt-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Peat</label><select id="peat-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="row"><label>Chalky</label><select id="chalky-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="row">
+        <label>Clay</label>
+        <select id="clay-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+        <div class="soil-desc">Dense, holds water well.</div>
+      </div>
+      <div class="row">
+        <label>Sand</label>
+        <select id="sand-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+        <div class="soil-desc">Fast-draining, gritty.</div>
+      </div>
+      <div class="row">
+        <label>Gravel</label>
+        <select id="gravel-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+        <div class="soil-desc">Stony, prevents pooling.</div>
+      </div>
+      <div class="row">
+        <label>Loam</label>
+        <select id="loam-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+        <div class="soil-desc">Perfect balanced soil.</div>
+      </div>
+      <div class="row">
+        <label>Silt</label>
+        <select id="silt-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+        <div class="soil-desc">Fine particles, fertile.</div>
+      </div>
+      <div class="row">
+        <label>Peat</label>
+        <select id="peat-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+        <div class="soil-desc">Dark, organic matter.</div>
+      </div>
+      <div class="row">
+        <label>Chalky</label>
+        <select id="chalky-filter" class="plant-filter"><option value="all">Any</option><option value="Yes">Yes</option><option value="No">No</option></select>
+        <div class="soil-desc">Alkaline, drains quickly.</div>
+      </div>
     </div>
 
     <button class="reset-filters-btn" onclick="resetFilters()">Reset All Filters</button>
 
     <div id="results-count">Ready to scan...</div>
 
-    <div class="export-row">
+    <div class="export-row" style="display:flex; gap:10px;">
       <button class="export-btn" onclick="exportExcel()">Export (XLSX)</button>
       <button class="export-btn" onclick="exportCSV()">Export (CSV)</button>
     </div>
 
     <div id="results-list"></div>
-    <div id="show-more-container">
+    <div id="show-more-container" style="text-align:center; margin-top:20px;">
       <button id="show-more-btn" class="action-btn" style="width:100%;" onclick="showMore()">Show More Results</button>
     </div>
-    
-    <div id="status">System Status: Monitoring...</div>
+    <div id="status" style="font-size:11px; color:#718096; text-align:center; margin-top:10px;">Live • Monitoring active</div>
   </div>
 
-  <div id="map-container"><div id="map"></div></div>
+  <div id="map-container">
+    <div id="map-controls">
+      <button class="map-btn" onclick="setMapLayer('street')">Site Map</button>
+      <button class="map-btn" onclick="setMapLayer('satellite')">Satellite View</button>
+    </div>
+    <div id="map"></div>
+  </div>
 </div>
 
 <script>
   function sysLog(msg) {
     const content = document.getElementById('debug-content');
-    const timestamp = new Date().toLocaleTimeString();
-    if(content) {
-        content.innerHTML += `[${timestamp}] ${msg}\n`;
-        content.scrollTop = content.scrollHeight;
-    }
+    if(content) { content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`; content.scrollTop = content.scrollHeight; }
   }
 
-  sysLog("Application script loaded. Initializing internal components...");
-
   let plantData = null, currentFilteredItems = [], selectedL3Key = null, regionCounts = {}, displayLimit = 10, map, geoLayer; 
+  let starredPlants = JSON.parse(localStorage.getItem('spade_starred') || '[]');
   const increment = 10, ECO_URL = 'assets/us_eco_l3_state_boundaries.json', CSV_URL = 'assets/Database-Deleted-Categories.csv';
 
   const vendorLinkMap = {
@@ -278,30 +241,52 @@
     "critsite_native_plants_full_list": { name: "Plant Picker", url: "https://plantsman.com/" }
   };
 
+  const streetTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
+  const satelliteTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' });
+
+  function setMapLayer(type) {
+    if (type === 'satellite') { map.removeLayer(streetTiles); satelliteTiles.addTo(map); sysLog("Switching to Satellite imagery."); }
+    else { map.removeLayer(satelliteTiles); streetTiles.addTo(map); sysLog("Switching to Site Map."); }
+  }
+
   function exportExcel() {
-    sysLog("Exporting filtered data to Excel...");
-    const dataToExport = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData;
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Plant List");
-    XLSX.writeFile(workbook, "SPADE_Export.xlsx");
-    sysLog("Excel export complete.");
+    const data = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData;
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Plants");
+    XLSX.writeFile(wb, "SPADE_Export.xlsx");
   }
 
   function exportCSV() {
-    sysLog("Exporting filtered data to CSV...");
-    const dataToExport = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData;
-    const csv = Papa.unparse(dataToExport);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
+    const data = (currentFilteredItems.length > 0) ? currentFilteredItems : plantData;
+    const csv = Papa.unparse(data);
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "SPADE_Export.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    sysLog("CSV export complete.");
+    const a = document.createElement("a");
+    a.href = url; a.download = "SPADE_Export.csv"; a.click();
+  }
+
+  function toggleStar(sciName) {
+    const idx = starredPlants.indexOf(sciName);
+    if (idx === -1) { starredPlants.push(sciName); sysLog(`Starred: ${sciName}`); }
+    else { starredPlants.splice(idx, 1); sysLog(`Unstarred: ${sciName}`); }
+    localStorage.setItem('spade_starred', JSON.stringify(starredPlants));
+    renderResults(false);
+  }
+
+  function showStarred() {
+    const overlay = document.getElementById('starred-overlay');
+    const grid = document.getElementById('starred-grid');
+    grid.innerHTML = '';
+    const items = plantData.filter(p => starredPlants.includes(p['Scientific Name']));
+    if (items.length === 0) { grid.innerHTML = '<p style="color:white; text-align:center; width:100%;">No plants starred yet.</p>'; }
+    items.forEach((p, idx) => {
+        const card = document.createElement('div');
+        card.className = 'plant-card';
+        card.innerHTML = `<h4>${p['Common Name']}</h4><p><em>${p['Scientific Name']}</em></p><div class="soil-category-container">${p['Soil Moisture']}</div><p><strong>Roots:</strong> ${p['ROOT_TYPE']}</p><p><strong>Nursery:</strong> ${p['Vendor']}</p><button class="action-btn" style="width:100%;" onclick="toggleStar('${p['Scientific Name']}'); showStarred();">Remove Star</button>`;
+        grid.appendChild(card);
+    });
+    overlay.style.display = 'block';
   }
 
   let dotClickCount = 0, dotTimer;
@@ -309,19 +294,13 @@
     dotClickCount++;
     clearTimeout(dotTimer);
     if (dotClickCount === 2) {
-      if (prompt("Enter System Key:") === "numpy") {
-        document.getElementById('debug-overlay').style.display = 'flex';
-        sysLog("Core System Accessed.");
-      }
+      if (prompt("Enter Key:") === "numpy") document.getElementById('debug-overlay').style.display = 'flex';
       dotClickCount = 0;
-    } else {
-      dotTimer = setTimeout(() => { dotClickCount = 0; }, 500);
-    }
+    } else { dotTimer = setTimeout(() => { dotClickCount = 0; }, 500); }
   });
 
   function clearDebugLog() { document.getElementById('debug-content').innerHTML = ''; }
-  function copyDebugLog() { navigator.clipboard.writeText(document.getElementById('debug-content').innerText); alert("Logs copied."); }
-
+  function copyDebugLog() { navigator.clipboard.writeText(document.getElementById('debug-content').innerText); alert("Copied."); }
   function showMore() { displayLimit += increment; renderResults(false); }
 
   function populate(id, col, data) {
@@ -333,12 +312,8 @@
   function highlightRegion(key) {
     if (!geoLayer) return;
     geoLayer.eachLayer(layer => {
-      if (layer.feature.properties.L3_KEY === key) {
-        layer.setStyle({ fillOpacity: 0.6, weight: 3, color: '#1a5d1a', opacity: 1 });
-        layer.bringToFront();
-      } else {
-        layer.setStyle({ fillOpacity: 0.05, weight: 1, color: '#27ae60', opacity: 0.3 });
-      }
+      if (layer.feature.properties.L3_KEY === key) { layer.setStyle({ fillOpacity: 0.6, weight: 3, color: '#1a5d1a' }); layer.bringToFront(); }
+      else { layer.setStyle({ fillOpacity: 0.1, weight: 1, color: '#27ae60' }); }
     });
   }
 
@@ -352,24 +327,19 @@
     selectedL3Key = null;
     document.getElementById('selected-region').textContent = "Select a site on the map";
     ['zip-input', 'lat-input', 'lng-input'].forEach(id => document.getElementById(id).value = "");
-    if (geoLayer) geoLayer.eachLayer(layer => layer.setStyle({ fillOpacity: 0.1, weight: 1, color: '#27ae60', opacity: 1 }));
+    localStorage.removeItem('spade_lat'); localStorage.removeItem('spade_lng'); localStorage.removeItem('spade_zip');
+    if (geoLayer) geoLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1, weight: 1 }));
     map.setView([37.8, -96], 4);
     renderResults(true);
   }
 
-  async function loadPlantPhoto(sciName, idx, source1) {
-    const img = document.getElementById(`img-${idx}`);
-    const caption = document.getElementById(`caption-${idx}`);
+  async function loadPlantPhoto(sciName, idx) {
+    const img = document.getElementById(`img-${idx}`), cap = document.getElementById(`caption-${idx}`);
     try {
       const res = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(sciName)}&rank=species`);
       const data = await res.json();
-      if (data.results && data.results.length > 0 && data.results[0].default_photo) {
-        img.src = data.results[0].default_photo.medium_url;
-        caption.textContent = `Source: iNaturalist (USDA Designation)`;
-      } else {
-        img.style.display = 'none';
-        caption.style.display = 'none';
-      }
+      if (data.results?.[0]?.default_photo) { img.src = data.results[0].default_photo.medium_url; cap.textContent = "Source: iNaturalist"; }
+      else { img.style.display = 'none'; cap.style.display = 'none'; }
     } catch (e) { img.style.display = 'none'; }
   }
 
@@ -378,20 +348,13 @@
     if (resetLimit) displayLimit = 10;
     const query = document.getElementById('search-box').value.toLowerCase();
     const f = {
-      type: document.getElementById('type-filter').value,
-      root: document.getElementById('root-filter').value,
-      moisture: document.getElementById('moisture-filter').value,
-      sun: document.getElementById('sun-filter').value,
-      drought: document.getElementById('drought-filter').value,
-      fire: document.getElementById('fire-filter').value,
-      growth: document.getElementById('growth-filter').value,
-      season: document.getElementById('season-filter').value,
-      clay: document.getElementById('clay-filter').value,
-      sand: document.getElementById('sand-filter').value,
-      gravel: document.getElementById('gravel-filter').value,
-      loam: document.getElementById('loam-filter').value,
-      silt: document.getElementById('silt-filter').value,
-      peat: document.getElementById('peat-filter').value,
+      type: document.getElementById('type-filter').value, root: document.getElementById('root-filter').value,
+      moisture: document.getElementById('moisture-filter').value, sun: document.getElementById('sun-filter').value,
+      drought: document.getElementById('drought-filter').value, fire: document.getElementById('fire-filter').value,
+      growth: document.getElementById('growth-filter').value, season: document.getElementById('season-filter').value,
+      clay: document.getElementById('clay-filter').value, sand: document.getElementById('sand-filter').value,
+      gravel: document.getElementById('gravel-filter').value, loam: document.getElementById('loam-filter').value,
+      silt: document.getElementById('silt-filter').value, peat: document.getElementById('peat-filter').value,
       chalky: document.getElementById('chalky-filter').value
     };
 
@@ -420,41 +383,19 @@
       return true;
     });
 
-    document.getElementById('results-count').textContent = `Matched ${currentFilteredItems.length} Plant Species`;
+    document.getElementById('results-count').textContent = `Matched ${currentFilteredItems.length} Species`;
     document.getElementById('show-more-container').style.display = (currentFilteredItems.length > displayLimit) ? 'block' : 'none';
     const list = document.getElementById('results-list');
     list.innerHTML = '';
-    currentFilteredItems.slice(0, displayLimit).forEach((p, index) => {
-      const card = document.createElement('div');
-      card.className = 'plant-card';
-      let soils = [];
-      ['CLAY','SAND','GRAVEL','LOAM','SILT','PEAT','CHALKY'].forEach(s => { if(p[s+'_SOIL'] === 'Yes') soils.push(`<span class="soil-badge">${s}</span>`); });
-      const soilHtml = soils.length > 0 ? soils.join('') : '<span class="soil-badge">Versatile</span>';
-      const vRaw = p['Vendor'] || 'None';
-      const vKey = vRaw.toLowerCase().trim();
-      const vInfo = vendorLinkMap[vKey] || null;
-      const vendorHtml = vInfo ? `<a href="${vInfo.url}" target="_blank" style="color:var(--accent-green); text-decoration:none;">${vInfo.name}</a>` : vRaw;
-      let detailsHtml = '';
-      Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') detailsHtml += `<div><strong>${k.replace(/_/g,' ')}</strong><span>${p[k]}</span></div>`; });
-
-      card.innerHTML = `
-        <h4>${p['Common Name'] || 'Native Species'}</h4>
-        <p><em>${p['Scientific Name'] || ''}</em></p>
-        <img id="img-${index}" class="plant-img" src="" alt="">
-        <span id="caption-${index}" class="img-caption"></span>
-        <label style="margin-top:10px;">Soil Compatibility</label>
-        <div class="soil-category-container">${soilHtml}</div>
-        <p><strong>Roots:</strong> ${p['ROOT_TYPE'] || 'N/A'} (${p['ROOT_DEPTH'] || 'N/A'})</p>
-        <p><strong>Nursery:</strong> ${vendorHtml}</p>
-        <p><strong>Sun:</strong> ${p['SUN_EXPOSURE'] || 'N/A'}</p>
-        <div class="card-actions">
-          <button id="btn-${index}" class="more-info-btn" onclick="toggleDetails(${index})">Details</button>
-          <a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">USDA Profile</a>
-        </div>
-        <div id="details-${index}" class="details-pane">${detailsHtml}</div>
-      `;
-      list.appendChild(card);
-      loadPlantPhoto(p['Scientific Name'], index, p['SOURCE_LINK_1']);
+    currentFilteredItems.slice(0, displayLimit).forEach((p, idx) => {
+      const card = document.createElement('div'); card.className = 'plant-card';
+      const isStarred = starredPlants.includes(p['Scientific Name']);
+      let soils = []; ['CLAY','SAND','GRAVEL','LOAM','SILT','PEAT','CHALKY'].forEach(s => { if(p[s+'_SOIL'] === 'Yes') soils.push(`<span class="soil-badge">${s}</span>`); });
+      const vKey = (p['Vendor'] || '').toLowerCase().trim();
+      const vendorHtml = vendorLinkMap[vKey] ? `<a href="${vendorLinkMap[vKey].url}" target="_blank" style="color:var(--accent-green); text-decoration:none;">${vendorLinkMap[vKey].name}</a>` : p['Vendor'];
+      let det = ''; Object.keys(p).forEach(k => { if(p[k] && p[k] !== '0') det += `<div><strong>${k.replace(/_/g,' ')}</strong><span>${p[k]}</span></div>`; });
+      card.innerHTML = `<button class="star-btn ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}')">⭐</button><h4>${p['Common Name']}</h4><p><em>${p['Scientific Name']}</em></p><img id="img-${idx}" class="plant-img"><span id="caption-${idx}" class="img-caption"></span><div class="soil-category-container">${soils.join('')}</div><p><strong>Roots:</strong> ${p['ROOT_TYPE']}</p><p><strong>Nursery:</strong> ${vendorHtml}</p><div class="card-actions"><button id="btn-${idx}" class="more-info-btn" onclick="toggleDetails(${idx})">Details</button><a href="${p['SOURCE_LINK_1']}" target="_blank" class="source-link">USDA Profile</a></div><div id="details-${idx}" class="details-pane">${det}</div>`;
+      list.appendChild(card); loadPlantPhoto(p['Scientific Name'], idx);
     });
   }
 
@@ -465,107 +406,80 @@
       const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
       const data = await res.json();
       const lat = parseFloat(data.places[0].latitude), lng = parseFloat(data.places[0].longitude);
-      document.getElementById('lat-input').value = lat;
-      document.getElementById('lng-input').value = lng;
+      document.getElementById('lat-input').value = lat; document.getElementById('lng-input').value = lng;
+      localStorage.setItem('spade_lat', lat); localStorage.setItem('spade_lng', lng); localStorage.setItem('spade_zip', zip);
       matchLocationToRegion(lat, lng);
-    } catch (err) { }
+    } catch (e) {}
   }
 
   async function useMyLocation() {
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        const lat = pos.coords.latitude, lng = pos.coords.longitude;
-        document.getElementById('lat-input').value = lat.toFixed(4);
-        document.getElementById('lng-input').value = lng.toFixed(4);
-        matchLocationToRegion(lat, lng);
-      });
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      document.getElementById('lat-input').value = lat.toFixed(4); document.getElementById('lng-input').value = lng.toFixed(4);
+      localStorage.setItem('spade_lat', lat.toFixed(4)); localStorage.setItem('spade_lng', lng.toFixed(4));
+      matchLocationToRegion(lat, lng);
+    });
   }
 
   function useCoordinates() {
     const lat = parseFloat(document.getElementById('lat-input').value), lng = parseFloat(document.getElementById('lng-input').value);
-    if (!isNaN(lat) && !isNaN(lng)) matchLocationToRegion(lat, lng);
+    if (!isNaN(lat) && !isNaN(lng)) { localStorage.setItem('spade_lat', lat); localStorage.setItem('spade_lng', lng); matchLocationToRegion(lat, lng); }
   }
 
   function matchLocationToRegion(lat, lng) {
     const results = leafletPip.pointInLayer([lng, lat], geoLayer);
     if (results.length > 0) {
-      const f = results[0].feature;
-      const key = f.properties.L3_KEY;
-      selectedL3Key = key;
-      document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
-      map.setView([lat, lng], 8);
-      highlightRegion(key);
-      renderResults(true);
+      const f = results[0].feature; selectedL3Key = f.properties.L3_KEY;
+      document.getElementById('selected-region').textContent = `${selectedL3Key}: ${f.properties.US_L3NAME}`;
+      map.setView([lat, lng], 8); highlightRegion(selectedL3Key); renderResults(true);
     }
   }
 
   async function init() {
-    Papa.parse(CSV_URL, { download: true, header: true, complete: (res) => {
-        plantData = res.data;
-        plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
-        ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter', 'growth-filter'].forEach(id => {
-          const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : 'Active Growth Period';
-          populate(id, col, plantData);
-        });
-        document.getElementById('status').textContent = 'Live • Monitoring active';
-        renderResults();
-        loadMap();
+    const month = new Date().getMonth();
+    let season = "Year Round";
+    if (month >= 2 && month <= 4) season = "Spring"; else if (month >= 5 && month <= 7) season = "Summer";
+    else if (month >= 8 && month <= 10) season = "Fall"; else season = "Winter";
+    document.getElementById('season-filter').value = season;
+
+    Papa.parse(CSV_URL, { download: true, header: true, complete: res => {
+      plantData = res.data;
+      plantData.forEach(p => { if(p.L3_KEY) regionCounts[p.L3_KEY] = (regionCounts[p.L3_KEY] || 0) + 1; });
+      ['type-filter', 'root-filter', 'moisture-filter', 'sun-filter', 'drought-filter', 'fire-filter', 'growth-filter'].forEach(id => {
+        const col = id === 'type-filter' ? 'Plant Type' : id === 'root-filter' ? 'ROOT_TYPE' : id === 'moisture-filter' ? 'Soil Moisture' : id === 'sun-filter' ? 'SUN_EXPOSURE' : id === 'drought-filter' ? 'Drought Tolerance' : id === 'fire-filter' ? 'Fire Tolerance' : 'Active Growth Period';
+        populate(id, col, plantData);
+      });
+      renderResults(); loadMap();
     }});
   }
 
   async function loadMap() {
-    map = L.map('map').setView([37.8, -96], 4);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    map = L.map('map').setView([37.8, -96], 4); streetTiles.addTo(map);
     try {
-      const geoRes = await fetch(ECO_URL);
-      const geoJSON = await geoRes.json();
+      const geoRes = await fetch(ECO_URL); const geoJSON = await geoRes.json();
       const eStates = {};
-      geoJSON.features.forEach(f => {
-        const k = f.properties.L3_KEY;
-        const s = f.properties.STATE_NAME || f.properties.STATE || "";
-        if (k && s) { if (!eStates[k]) eStates[k] = new Set(); eStates[k].add(s); }
-      });
+      geoJSON.features.forEach(f => { const k = f.properties.L3_KEY, s = f.properties.STATE_NAME || ""; if (k && s) { if (!eStates[k]) eStates[k] = new Set(); eStates[k].add(s); } });
       geoLayer = L.geoJSON(geoJSON, {
         style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
         onEachFeature: (f, l) => {
           const key = f.properties.L3_KEY;
-          const sList = eStates[key] ? Array.from(eStates[key]).sort().join(', ') : "USA";
-          l.bindTooltip(`<div style=\"font-size:14px\"><b>${key}:</b> ${f.properties.US_L3NAME}<br/>${regionCounts[key] || 0} Species • ${sList}</div>`, { sticky: true });
+          l.bindTooltip(`<b>${key}:</b> ${f.properties.US_L3NAME}`, { sticky: true });
           l.on({ 
-            mouseover: (e) => {
-              const hoverKey = f.properties.L3_KEY;
-              geoLayer.eachLayer(layer => {
-                if (layer.feature.properties.L3_KEY === hoverKey) { layer.setStyle({ fillOpacity: 0.35 }); }
-              });
-            },
-            mouseout: (e) => {
-              const hoverKey = f.properties.L3_KEY;
-              geoLayer.eachLayer(layer => {
-                if (layer.feature.properties.L3_KEY === hoverKey) {
-                  if (hoverKey === selectedL3Key) { layer.setStyle({ fillOpacity: 0.6 }); }
-                  else { layer.setStyle({ fillOpacity: 0.1 }); }
-                }
-              });
-            },
-            click: (e) => {
-              selectedL3Key = key;
-              document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
-              highlightRegion(key);
-              renderResults(true);
-          }});
+            mouseover: () => geoLayer.eachLayer(ly => { if(ly.feature.properties.L3_KEY === key) ly.setStyle({ fillOpacity: 0.35 }); }),
+            mouseout: () => geoLayer.eachLayer(ly => { if(ly.feature.properties.L3_KEY === key) ly.setStyle({ fillOpacity: (key === selectedL3Key ? 0.6 : 0.1) }); }),
+            click: () => { selectedL3Key = key; document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`; highlightRegion(key); renderResults(true); }
+          });
         }
       }).addTo(map);
-    } catch (e) { }
+
+      const sLat = localStorage.getItem('spade_lat'), sLng = localStorage.getItem('spade_lng');
+      if(sLat && sLng) { document.getElementById('lat-input').value = sLat; document.getElementById('lng-input').value = sLng; document.getElementById('zip-input').value = localStorage.getItem('spade_zip') || ''; matchLocationToRegion(sLat, sLng); }
+    } catch (e) {}
   }
 
-  function toggleDetails(idx) { 
-    const pane = document.getElementById(`details-${idx}`);
-    const btn = document.getElementById(`btn-${idx}`);
-    pane.classList.toggle('active');
-    btn.textContent = pane.classList.contains('active') ? 'Less' : 'Details';
-  }
+  function toggleDetails(idx) { const p = document.getElementById(`details-${idx}`), b = document.getElementById(`btn-${idx}`); p.classList.toggle('active'); b.textContent = p.classList.contains('active') ? 'Less' : 'Details'; }
   document.querySelectorAll('select, input').forEach(el => el.addEventListener('change', () => renderResults(true)));
   window.onload = init;
 </script>
-
 </body>
 </html>
