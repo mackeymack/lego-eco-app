@@ -65,7 +65,6 @@
     .details-pane { display: none; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; font-size: 0.8em; color: #444; }
     .details-pane.active { display: block; }
 
-    /* Centered Show More Button matching Go button style */
     #show-more-container { text-align: center; margin: 30px 0; display: none; }
     #show-more-btn { display: inline-block; width: auto; min-width: 180px; }
 
@@ -114,7 +113,7 @@
     <div class="zip-container">
       <input type="number" id="lat-input" placeholder="Lat" step="any">
       <input type="number" id="lng-input" placeholder="Lng" step="any">
-      <button class="action-btn" onclick="useCoordinates()" style="background: #2980b9;">Go</button>
+      <button class="action-btn" onclick="useCoordinates()">Go</button>
     </div>
 
     <div class="row">
@@ -411,18 +410,34 @@
     try {
       const geoRes = await fetch(ECO_URL);
       const geoJSON = await geoRes.json();
+      
+      // Aggregate all states for each L3_KEY
+      const ecoregionStates = {};
+      geoJSON.features.forEach(f => {
+        const key = f.properties.L3_KEY;
+        const state = f.properties.STATE_NAME || f.properties.STATE || "";
+        if (key && state) {
+          if (!ecoregionStates[key]) ecoregionStates[key] = new Set();
+          ecoregionStates[key].add(state);
+        }
+      });
+
       geoLayer = L.geoJSON(geoJSON, {
         style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
         onEachFeature: (f, l) => {
           const key = f.properties.L3_KEY;
           const count = regionCounts[key] || 0;
-          const states = f.properties.STATE_NAME || f.properties.STATE || "USA";
+          
+          // Use the aggregated state list instead of a single state property
+          const statesSet = ecoregionStates[key];
+          const statesList = statesSet ? Array.from(statesSet).sort().join(', ') : "USA";
+          
           l.bindTooltip(`
             <div style="font-size:14px">
               <b>Ecoregion #:</b> ${key}<br/>
               <b>Region Name:</b> ${f.properties.US_L3NAME}<br/>
               <b>Total Plants:</b> ${count}<br/>
-              <b>Located in States:</b> ${states}
+              <b>Located in States:</b> ${statesList}
             </div>
           `, { sticky: true, className: 'leaflet-tooltip-custom' });
           l.on({ 
@@ -431,7 +446,7 @@
             click: (e) => {
               selectedL3Key = key;
               document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`;
-              highlightRegion(key);
+              highlightRegion(selectedL3Key);
               renderResults(true);
           }});
         }
