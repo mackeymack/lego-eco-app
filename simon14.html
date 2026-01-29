@@ -1,0 +1,1521 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>S.P.A.D.E.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; }
+    #wrap { display:grid; grid-template-columns: 560px 1fr; height:100vh; }
+    #sidebar { padding:12px; border-right:1px solid #ddd; overflow:auto; background:#fff; }
+    #map { height:100vh; }
+
+    h2 { margin: 8px 0 6px; }
+    .small { color:#666; font-size:12px; }
+    .pill { display:inline-block; padding:6px 10px; border:1px solid #ddd; border-radius:999px; margin-top:6px; background:#fafafa; }
+    .row { margin:12px 0; }
+    label { display:block; font-weight:700; margin:0 0 6px; }
+
+    input, select, button {
+      width:100%;
+      padding:8px;
+      box-sizing:border-box;
+      border-radius:10px;
+      border:1px solid #ccc;
+      font-size:14px;
+    }
+    button { cursor:pointer; background:#111; color:#fff; border-color:#111; }
+    button.secondary { background:#fff; color:#111; border-color:#ccc; }
+    button.smallBtn { width:auto; padding:6px 10px; font-size:12px; border-radius:10px; }
+
+    .twoCol { display:flex; gap:8px; align-items:center; }
+    .twoCol input { flex:1; }
+    .twoCol button { width:auto; }
+
+    .filtersHeader { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+    .filtersHeader .left { flex:1; }
+    .filtersHeader .right { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .filtersHeader .right button { width:auto; }
+
+    #filtersGrid {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .filterBox {
+      border:1px solid #eee;
+      border-radius:12px;
+      padding:10px;
+      background:#fff;
+    }
+    .filterLabel { font-weight:700; font-size:12px; margin-bottom:6px; }
+    .filterHint { font-size:11px; color:#777; margin-top:6px; }
+    .hidden { display:none !important; }
+
+    .plant { border:1px solid #eee; border-radius:12px; padding:10px; margin:10px 0; background:#fff; }
+    .plant b { display:block; margin-bottom:3px; font-size:16px; }
+    .kv { margin-top:8px; }
+    .kv div { font-size:12px; color:#333; margin:2px 0; }
+    .kv span.key { color:#666; }
+    code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
+
+    .moreRow{
+      display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px;
+    }
+    .moreRow button{ width:auto; }
+
+    .detailsBox{
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px dashed #e5e5e5;
+    }
+    .detailsBoxSummary{
+      font-weight:700; font-size:12px; margin-bottom:8px;
+    }
+    .detailsGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:6px;
+      margin-top:8px;
+    }
+    .detailLine{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      justify-content:space-between;
+      border:1px solid #f0f0f0;
+      background:#fafafa;
+      border-radius:10px;
+      padding:8px;
+      font-size:12px;
+    }
+    .detailKey{
+      color:#555;
+      font-weight:700;
+      min-width: 160px;
+      max-width: 200px;
+      flex: 0 0 auto;
+    }
+    .detailVal{
+      color:#222;
+      flex: 1 1 auto;
+      text-align:left;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .pagerBottom{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      margin:12px 0 6px;
+    }
+    .pagerBottom button{ width:auto; }
+    .pagerBottom .meta{ font-size:12px; color:#666; }
+
+    .quickBox { border:1px solid #eee; border-radius:12px; padding:10px; background:#fff; }
+    .quickList { margin-top:8px; }
+    .quickItem {
+      border:1px solid #f0f0f0; border-radius:10px; padding:8px; background:#fafafa;
+      cursor:pointer; margin:6px 0;
+    }
+    .quickItem:hover { border-color:#ddd; background:#f7f7f7; }
+
+    /* Debug (HIDDEN BY DEFAULT) */
+    #debugFab { position:fixed; right:14px; bottom:14px; z-index:9999; padding:10px 12px; border-radius:999px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; font-size:14px; width:auto; display:none; }
+    #debugModalBackdrop { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9998; display:none; }
+    #debugModal { position:fixed; right:14px; bottom:62px; width:min(780px, calc(100vw - 28px)); height:min(540px, calc(100vh - 90px)); background:#fff; border:1px solid #ddd; border-radius:14px; z-index:9999; display:none; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.25); }
+    #debugModalHeader { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #eee; background:#f7f7f7; }
+    #debugModalHeader .btnRow { display:flex; gap:8px; }
+    .debugBtn { width:auto; padding:6px 10px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:12px; color:#111; }
+    #debugLogArea { height:calc(100% - 46px); padding:10px 12px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; white-space:pre-wrap; background:#fff; }
+
+    /* Header sizing */
+    .appTitle { font-size:22px; font-weight:800; margin:6px 0 2px; letter-spacing:0.5px; user-select:none; }
+    .appSubtitle { font-size:13px; font-weight:700; margin:0; color:#111; }
+    .appByline { font-size:12px; margin:2px 0 10px; color:#555; }
+
+    /* Secret unlock UI */
+    #adminUnlockBackdrop{
+      position:fixed; inset:0;
+      background:transparent;
+      z-index:10000;
+      display:none;
+    }
+    #adminUnlock{
+      position:fixed;
+      left:14px; top:14px;
+      z-index:10001;
+      display:none;
+      background:#fff;
+      border:1px solid #ddd;
+      border-radius:14px;
+      padding:10px;
+      width:min(360px, calc(100vw - 28px));
+      box-shadow:0 8px 30px rgba(0,0,0,0.18);
+    }
+    #adminUnlock .rowLine{ display:flex; gap:8px; align-items:center; }
+    #adminUnlock input{ flex:1; }
+    #adminUnlock .hint{ font-size:11px; color:#666; margin-top:6px; }
+    #adminUnlock.shake{ animation: shake 0.28s linear 1; border-color:#fca5a5; }
+    @keyframes shake {
+      0%{ transform:translateX(0); }
+      25%{ transform:translateX(-6px); }
+      50%{ transform:translateX(6px); }
+      75%{ transform:translateX(-4px); }
+      100%{ transform:translateX(0); }
+    }
+
+    /* Make the D look normal but still clickable */
+    #spadeD{
+      cursor:default;
+      padding:0 1px;
+      border-radius:6px;
+    }
+    #spadeD:active{ background:#f1f5f9; }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="sidebar">
+
+      <!-- TITLE with secret double-click on the "D" -->
+      <div class="appTitle" id="appTitle">
+        S.P.A.<span id="spadeD" title="">D</span>.E.
+      </div>
+      <div class="appSubtitle">Site Preservation and Dirt Erosion-Control</div>
+      <div class="appByline">Made by Blazing Turtles Robotics</div>
+
+      <div class="small">
+        Browse plants right away (no ecoregion required). Hover regions for tooltip details; click a region to highlight it and dim others.
+      </div>
+
+      <div class="row">
+        <label>Selected Ecoregion (optional)</label>
+        <div id="selectedRegion" class="pill">All regions</div>
+        <div class="small" style="margin-top:6px;">
+          Pick a region from the dropdown, click the map, use ZIP, enter lat/lng, or “Use my location”.
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Quick plant lookup (no ecoregion needed)</label>
+        <div class="quickBox">
+          <input id="plantLookup" placeholder="Search a plant name (common or scientific)..." />
+          <div class="small" style="margin-top:6px;">Click a result to open it in the list below with “More info”.</div>
+          <div id="quickList" class="quickList"></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Find my ecoregion</label>
+
+        <div class="small" style="margin-bottom:6px;">
+          Option A — ZIP code
+        </div>
+        <div class="twoCol">
+          <input id="zipInput" placeholder="Enter ZIP (US)" inputmode="numeric" />
+          <button id="zipFindBtn" class="secondary smallBtn" type="button">Find</button>
+          <button id="zipLocBtn" class="secondary smallBtn" type="button">Use my location (ZIP)</button>
+        </div>
+
+        <div class="small" style="margin-top:10px; margin-bottom:6px;">
+          Option B — Latitude / Longitude
+        </div>
+        <div class="twoCol">
+          <input id="latInput" placeholder="Latitude (e.g., 41.8781)" inputmode="decimal" />
+          <input id="lngInput" placeholder="Longitude (e.g., -87.6298)" inputmode="decimal" />
+          <button id="latlngFindBtn" class="secondary smallBtn" type="button">Go</button>
+          <button id="latlngLocBtn" class="secondary smallBtn" type="button">Use my location (Lat/Lng)</button>
+        </div>
+
+        <div class="small" id="geoStatus" style="margin-top:8px;">
+          ZIP/lat-lng/location will auto-select an ecoregion and zoom.
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Search results list (Common or Scientific name)</label>
+        <input id="searchBox" placeholder="type to filter…" />
+      </div>
+
+      <div class="row">
+        <div class="filtersHeader">
+          <div class="left">
+            <label style="margin:0;">Filters (separate per category)</label>
+            <div class="small">Vendor + link columns removed. “Advanced” hides very large dropdowns.</div>
+          </div>
+          <div class="right">
+            <button id="clearFiltersBtn" class="secondary smallBtn" type="button">Clear filters</button>
+            <button id="toggleAdvancedBtn" class="secondary smallBtn" type="button">Show advanced</button>
+          </div>
+        </div>
+
+        <div id="filtersGrid"></div>
+      </div>
+
+      <!-- ✅ EXPORT BUTTONS (after filters, before results) -->
+      <div class="row">
+        <label style="margin:0;">Export (current filtered results)</label>
+        <div class="twoCol">
+          <button id="exportExcelBtn" class="secondary smallBtn" type="button">Export Excel (.xlsx)</button>
+          <button id="exportSheetsBtn" class="secondary smallBtn" type="button">Export for Google Sheets (CSV)</button>
+        </div>
+        <div class="small" style="margin-top:6px;">
+          Exports <b>all matching plants</b> (not just the current page), using your current Region + Search + Filters.
+        </div>
+      </div>
+
+      <div class="row">
+        <label style="margin:0;">Results <span class="small" id="resultCount"></span></label>
+        <div class="small" id="activeFiltersLine"></div>
+
+        <div id="results"></div>
+
+        <div class="pagerBottom">
+          <button id="prevBtn" class="secondary smallBtn" type="button">Prev</button>
+          <button id="nextBtn" class="secondary smallBtn" type="button">Next</button>
+          <div class="meta" id="pageMeta"></div>
+        </div>
+      </div>
+
+      <hr/>
+      <div class="small" id="status">Loading…</div>
+      <div class="small" id="colInfo"></div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <!-- Secret unlock UI -->
+  <div id="adminUnlockBackdrop"></div>
+  <div id="adminUnlock" role="dialog" aria-modal="true" aria-label="Admin unlock">
+    <div class="rowLine">
+      <input id="adminUnlockInput" placeholder="Type password..." autocomplete="off" />
+      <button id="adminUnlockGo" class="secondary smallBtn" type="button">OK</button>
+      <button id="adminUnlockCancel" class="secondary smallBtn" type="button">✕</button>
+    </div>
+    <div class="hint">Tip: double-click the “D” in S.P.A.D.E. to open this.</div>
+  </div>
+
+  <!-- Debug UI (button hidden until unlocked) -->
+  <button id="debugFab">Debug</button>
+  <div id="debugModalBackdrop"></div>
+  <div id="debugModal">
+    <div id="debugModalHeader">
+      <b>Debug Log</b>
+      <div class="btnRow">
+        <button class="debugBtn" id="debugCopyBtn">Copy</button>
+        <button class="debugBtn" id="debugClearBtn">Clear</button>
+        <button class="debugBtn" id="debugCloseBtn">Close</button>
+      </div>
+    </div>
+    <div id="debugLogArea">(No logs yet)</div>
+  </div>
+
+<script>
+  // ============================================================
+  // FILES IN assets/ (works on Netlify, GitHub Pages subpaths, and local serving)
+  // ============================================================
+  const ASSET_BASES = ['assets/', './assets/', '/assets/'];
+
+  function buildAssetCandidates(filename){
+    return ASSET_BASES.map(base => base + filename);
+  }
+
+  async function fetchFirstOk(urls, options, debugLabel){
+    let lastStatus = null;
+    let lastErr = null;
+    for (const url of urls) {
+      try {
+        logDebug(`➡️ fetch ${debugLabel}`, url);
+        const res = await fetch(url, options);
+        logDebug(`⬅️ ${debugLabel} status`, res.status);
+        if (res.ok) return { res, url };
+        lastStatus = res.status;
+      } catch (e) {
+        lastErr = e;
+        logDebug(`⚠️ ${debugLabel} fetch error`, String(e));
+      }
+    }
+    const statusPart = lastStatus != null ? ` (last status ${lastStatus})` : '';
+    throw new Error(`Failed to load ${debugLabel}${statusPart}. Tried: ${urls.join(', ')}` + (lastErr ? ` | ${String(lastErr)}` : ''));
+  }
+
+  const ECOREGIONS_URL = buildAssetCandidates('us_eco_l3_state_boundaries.json');
+  const DATABASE_CSV_URL = buildAssetCandidates('Database-Deleted-Categories.csv');
+
+  // ============================================================
+  // REMOVE THESE COMPLETELY
+  // ============================================================
+  const EXCLUDED_COLUMNS = new Set([
+    'Vendor', 'POTENTIAL_VENDOR',
+    'VENDOR_LINK_TO_ORDER', 'ALTERNATIVE_LINK_TO_ORDER',
+    'SOURCE_LINK_1', 'SOURCE_LINK_2', 'SOURCE_LINK_3', 'SOURCE_LINK_4'
+  ]);
+
+  // Pagination
+  const PAGE_SIZE = 20;
+  let currentPage = 1;
+
+  // Debug (locked by default)
+  let debugUnlocked = false;
+
+  // Debug
+  const DEBUG_LOG_MAX_LINES = 350;
+  let debugLines = [];
+  function logDebug(message, data){
+    const ts = new Date().toISOString().replace('T',' ').replace('Z','');
+    let line = `[${ts}] ${message}`;
+    if (data !== undefined) { try { line += ` | ${typeof data === 'string' ? data : JSON.stringify(data)}`; } catch { line += ` | (unstringifiable)`; } }
+    debugLines.push(line);
+    if (debugLines.length > DEBUG_LOG_MAX_LINES) debugLines = debugLines.slice(-DEBUG_LOG_MAX_LINES);
+    const area = document.getElementById('debugLogArea');
+    if (area) area.textContent = debugLines.length ? debugLines.join('\n') : '(No logs yet)';
+  }
+  function openDebug(){
+    if (!debugUnlocked) return;
+    document.getElementById('debugModalBackdrop').style.display='block';
+    document.getElementById('debugModal').style.display='block';
+  }
+  function closeDebug(){
+    document.getElementById('debugModalBackdrop').style.display='none';
+    document.getElementById('debugModal').style.display='none';
+  }
+  function setDebugFabVisible(visible){
+    const fab = document.getElementById('debugFab');
+    fab.style.display = visible ? 'block' : 'none';
+  }
+
+  function setStatus(msg){ document.getElementById('status').textContent = msg; logDebug('ℹ️ status', msg); }
+  function setGeoStatus(msg){ const el = document.getElementById('geoStatus'); if (el) el.textContent = msg; logDebug('📍 geo', msg); }
+
+  function normalizeKey(s){ return String(s ?? '').toLowerCase().replace(/[\s_\-]+/g,''); }
+  function normText(s){ return String(s ?? '').toLowerCase().trim(); }
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+
+  function extractLeadingCode(text){
+    const s = String(text ?? '').trim();
+    const m = s.match(/^(\d{1,3})\b/);
+    return m ? m[1] : '';
+  }
+  function tokenizeCell(cell){
+    const s = String(cell ?? '').trim();
+    if (!s) return [];
+    const parts = s.split(/[,;|\/]+/g).map(x => x.trim()).filter(Boolean);
+    return parts.length ? parts : [s];
+  }
+  function isYesNoLike(v){
+    const s = normText(v);
+    return s === 'yes' || s === 'no' || s === 'yes [uncertain]' || s === 'no [uncertain]' || s === 'true' || s === 'false' || s === '1' || s === '0';
+  }
+  function canonicalYesNoOptions(valuesSet){
+    const present = new Set([...valuesSet].map(v => String(v).trim()));
+    const base = ['Yes','No'];
+    const extra = [];
+    if (present.has('Yes [UNCERTAIN]')) extra.push('Yes [UNCERTAIN]');
+    if (present.has('No [UNCERTAIN]')) extra.push('No [UNCERTAIN]');
+    if (present.has('True')) extra.push('True');
+    if (present.has('False')) extra.push('False');
+    if (present.has('1')) extra.push('1');
+    if (present.has('0')) extra.push('0');
+    return [...base, ...extra];
+  }
+  function matchesDropdownCell(cell, want){
+    const w = String(want ?? '').trim();
+    if (!w) return true;
+    const cellStr = String(cell ?? '').trim();
+    if (!cellStr) return false;
+
+    const tokens = tokenizeCell(cellStr);
+    const wn = normText(w);
+    if (tokens.length >= 2) return tokens.some(t => normText(t) === wn);
+    return normText(cellStr).includes(wn);
+  }
+
+  // ============================================================
+  // FAST CSV PARSER (no PapaParse needed)
+  // ============================================================
+  function parseCSV(text){
+    const rows = [];
+    const headers = [];
+
+    let i = 0;
+    const len = text.length;
+    let field = '';
+    let row = [];
+    let inQuotes = false;
+
+    function pushField(){ row.push(field); field = ''; }
+    function pushRow(){
+      const allEmpty = row.length === 1 && String(row[0] ?? '').trim() === '';
+      if (!allEmpty) rows.push(row);
+      row = [];
+    }
+
+    while (i < len) {
+      const ch = text[i];
+
+      if (inQuotes) {
+        if (ch === '"') {
+          const next = text[i+1];
+          if (next === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        } else {
+          field += ch; i++; continue;
+        }
+      } else {
+        if (ch === '"') { inQuotes = true; i++; continue; }
+        if (ch === ',') { pushField(); i++; continue; }
+        if (ch === '\r') {
+          pushField(); pushRow();
+          if (text[i+1] === '\n') i += 2; else i += 1;
+          continue;
+        }
+        if (ch === '\n') { pushField(); pushRow(); i++; continue; }
+        field += ch; i++; continue;
+      }
+    }
+    pushField();
+    if (row.length) pushRow();
+
+    if (!rows.length) return { headers: [], rows: [] };
+
+    const hdr = rows.shift().map(h => String(h ?? '').trim());
+    hdr.forEach(h => headers.push(h));
+
+    const out = [];
+    for (const r of rows) {
+      if (!r || !r.length) continue;
+      const obj = {};
+      for (let c = 0; c < headers.length; c++) obj[headers[c]] = r[c] ?? '';
+      out.push(obj);
+    }
+    return { headers, rows: out };
+  }
+
+  // ============================================================
+  // Map
+  // ============================================================
+  const map = L.map('map', { worldCopyJump:true }).setView([39.5, -98.35], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
+
+  let ecoregionsLayer = null;
+  let selectedProps = null; // null = all regions
+  let ecoregionGeoJSON = null;
+  let userMarker = null;
+
+  // ============================================================
+  // CSV state
+  // ============================================================
+  let csvHeaders = [];
+  let plants = []; // all plants
+
+  const L3_KEY_CANDIDATES = ['L3_KEY', 'L3 KEY', 'L3Key', 'L3_key'];
+  const COMMON_CANDIDATES = ['Common Name', 'COMMON_NAME', 'Common'];
+  const SCI_CANDIDATES = ['Scientific Name', 'SCIENTIFIC_NAME', 'Scientific'];
+
+  let colL3Key = 'L3_KEY';
+  let colCommon = 'Common Name';
+  let colScientific = 'Scientific Name';
+
+  let plantsByL3Raw = new Map();
+  let plantsByL3Norm = new Map();
+  let plantsByCode = new Map();
+
+  let regionFilterControl = null;
+  let regionIndex = [];
+  let regionKeyToProps = new Map();
+
+  let detailColumns = [];
+
+  function addTo(mapObj, key, item){
+    if (!key) return;
+    if (!mapObj.has(key)) mapObj.set(key, []);
+    mapObj.get(key).push(item);
+  }
+  function indexPlants(){
+    plantsByL3Raw = new Map();
+    plantsByL3Norm = new Map();
+    plantsByCode = new Map();
+    for (const p of plants) {
+      addTo(plantsByL3Raw, p.l3Raw, p);
+      addTo(plantsByL3Norm, p.l3Norm, p);
+      if (p.l3Code) addTo(plantsByCode, p.l3Code, p);
+    }
+    logDebug('✅ indexed plants', { rawKeys: plantsByL3Raw.size, normKeys: plantsByL3Norm.size, codes: plantsByCode.size });
+  }
+
+  function getPlantsForRegionProps(props){
+    if (!props) return plants;
+    const rawKey = String(props.L3_KEY ?? '').trim();
+    const normKey = normalizeKey(rawKey);
+    const code = String(props.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+
+    if (rawKey && plantsByL3Raw.has(rawKey)) return plantsByL3Raw.get(rawKey);
+    if (normKey && plantsByL3Norm.has(normKey)) return plantsByL3Norm.get(normKey);
+    if (code && plantsByCode.has(code)) return plantsByCode.get(code);
+    return [];
+  }
+
+  function getCountForRegion(props){
+    if (!props) return plants.length;
+    return getPlantsForRegionProps(props).length;
+  }
+
+  function buildTooltipHtml(props){
+    const rawKey = String(props?.L3_KEY ?? '').trim();
+    const code = String(props?.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+    const name = props?.US_L3NAME || props?.NA_L3NAME || '';
+    const count = getCountForRegion(props);
+    return `
+      <div style="font-size:12px; line-height:1.25;">
+        <div><b>${escapeHtml(code || rawKey || 'Unknown')}</b>${name ? ` — ${escapeHtml(name)}` : ''}</div>
+        <div style="color:#555;">Plants in CSV: <b>${count.toLocaleString()}</b></div>
+      </div>
+    `;
+  }
+
+  function styleForFeature(){ return { color:'#555', weight:1, opacity:0.8, fillColor:'#4f46e5', fillOpacity:0.15 }; }
+  function styleForDimmed(){ return { color:'#777', weight:1, opacity:0.25, fillColor:'#999', fillOpacity:0.05 }; }
+  function styleForSelected(){ return { color:'#111', weight:3, opacity:1, fillColor:'#f59e0b', fillOpacity:0.45 }; }
+
+  function applySelectionStyles(){
+    if (!ecoregionsLayer) return;
+    ecoregionsLayer.eachLayer((layer)=>{
+      const p = layer?.feature?.properties || {};
+      if (!selectedProps) { layer.setStyle(styleForFeature()); return; }
+      const key = String(p.L3_KEY ?? '').trim();
+      const selKey = String(selectedProps.L3_KEY ?? '').trim();
+      if (key && selKey && key === selKey) { layer.setStyle(styleForSelected()); try { layer.bringToFront(); } catch {} }
+      else layer.setStyle(styleForDimmed());
+    });
+  }
+  function refreshAllTooltips(){
+    if (!ecoregionsLayer) return;
+    ecoregionsLayer.eachLayer((layer)=>{
+      const p = layer?.feature?.properties || {};
+      const tt = layer.getTooltip ? layer.getTooltip() : null;
+      if (tt && tt.setContent) tt.setContent(buildTooltipHtml(p));
+    });
+  }
+
+  function showUserMarker(lat, lng) {
+    try { if (userMarker) map.removeLayer(userMarker); } catch {}
+    userMarker = L.circleMarker([lat, lng], { radius:7, weight:2, opacity:1, fillOpacity:0.6 }).addTo(map);
+  }
+
+  function pointInRing(pointLngLat, ringLngLat) {
+    const x = pointLngLat[0], y = pointLngLat[1];
+    let inside = false;
+    for (let i=0, j=ringLngLat.length-1; i<ringLngLat.length; j=i++) {
+      const xi = ringLngLat[i][0], yi = ringLngLat[i][1];
+      const xj = ringLngLat[j][0], yj = ringLngLat[j][1];
+      const intersect = ((yi>y)!==(yj>y)) && (x < ((xj-xi)*(y-yi))/(yj-yi+0.0)+xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+  function pointInPolygon(pointLngLat, polygonCoords) {
+    if (!polygonCoords || !polygonCoords.length) return false;
+    const outer = polygonCoords[0];
+    if (!pointInRing(pointLngLat, outer)) return false;
+    for (let h=1; h<polygonCoords.length; h++) {
+      if (pointInRing(pointLngLat, polygonCoords[h])) return false;
+    }
+    return true;
+  }
+  function pointInGeometry(pointLngLat, geometry) {
+    if (!geometry) return false;
+    if (geometry.type === 'Polygon') return pointInPolygon(pointLngLat, geometry.coordinates);
+    if (geometry.type === 'MultiPolygon') {
+      for (const poly of geometry.coordinates) if (pointInPolygon(pointLngLat, poly)) return true;
+      return false;
+    }
+    return false;
+  }
+  function findEcoregionForLatLng(lat, lng) {
+    if (!ecoregionGeoJSON?.features?.length) return null;
+    const pt = [lng, lat];
+    for (const f of ecoregionGeoJSON.features) {
+      if (pointInGeometry(pt, f.geometry)) return f.properties || null;
+    }
+    return null;
+  }
+
+  function selectRegionProps(props, opts = {}) {
+    selectedProps = props || null;
+
+    if (!selectedProps) {
+      document.getElementById('selectedRegion').textContent = 'All regions';
+      if (regionFilterControl) regionFilterControl.el.value = '';
+    } else {
+      const rawKey = String(selectedProps.L3_KEY ?? '').trim();
+      const code = String(selectedProps.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+      const name = selectedProps.US_L3NAME || selectedProps.NA_L3NAME || '';
+      document.getElementById('selectedRegion').textContent = `${code || rawKey}${name ? ' — ' + name : ''}`;
+      if (regionFilterControl) regionFilterControl.el.value = rawKey;
+    }
+
+    applySelectionStyles();
+
+    const base = getPlantsForRegionProps(selectedProps);
+    rebuildDropdownOptionsFromList(base);
+
+    currentPage = 1;
+    renderResults();
+
+    if (opts.panTo && opts.lat != null && opts.lng != null) {
+      map.setView([opts.lat, opts.lng], opts.zoom || 8);
+    }
+  }
+
+  // ZIP / LatLng / Geolocation
+  async function findByZip(zip) {
+    const z = String(zip || '').trim();
+    if (!/^\d{5}(-\d{4})?$/.test(z)) { setGeoStatus('Please enter a valid US ZIP (5 digits).'); return; }
+    setGeoStatus('Looking up ZIP…');
+
+    try {
+      const res = await fetch(`https://api.zippopotam.us/us/${encodeURIComponent(z)}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`ZIP lookup failed (${res.status})`);
+      const data = await res.json();
+      const place = data?.places?.[0];
+      const lat = place ? parseFloat(place.latitude) : null;
+      const lng = place ? parseFloat(place.longitude) : null;
+      if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) throw new Error('ZIP lookup returned no coordinates.');
+
+      showUserMarker(lat, lng);
+      const props = findEcoregionForLatLng(lat, lng);
+      if (!props) { setGeoStatus(`ZIP ${z} found (${lat.toFixed(4)}, ${lng.toFixed(4)}), but no ecoregion polygon matched.`); map.setView([lat, lng], 8); return; }
+
+      selectRegionProps(props, { panTo:true, lat, lng, zoom:8 });
+      setGeoStatus(`Selected ecoregion for ZIP ${z}.`);
+    } catch (err) {
+      setGeoStatus(`ZIP lookup error: ${err.message}`);
+      logDebug('❌ ZIP lookup error', String(err));
+    }
+  }
+
+  function parseNumberLoose(s) {
+    const t = String(s ?? '').trim().replace(/[^\d\.\-+eE]/g, '');
+    if (!t) return null;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function findByLatLngInputs() {
+    const lat = parseNumberLoose(document.getElementById('latInput')?.value);
+    const lng = parseNumberLoose(document.getElementById('lngInput')?.value);
+
+    if (lat == null || lng == null) { setGeoStatus('Please enter both latitude and longitude (numbers).'); return; }
+    if (lat < -90 || lat > 90) { setGeoStatus('Latitude must be between -90 and 90.'); return; }
+    if (lng < -180 || lng > 180) { setGeoStatus('Longitude must be between -180 and 180.'); return; }
+
+    showUserMarker(lat, lng);
+    const props = findEcoregionForLatLng(lat, lng);
+    if (!props) { setGeoStatus(`Coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)}) did not match any ecoregion polygon.`); map.setView([lat, lng], 8); return; }
+
+    selectRegionProps(props, { panTo:true, lat, lng, zoom:8 });
+    setGeoStatus(`Selected ecoregion for coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)}).`);
+  }
+
+  function useMyLocationLatLng() {
+    if (!navigator.geolocation) { setGeoStatus('Geolocation is not supported in this browser.'); return; }
+    setGeoStatus('Requesting location permission…');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        document.getElementById('latInput').value = lat.toFixed(6);
+        document.getElementById('lngInput').value = lng.toFixed(6);
+        showUserMarker(lat, lng);
+
+        const props = findEcoregionForLatLng(lat, lng);
+        if (!props) { setGeoStatus(`Location found (${lat.toFixed(4)}, ${lng.toFixed(4)}), but no ecoregion polygon matched.`); map.setView([lat, lng], 8); return; }
+
+        selectRegionProps(props, { panTo:true, lat, lng, zoom:8 });
+        setGeoStatus('Selected ecoregion for your location (Lat/Lng).');
+      },
+      (err) => setGeoStatus(`Location error: ${err.message}`),
+      { enableHighAccuracy:true, timeout:10000, maximumAge:60000 }
+    );
+  }
+
+  async function useMyLocationZip() {
+    if (!navigator.geolocation) { setGeoStatus('Geolocation is not supported in this browser.'); return; }
+    setGeoStatus('Requesting location permission…');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        showUserMarker(lat, lng);
+        map.setView([lat, lng], 8);
+
+        try {
+          setGeoStatus('Finding ZIP from your location…');
+          const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+          const res = await fetch(url, { cache:'no-store', headers: { 'Accept': 'application/json' } });
+          if (!res.ok) throw new Error(`Reverse geocode failed (${res.status})`);
+          const data = await res.json();
+          const zip = data?.address?.postcode ? String(data.address.postcode).trim() : '';
+          if (!zip) throw new Error('No ZIP found from reverse geocode.');
+
+          document.getElementById('zipInput').value = zip;
+          await findByZip(zip);
+          setGeoStatus(`Selected ecoregion for your location (ZIP ${zip}).`);
+        } catch (e) {
+          logDebug('⚠️ ZIP reverse geocode failed, fallback to Lat/Lng', String(e));
+          const props = findEcoregionForLatLng(lat, lng);
+          if (!props) { setGeoStatus(`Location found (${lat.toFixed(4)}, ${lng.toFixed(4)}), but no ecoregion polygon matched.`); return; }
+          selectRegionProps(props, { panTo:true, lat, lng, zoom:8 });
+          setGeoStatus('Selected ecoregion for your location (fallback Lat/Lng).');
+        }
+      },
+      (err) => setGeoStatus(`Location error: ${err.message}`),
+      { enableHighAccuracy:true, timeout:10000, maximumAge:60000 }
+    );
+  }
+
+  // ============================================================
+  // UI + Filters + Rendering
+  // ============================================================
+  const filtersGrid = document.getElementById('filtersGrid');
+  const filterControls = new Map(); // col -> { el, wrapper, advanced, kind, isBoolean }
+  let advancedShown = false;
+
+  function setAdvancedVisible(show){
+    advancedShown = show;
+    for (const [, ctrl] of filterControls.entries()) {
+      if (!ctrl.advanced) continue;
+      if (show) ctrl.wrapper.classList.remove('hidden');
+      else ctrl.wrapper.classList.add('hidden');
+    }
+  }
+
+  function getActiveFilters(){
+    const out = [];
+    for (const [col, ctrl] of filterControls.entries()) {
+      const val = String(ctrl.el.value ?? '').trim();
+      if (!val) continue;
+      out.push({ col, kind: ctrl.kind, value: val });
+    }
+    return out;
+  }
+
+  function rebuildDropdownOptionsFromList(list){
+    for (const [col, ctrl] of filterControls.entries()) {
+      if (ctrl.kind !== 'dropdown') continue;
+      const valuesSet = new Set();
+      for (const p of list) {
+        const cell = String(p.raw?.[col] ?? '').trim();
+        if (!cell) continue;
+        tokenizeCell(cell).forEach(t => valuesSet.add(t));
+      }
+      const current = String(ctrl.el.value ?? '');
+      ctrl.el.innerHTML = '';
+      const anyOpt = document.createElement('option');
+      anyOpt.value = '';
+      anyOpt.textContent = 'Any';
+      ctrl.el.appendChild(anyOpt);
+
+      const vals = ctrl.isBoolean
+        ? canonicalYesNoOptions(valuesSet)
+        : [...valuesSet].filter(v => String(v).trim() !== '').sort((a,b)=>String(a).localeCompare(String(b)));
+
+      for (const v of vals) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        ctrl.el.appendChild(opt);
+      }
+      const has = [...ctrl.el.options].some(o => o.value === current);
+      ctrl.el.value = has ? current : '';
+    }
+  }
+
+  let regionFilterControl = null;
+  let regionIndex = [];
+  let regionKeyToProps = new Map();
+
+  function buildRegionDropdown(){
+    const wrapper = document.createElement('div');
+    wrapper.className = 'filterBox';
+
+    const label = document.createElement('div');
+    label.className = 'filterLabel';
+    label.textContent = 'Region';
+    wrapper.appendChild(label);
+
+    const sel = document.createElement('select');
+    sel.innerHTML = `<option value="">All regions</option>`;
+    wrapper.appendChild(sel);
+
+    const hint = document.createElement('div');
+    hint.className = 'filterHint';
+    hint.textContent = 'Pick a region (optional). You can also click the map, use ZIP, or use Lat/Lng.';
+    wrapper.appendChild(hint);
+
+    sel.addEventListener('change', ()=>{
+      const rawKey = String(sel.value || '').trim();
+      if (!rawKey) {
+        selectRegionProps(null);
+        setGeoStatus('Region cleared (showing all regions).');
+      } else {
+        const props = regionKeyToProps.get(rawKey) || null;
+        selectRegionProps(props);
+        setGeoStatus('Region selected from dropdown.');
+      }
+    });
+
+    filtersGrid.appendChild(wrapper);
+    regionFilterControl = { el: sel, wrapper, kind:'region' };
+
+    if (regionIndex.length) {
+      const current = String(sel.value || '');
+      sel.innerHTML = `<option value="">All regions</option>`;
+      for (const r of regionIndex) {
+        const opt = document.createElement('option');
+        opt.value = r.rawKey;
+        opt.textContent = r.label;
+        sel.appendChild(opt);
+      }
+      sel.value = current;
+    }
+  }
+
+  function buildFilterControls(globalStats){
+    filtersGrid.innerHTML = '';
+    filterControls.clear();
+
+    buildRegionDropdown();
+
+    const excluded = new Set([colL3Key, colCommon, colScientific, ...EXCLUDED_COLUMNS]);
+    const cols = csvHeaders.filter(c => c && c.trim() && !excluded.has(c)).sort((a,b)=>a.localeCompare(b));
+
+    const ADVANCED_UNIQUE_THRESHOLD = 80;
+
+    for (const col of cols) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'filterBox';
+
+      const label = document.createElement('div');
+      label.className = 'filterLabel';
+      label.textContent = col;
+      wrapper.appendChild(label);
+
+      const uniqueEstimate = globalStats?.[col]?.uniqueEstimate ?? 0;
+      const advanced = uniqueEstimate >= ADVANCED_UNIQUE_THRESHOLD;
+
+      const sample = globalStats?.[col]?.sampleUniques ? [...globalStats[col].sampleUniques] : [];
+      const isBoolean = sample.length
+        ? sample.slice(0, Math.min(sample.length, 30)).every(v => isYesNoLike(v))
+        : false;
+
+      if (uniqueEstimate <= ADVANCED_UNIQUE_THRESHOLD) {
+        const sel = document.createElement('select');
+        sel.addEventListener('change', ()=>{ currentPage = 1; renderResults(); });
+        wrapper.appendChild(sel);
+
+        const hint = document.createElement('div');
+        hint.className = 'filterHint';
+        hint.textContent = isBoolean ? 'Dropdown (Yes/No + UNCERTAIN if present)' : 'Dropdown (values pulled from spreadsheet)';
+        wrapper.appendChild(hint);
+
+        filtersGrid.appendChild(wrapper);
+        filterControls.set(col, { el: sel, wrapper, advanced, kind:'dropdown', isBoolean });
+
+      } else {
+        const inp = document.createElement('input');
+        inp.placeholder = 'type to match (contains)…';
+        inp.addEventListener('input', ()=>{ currentPage = 1; renderResults(); });
+        wrapper.appendChild(inp);
+
+        const hint = document.createElement('div');
+        hint.className = 'filterHint';
+        hint.textContent = 'Text filter (contains) — used when there are too many dropdown values';
+        wrapper.appendChild(hint);
+
+        filtersGrid.appendChild(wrapper);
+        filterControls.set(col, { el: inp, wrapper, advanced, kind:'text', isBoolean:false });
+      }
+    }
+
+    setAdvancedVisible(false);
+  }
+
+  // Results + pagination
+  const elResults = document.getElementById('results');
+  const elCount = document.getElementById('resultCount');
+  const elPageMeta = document.getElementById('pageMeta');
+  const elActiveFiltersLine = document.getElementById('activeFiltersLine');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  prevBtn.addEventListener('click', ()=>{ currentPage = Math.max(1, currentPage - 1); renderResults(); });
+  nextBtn.addEventListener('click', ()=>{ currentPage = currentPage + 1; renderResults(); });
+
+  function getFilteredPlants(){
+    const base = getPlantsForRegionProps(selectedProps);
+    const q = normText(document.getElementById('searchBox').value);
+    const activeFilters = getActiveFilters();
+
+    return base.filter(p => {
+      if (q) {
+        const ok = normText(p.commonName).includes(q) || normText(p.scientificName).includes(q);
+        if (!ok) return false;
+      }
+      for (const f of activeFilters) {
+        const cell = p.raw?.[f.col];
+        if (f.kind === 'dropdown') {
+          if (!matchesDropdownCell(cell, f.value)) return false;
+        } else {
+          const cellStr = String(cell ?? '').trim();
+          if (!cellStr) return false;
+          if (!normText(cellStr).includes(normText(f.value))) return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  // ============================================================
+  // Export (Excel / Google Sheets)
+  // Exports ALL currently filtered plants (not just the current page)
+  // ============================================================
+  function getExportColumns(){
+    // Keep everything except excluded vendor/link/source columns
+    return (csvHeaders || []).filter(c => c && String(c).trim() && !EXCLUDED_COLUMNS.has(c));
+  }
+
+  function csvCell(value){
+    const s = String(value ?? '');
+    // Quote if it contains comma, quote, or newline
+    if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  }
+
+  function downloadBlob(content, filename, mime){
+    const blob = new Blob([content], { type: mime });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 0);
+  }
+
+  function exportFilteredToCSVForSheets(){
+    const filtered = getFilteredPlants();
+    const cols = getExportColumns();
+
+    if (!filtered.length){
+      alert('No matching plants to export (your filters returned 0 results).');
+      return;
+    }
+    if (!cols.length){
+      alert('No columns found to export.');
+      return;
+    }
+
+    const lines = [];
+    lines.push(cols.map(csvCell).join(','));
+    for (const p of filtered){
+      lines.push(cols.map(col => csvCell(p.raw?.[col] ?? '')).join(','));
+    }
+    const csv = lines.join('\r\n');
+    downloadBlob(csv, 'plants_export.csv', 'text/csv;charset=utf-8;');
+
+    // Open a new Google Sheet for the user to import into (no auth required)
+    try { window.open('https://sheet.new', '_blank'); } catch {}
+    alert('CSV downloaded.\n\nIn the new Google Sheet tab: File → Import → Upload → select plants_export.csv');
+  }
+
+  function exportFilteredToExcelXLSX(){
+    const filtered = getFilteredPlants();
+    const cols = getExportColumns();
+
+    if (!filtered.length){
+      alert('No matching plants to export (your filters returned 0 results).');
+      return;
+    }
+    if (!cols.length){
+      alert('No columns found to export.');
+      return;
+    }
+    if (typeof XLSX === 'undefined'){
+      alert('Excel export library (SheetJS) did not load. Check your internet connection and reload the page.');
+      return;
+    }
+
+    // Build a simple AOA (array-of-arrays) so column order is exact
+    const aoa = [cols];
+    for (const p of filtered){
+      aoa.push(cols.map(col => String(p.raw?.[col] ?? '')));
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, 'Plants');
+    XLSX.writeFile(wb, 'plants_export.xlsx');
+  }
+
+  function renderResults(){
+    elResults.innerHTML = '';
+    elCount.textContent = '';
+    elPageMeta.textContent = '';
+    elActiveFiltersLine.textContent = '';
+
+    const filtered = getFilteredPlants();
+    const activeFilters = getActiveFilters();
+
+    if (activeFilters.length) {
+      elActiveFiltersLine.innerHTML =
+        `<b>Active filters:</b> ` +
+        activeFilters.map(f => `${escapeHtml(f.col)} = <code>${escapeHtml(f.value)}</code>`).join(' &nbsp; ');
+    }
+
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    currentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const endIdx = Math.min(startIdx + PAGE_SIZE, total);
+    const pageItems = filtered.slice(startIdx, endIdx);
+
+    elCount.textContent = `(${total} matches)`;
+    elPageMeta.textContent = total
+      ? `Page ${currentPage} of ${totalPages} • Showing ${startIdx + 1}-${endIdx}`
+      : `Page 1 of 1 • Showing 0`;
+
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+
+    if (!pageItems.length) {
+      elResults.innerHTML = '<div class="small">No plants match those filters.</div>';
+      return;
+    }
+
+    const summaryFieldsWanted = ['Plant Type','ROOT_TYPE','ROOT_DEPTH'];
+    const summaryFields = [];
+    for (const w of summaryFieldsWanted) {
+      const found = csvHeaders.find(h => normalizeKey(h) === normalizeKey(w));
+      if (found) summaryFields.push(found);
+    }
+
+    function buildDetailsBox(p){
+      const cols = detailColumns || [];
+      const kv = [];
+      for (const col of cols) {
+        if (EXCLUDED_COLUMNS.has(col)) continue;
+        const v = String(p.raw?.[col] ?? '').trim();
+        if (!v) continue;
+        kv.push({ k: col, v });
+      }
+      if (!kv.length) return '';
+      const lines = kv.map(item => `
+        <div class="detailLine">
+          <div class="detailKey">${escapeHtml(item.k)}</div>
+          <div class="detailVal">${escapeHtml(item.v)}</div>
+        </div>
+      `).join('');
+      return `
+        <div class="detailsBox">
+          <div class="detailsBoxSummary">More info (all non-empty fields)</div>
+          <div class="detailsGrid">${lines}</div>
+        </div>
+      `;
+    }
+
+    elResults.innerHTML = pageItems.map((p, idx) => {
+      const title = `${escapeHtml(p.commonName || '(No common name)')}`;
+      const sci = p.scientificName ? `<div class="small"><i>${escapeHtml(p.scientificName)}</i></div>` : '';
+      const region = p.l3Raw ? `<div class="small">Region: ${escapeHtml(p.l3Raw)}</div>` : '';
+
+      const summary = summaryFields.map(col => {
+        const v = String(p.raw?.[col] ?? '').trim();
+        if (!v) return '';
+        return `<div class="small"><span class="key">${escapeHtml(col)}:</span> ${escapeHtml(v)}</div>`;
+      }).join('');
+
+      const detailsId = `details_${startIdx + idx}`;
+      return `
+        <div class="plant">
+          <b>${title}</b>
+          ${sci}
+          ${region}
+          <div class="kv">${summary}</div>
+
+          <div class="moreRow">
+            <div class="small">Click “More info” to expand.</div>
+            <button class="secondary smallBtn" type="button" data-details-btn="${detailsId}">More info</button>
+          </div>
+
+          <div id="${detailsId}" class="hidden"></div>
+        </div>
+      `;
+    }).join('');
+
+    // hook up the "More info" buttons
+    const btns = elResults.querySelectorAll('button[data-details-btn]');
+    btns.forEach(btn => {
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-details-btn');
+        const box = document.getElementById(id);
+        if (!box) return;
+
+        const isOpen = !box.classList.contains('hidden');
+        if (isOpen) {
+          box.classList.add('hidden');
+          box.innerHTML = '';
+          btn.textContent = 'More info';
+          return;
+        }
+
+        const n = parseInt(id.replace('details_',''), 10);
+        const filtered = getFilteredPlants();
+        const p = filtered[n];
+        if (!p) return;
+
+        box.innerHTML = (function(){
+          const cols = detailColumns || [];
+          const kv = [];
+          for (const col of cols) {
+            if (EXCLUDED_COLUMNS.has(col)) continue;
+            const v = String(p.raw?.[col] ?? '').trim();
+            if (!v) continue;
+            kv.push({ k: col, v });
+          }
+          if (!kv.length) return '';
+          const lines = kv.map(item => `
+            <div class="detailLine">
+              <div class="detailKey">${escapeHtml(item.k)}</div>
+              <div class="detailVal">${escapeHtml(item.v)}</div>
+            </div>
+          `).join('');
+          return `
+            <div class="detailsBox">
+              <div class="detailsBoxSummary">More info (all non-empty fields)</div>
+              <div class="detailsGrid">${lines}</div>
+            </div>
+          `;
+        })();
+
+        box.classList.remove('hidden');
+        btn.textContent = 'Hide info';
+      });
+    });
+  }
+
+  // Quick plant lookup
+  function renderQuickList(list){
+    const el = document.getElementById('quickList');
+    if (!el) return;
+    if (!list.length) { el.innerHTML = ''; return; }
+    el.innerHTML = list.slice(0, 12).map((p, idx) => `
+      <div class="quickItem" data-quick="${idx}">
+        <b style="font-size:14px; margin:0;">${escapeHtml(p.commonName || '(No common name)')}</b>
+        <div class="small"><i>${escapeHtml(p.scientificName || '')}</i></div>
+        <div class="small">${escapeHtml(p.l3Raw || '')}</div>
+      </div>
+    `).join('');
+
+    el.querySelectorAll('[data-quick]').forEach(node => {
+      node.addEventListener('click', ()=>{
+        const i = parseInt(node.getAttribute('data-quick'), 10);
+        const p = list[i];
+        if (!p) return;
+
+        selectRegionProps(null);
+        document.getElementById('searchBox').value = p.commonName || p.scientificName || '';
+        currentPage = 1;
+        renderResults();
+
+        document.getElementById('results')?.scrollIntoView({ behavior:'smooth', block:'start' });
+      });
+    });
+  }
+
+  document.getElementById('plantLookup').addEventListener('input', (e)=>{
+    const q = normText(e.target.value);
+    if (!q) { renderQuickList([]); return; }
+    const matches = plants
+      .filter(p =>
+        normText(p.commonName).includes(q) ||
+        normText(p.scientificName).includes(q)
+      );
+    renderQuickList(matches);
+  });
+
+  // Load CSV
+  function pickFirstExistingHeader(candidates, headers, fallback){
+    for (const c of candidates) {
+      const found = headers.find(h => normalizeKey(h) === normalizeKey(c));
+      if (found) return found;
+    }
+    return fallback;
+  }
+
+  async function loadPlantDatabaseCSV(){
+    setStatus('Loading plant database CSV…');
+
+    const { res, url } = await fetchFirstOk(DATABASE_CSV_URL, { cache:'no-store' }, 'CSV');
+    logDebug('✅ CSV loaded from', url);
+
+    const text = await res.text();
+    const parsed = parseCSV(text);
+    const rows = parsed.rows || [];
+    if (!rows.length) throw new Error('CSV loaded but has 0 rows.');
+
+    csvHeaders = parsed.headers || Object.keys(rows[0] || {});
+    colL3Key = pickFirstExistingHeader(L3_KEY_CANDIDATES, csvHeaders, 'L3_KEY');
+    colCommon = pickFirstExistingHeader(COMMON_CANDIDATES, csvHeaders, 'Common Name');
+    colScientific = pickFirstExistingHeader(SCI_CANDIDATES, csvHeaders, 'Scientific Name');
+
+    logDebug('✅ Column mapping', { colL3Key, colCommon, colScientific });
+
+    const globalStats = {};
+    for (const col of csvHeaders) {
+      const set = new Set();
+      const sampleLimit = Math.min(rows.length, 6000);
+      for (let i=0;i<sampleLimit;i++){
+        const v = String(rows[i]?.[col] ?? '').trim();
+        if (!v) continue;
+        set.add(v);
+        if (set.size > 220) break;
+      }
+      globalStats[col] = { uniqueEstimate: set.size, sampleUniques: set };
+    }
+
+    plants = rows.map(r => {
+      const l3Raw = String(r[colL3Key] ?? '').trim();
+      return {
+        l3Raw,
+        l3Norm: normalizeKey(l3Raw),
+        l3Code: extractLeadingCode(l3Raw),
+        commonName: String(r[colCommon] ?? '').trim(),
+        scientificName: String(r[colScientific] ?? '').trim(),
+        raw: r
+      };
+    });
+
+    indexPlants();
+
+    detailColumns = csvHeaders
+      .filter(c => c && c.trim())
+      .filter(c => !EXCLUDED_COLUMNS.has(c))
+      .filter(c => normalizeKey(c) !== normalizeKey(colL3Key))
+      .sort((a,b)=>a.localeCompare(b));
+
+    document.getElementById('colInfo').innerHTML = `
+      <div class="small">
+        Loaded <b>${rows.length.toLocaleString()}</b> rows and <b>${csvHeaders.length}</b> columns.
+        Showing ${PAGE_SIZE} plants per page. Vendor/link columns removed.
+      </div>
+    `;
+
+    buildFilterControls(globalStats);
+    rebuildDropdownOptionsFromList(plants);
+
+    selectRegionProps(null);
+    setStatus('CSV loaded. Filters + plants should now be visible.');
+    refreshAllTooltips();
+  }
+
+  // Load GeoJSON map
+  async function loadEcoregionsGeoJSON(){
+    setStatus('Loading ecoregion map…');
+
+    const { res, url } = await fetchFirstOk(ECOREGIONS_URL, { cache:'no-store' }, 'GeoJSON');
+    logDebug('✅ GeoJSON loaded from', url);
+
+    const geojson = await res.json();
+    ecoregionGeoJSON = geojson;
+    logDebug('✅ GeoJSON parsed', { type: geojson.type, features: geojson.features?.length });
+
+    regionIndex = [];
+    regionKeyToProps = new Map();
+    for (const f of (geojson.features || [])) {
+      const p = f.properties || {};
+      const rawKey = String(p.L3_KEY ?? '').trim();
+      if (!rawKey) continue;
+      const code = String(p.US_L3CODE ?? '').trim() || extractLeadingCode(rawKey);
+      const name = p.US_L3NAME || p.NA_L3NAME || '';
+      const label = `${code || rawKey}${name ? ' — ' + name : ''}`;
+      regionIndex.push({ label, rawKey, code, name });
+      regionKeyToProps.set(rawKey, p);
+    }
+    regionIndex.sort((a,b)=>a.label.localeCompare(b.label));
+
+    if (regionFilterControl) {
+      const current = String(regionFilterControl.el.value || '');
+      regionFilterControl.el.innerHTML = `<option value="">All regions</option>`;
+      for (const r of regionIndex) {
+        const opt = document.createElement('option');
+        opt.value = r.rawKey;
+        opt.textContent = r.label;
+        regionFilterControl.el.appendChild(opt);
+      }
+      regionFilterControl.el.value = current;
+    }
+
+    if (ecoregionsLayer) { try { map.removeLayer(ecoregionsLayer); } catch {} }
+
+    function onEachFeature(feature, layer){
+      const p = feature.properties || {};
+      layer.bindTooltip(buildTooltipHtml(p), { sticky:true, direction:'auto', opacity:0.95 });
+
+      layer.on('mouseover', ()=>{
+        const tt = layer.getTooltip ? layer.getTooltip() : null;
+        if (tt && tt.setContent) tt.setContent(buildTooltipHtml(p));
+      });
+
+      layer.on('click', ()=>{
+        const props = feature?.properties || null;
+        if (!props) return;
+        selectRegionProps(props);
+        setGeoStatus('Region selected by clicking the map.');
+      });
+    }
+
+    ecoregionsLayer = L.geoJSON(geojson, {
+      style: styleForFeature,
+      onEachFeature
+    }).addTo(map);
+
+    applySelectionStyles();
+    refreshAllTooltips();
+  }
+
+  // Buttons + paging + toggles
+  document.getElementById('searchBox').addEventListener('input', ()=>{
+    currentPage = 1;
+    renderResults();
+  });
+
+  document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+    for (const [, ctrl] of filterControls.entries()) ctrl.el.value = '';
+    if (regionFilterControl) regionFilterControl.el.value = '';
+    selectRegionProps(null);
+    currentPage = 1;
+    renderResults();
+    setGeoStatus('Filters cleared.');
+  });
+
+  document.getElementById('toggleAdvancedBtn').addEventListener('click', ()=>{
+    setAdvancedVisible(!advancedShown);
+    document.getElementById('toggleAdvancedBtn').textContent = advancedShown ? 'Hide advanced' : 'Show advanced';
+  });
+
+  // ============================================================
+  // Secret unlock wiring (Debug)
+  // ============================================================
+  const unlockBackdrop = document.getElementById('adminUnlockBackdrop');
+  const unlockBox = document.getElementById('adminUnlock');
+  const unlockInput = document.getElementById('adminUnlockInput');
+  const unlockGo = document.getElementById('adminUnlockGo');
+  const unlockCancel = document.getElementById('adminUnlockCancel');
+
+  function openUnlock(){
+    unlockBackdrop.style.display = 'block';
+    unlockBox.style.display = 'block';
+    unlockBox.classList.remove('shake');
+    unlockInput.value = '';
+    setTimeout(()=>unlockInput.focus(), 0);
+  }
+  function closeUnlock(){
+    unlockBackdrop.style.display = 'none';
+    unlockBox.style.display = 'none';
+  }
+  function tryUnlock(){
+    const val = normText(unlockInput.value);
+    if (val === 'dirt') {
+      debugUnlocked = true;
+      setDebugFabVisible(true);
+      closeUnlock();
+      logDebug('🔓 Debug unlocked');
+      openDebug();
+      return;
+    }
+    unlockBox.classList.add('shake');
+    setTimeout(()=>unlockBox.classList.remove('shake'), 300);
+  }
+
+  // Debug UI wiring + buttons + unlock trigger + geolocation buttons
+  window.addEventListener('DOMContentLoaded', ()=>{
+    // Keep debug hidden unless unlocked
+    setDebugFabVisible(false);
+
+    // Secret trigger: double-click the D
+    document.getElementById('spadeD').addEventListener('dblclick', (e)=>{
+      e.preventDefault();
+      openUnlock();
+    });
+
+    unlockBackdrop.addEventListener('click', closeUnlock);
+    unlockCancel.addEventListener('click', closeUnlock);
+    unlockGo.addEventListener('click', tryUnlock);
+    unlockInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') tryUnlock(); if (e.key === 'Escape') closeUnlock(); });
+
+    // Debug controls (still work after unlock)
+    document.getElementById('debugFab').addEventListener('click', openDebug);
+    document.getElementById('debugModalBackdrop').addEventListener('click', closeDebug);
+    document.getElementById('debugCloseBtn').addEventListener('click', closeDebug);
+    document.getElementById('debugClearBtn').addEventListener('click', ()=>{ debugLines=[]; logDebug('🧹 Log cleared'); });
+    document.getElementById('debugCopyBtn').addEventListener('click', async ()=>{
+      try { await navigator.clipboard.writeText(debugLines.join('\n')); logDebug('✅ Copied log'); }
+      catch(err){ logDebug('❌ Copy failed', String(err)); alert('Copy blocked. Select text and copy manually.'); }
+    });
+
+    document.getElementById('zipFindBtn').addEventListener('click', ()=>findByZip(document.getElementById('zipInput').value));
+    document.getElementById('zipInput').addEventListener('keydown', (e)=>{ if (e.key === 'Enter') findByZip(document.getElementById('zipInput').value); });
+    document.getElementById('zipLocBtn').addEventListener('click', useMyLocationZip);
+
+    document.getElementById('latlngFindBtn').addEventListener('click', findByLatLngInputs);
+    document.getElementById('latInput').addEventListener('keydown', (e)=>{ if (e.key === 'Enter') findByLatLngInputs(); });
+    document.getElementById('lngInput').addEventListener('keydown', (e)=>{ if (e.key === 'Enter') findByLatLngInputs(); });
+    document.getElementById('latlngLocBtn').addEventListener('click', useMyLocationLatLng);
+
+    // Export buttons
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const exportSheetsBtn = document.getElementById('exportSheetsBtn');
+    if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportFilteredToExcelXLSX);
+    if (exportSheetsBtn) exportSheetsBtn.addEventListener('click', exportFilteredToCSVForSheets);
+
+    logDebug('✅ Debug UI ready (locked)');
+  });
+
+  // Boot
+  (async function start(){
+    try {
+      logDebug('🚀 App starting', { ECOREGIONS_URL, DATABASE_CSV_URL });
+      await loadEcoregionsGeoJSON();
+      await loadPlantDatabaseCSV();
+      refreshAllTooltips();
+      setGeoStatus('Ready: search plants, use filters, or find ecoregion by ZIP or Lat/Lng.');
+      logDebug('✅ App ready');
+    } catch (err) {
+      logDebug('❌ App start error', String(err));
+      setStatus('ERROR: ' + err.message);
+      // If the app fails, still keep debug hidden until you unlock it.
+      // (You can unlock with the secret "dirt" password.)
+    }
+  })();
+</script>
+</body>
+</html>
