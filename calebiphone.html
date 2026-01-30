@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>S.P.A.D.E. – Blazin Turtles</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>S.P.A.D.E. – Mobile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -21,211 +21,428 @@
       --card-bg: #f9f6f2;
       --border-color: #cbd5e0;
       --text-main: #2d3436;
-      --soft-radius: 16px; /* Slightly rounder for iOS feel */
-      --safe-top: env(safe-area-inset-top);
-      --safe-bottom: env(safe-area-inset-bottom);
+      --soft-radius: 12px;
     }
 
+    /* Reset for Mobile Scrolling */
     body { 
       margin: 0; 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+      font-family: 'Inter', sans-serif; 
       background: var(--bg-light); 
       color: var(--text-main); 
-      overflow: hidden; 
-      height: 100vh;
+      line-height: 1.5; 
+      overflow-x: hidden; 
+      overflow-y: auto; 
     }
 
-    /* Primary Layout Container */
     #wrap { 
-      display: grid; 
-      grid-template-columns: 550px 1fr; 
-      height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+      min-height: 100vh; 
     }
-
-    /* Sidebar/Scrollable Content */
+    
+    /* Map at the top for Mobile */
+    #map-container { 
+      position: sticky; /* Keeps map visible while interacting with immediate tools */
+      top: 0;
+      height: 40vh; 
+      width: 100%; 
+      z-index: 100;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    #map { height: 100%; width: 100%; background: #cad2d3; }
+    
+    /* Content Area */
     #sidebar { 
       padding: 20px; 
-      padding-top: calc(20px + var(--safe-top));
-      border-right: 1px solid var(--border-color); 
-      overflow-y: auto; 
       background: var(--bg-light); 
-      z-index: 10; 
-      -webkit-overflow-scrolling: touch;
+      flex: 1;
     }
+    
+    h1 { margin: 0; font-size: 2.2em; font-weight: 900; color: var(--primary-green); letter-spacing: -1px; }
+    .acronym { font-size: 0.8em; font-weight: 700; color: var(--accent-green); text-transform: uppercase; }
+    .subtitle { margin-bottom: 20px; color: #4a5568; font-size: 0.75em; font-weight: 600; }
 
-    #map-container { 
-      position: relative; 
-      height: 100%; 
-      width: 100%; 
-    }
-
-    #map { height: 100%; width: 100%; }
-
-    /* Mobile Bottom Navigation */
-    .mobile-nav {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: calc(60px + var(--safe-bottom));
-      background: white;
-      border-top: 1px solid var(--border-color);
-      z-index: 10000;
-      grid-template-columns: 1fr 1fr;
-      padding-bottom: var(--safe-bottom);
-    }
-
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 700;
-      color: #718096;
-      border: none;
-      background: none;
-      cursor: pointer;
-    }
-
-    .nav-item.active { color: var(--accent-green); }
-
-    /* Typography & Buttons */
-    h1 { font-size: 2.2em; margin-bottom: 5px; color: var(--primary-green); }
+    /* Buttons & Inputs - Sized for Thumbs */
     .btn-standard { 
-      min-height: 48px; 
+      width: 100%; 
+      border: none; 
+      padding: 16px; 
       border-radius: var(--soft-radius); 
-      font-size: 16px; /* Prevents iOS auto-zoom on focus */
+      font-weight: 700; 
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 10px; 
+      font-size: 1em; 
       margin-bottom: 12px; 
     }
+    #geo-btn { background: #3b82f6; color: white; }
+    
+    .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
     input, select { 
-      min-height: 44px; 
-      font-size: 16px; 
-      border-radius: 10px;
+      flex: 1; 
+      padding: 14px; 
+      border: 1.5px solid var(--border-color); 
+      border-radius: var(--soft-radius); 
+      font-size: 16px; /* Prevents iOS auto-zoom on focus */
+      background: #fff; 
+    }
+    .action-btn { background: var(--accent-green); color: white; border: none; padding: 0 20px; border-radius: var(--soft-radius); font-weight: 700; }
+    
+    /* Refined Filter Grid for Mobile */
+    .filter-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 10px; 
+      margin-bottom: 20px; 
+    }
+    .row { display: flex; flex-direction: column; }
+    label { font-weight: 700; font-size: 0.65em; margin-bottom: 4px; color: #4a5568; text-transform: uppercase; }
+    
+    .soil-desc { font-size: 0.6em; color: #718096; margin-top: 2px; display: none; /* Hidden on mobile to save space */ }
+    
+    .reset-filters-btn { width: 100%; background: var(--accent-green); color: white; border: none; padding: 16px; border-radius: var(--soft-radius); font-weight: 700; margin: 15px 0; }
+
+    #main-search-box { 
+      width: 100%; 
+      margin: 15px 0; 
+      padding: 16px; 
+      border: 2px solid var(--accent-green); 
+      box-sizing: border-box; 
+      border-radius: var(--soft-radius);
+      font-size: 16px;
     }
 
-    /* iPhone-specific Breakpoints */
-    @media (max-width: 900px) {
-      #wrap { grid-template-columns: 1fr; }
-      #sidebar { 
-        position: absolute; 
-        top: 0; left: 0; right: 0; bottom: 60px; 
-        width: auto; 
-        border-right: none;
-        padding-bottom: 80px;
-      }
-      #map-container { 
-        position: absolute; 
-        top: 0; left: 0; right: 0; bottom: 60px; 
-        z-index: 5;
-        display: none; /* Hidden by default, toggled via nav */
-      }
-      .mobile-nav { display: grid; }
-      
-      #map-container.active-view { display: block; }
-      #sidebar.active-view { display: block; }
-      #sidebar.hidden-view { display: none; }
+    /* Plant Cards optimized for narrow screens */
+    .plant-card { 
+      border: 1px solid #d2b48c; 
+      padding: 15px; 
+      margin-bottom: 20px; 
+      border-radius: var(--soft-radius); 
+      background: var(--card-bg); 
+      position: relative; 
     }
+    .plant-card h4 { margin: 0; font-size: 1.2em; max-width: 85%; }
+    .plant-img { width: 100%; height: 200px; border-radius: 8px; margin: 10px 0; }
+    
+    /* Star visibility */
+    .star-toggle { position: absolute; top: 15px; right: 15px; font-size: 2em; z-index: 5; }
 
-    /* Plant Card Mobile Optimization */
-    .plant-card { padding: 15px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .plant-img { height: 180px; border-radius: 12px; }
+    /* Map Controls */
+    #map-toggle-container { position: absolute; bottom: 15px; right: 15px; z-index: 1000; }
+    .toggle-map-btn { background: white; border: 1px solid #ccc; border-radius: 8px; padding: 8px 12px; font-weight: 800; font-size: 0.7em; }
 
+    /* Overlays */
+    #starred-overlay, #debug-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20000; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+    .overlay-grid { display: flex; flex-direction: column; gap: 20px; margin-top: 20px; }
   </style>
 </head>
 <body>
 
-<div class="mobile-nav">
-  <button class="nav-item active" id="nav-list" onclick="switchView('list')">
-    <span style="font-size:20px;">🌿</span>
-    <span>Plants</span>
-  </button>
-  <button class="nav-item" id="nav-map" onclick="switchView('map')">
-    <span style="font-size:20px;">📍</span>
-    <span>Map</span>
-  </button>
-</div>
-
 <div id="starred-overlay">
-  <button class="close-overlay" onclick="closeStarred()">✕</button>
-  <h2 style="color:white; text-align:center;">Starred</h2>
+  <button class="close-overlay" onclick="closeStarred()" style="color:white; float:right; background:none; border:none; font-size:30px;">✕</button>
+  <h2 style="color:white; text-align:center;">Starred Plants</h2>
   <div id="starred-grid" class="overlay-grid"></div>
 </div>
 
-<div id="wrap">
-  <div id="sidebar" class="active-view">
-    <h1>S.P.A.D.E.</h1>
-    <div class="acronym">Site Preservation and Dirt Erosion-control</div>
-    <div class="subtitle">By Blazin Turtles</div>
+<div id="debug-overlay">
+  <button class="close-overlay" onclick="document.getElementById('debug-overlay').style.display='none'" style="color:white; float:right; background:none; border:none; font-size:30px;">✕</button>
+  <h2 style="color:white;">System Log</h2>
+  <div id="debug-content" style="background:#000; color:#0f0; padding:10px; font-family:monospace; font-size:10px; height:60vh; overflow:auto;"></div>
+</div>
 
-    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
-        <button id="geo-btn" class="btn-standard" onclick="useMyLocation()">📍 Use My Location</button>
-        <div class="input-row">
-            <input type="text" id="zip-input" placeholder="Zip Code" maxlength="5">
-            <button class="action-btn" onclick="useZipCode()">Go</button>
-        </div>
+<div id="wrap">
+  <div id="map-container">
+    <div id="map-toggle-container">
+      <button id="layer-toggle" class="toggle-map-btn" onclick="toggleMapLayer()">Satellite View</button>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <div id="sidebar">
+    <h1>S<span id="secret-dot" ondblclick="accessDebug()">.</span>P.A.D.E.</h1>
+    <div class="acronym">Site Preservation and Dirt Erosion-control</div>
+    <div class="subtitle">By The Blazin Turtles</div>
+
+    <button id="geo-btn" class="btn-standard" onclick="useMyLocation()">📍 Use My Location</button>
+    
+    <div class="input-row">
+      <input type="text" id="zip-input" placeholder="Zip Code" pattern="[0-9]*" inputmode="numeric">
+      <button class="action-btn" onclick="useZipCode()">Go</button>
+    </div>
+    
+    <div class="input-row">
+      <input type="number" id="lat-input" placeholder="Lat">
+      <input type="number" id="lng-input" placeholder="Lng">
+      <button class="action-btn" onclick="useCoordinates()">Go</button>
     </div>
 
-    <div style="background: white; padding: 15px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #ddd;">
+    <div style="background: #e6f0ff; padding: 12px; border-radius: 12px; margin-bottom: 20px;">
       <label style="color: #1e40af;">Region</label>
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div id="selected-region" style="font-weight: 700;">None Selected</div>
-        <button id="clear-btn" onclick="resetAllData()" style="padding:8px; border-radius:8px;">Clear</button>
+        <div id="selected-region" style="font-weight: 700; font-size: 0.85em;">None Selected</div>
+        <button id="clear-btn" style="background: #fed7d7; color: #c53030; border: none; padding: 5px 10px; border-radius: 6px; font-weight: 700;" onclick="resetAllData()">Clear</button>
       </div>
     </div>
 
-    <button class="btn-standard" style="background: #f1c40f;" onclick="openStarred()">⭐ Starred Plants</button>
+    <button class="btn-standard" style="background: #f1c40f;" onclick="openStarred()">⭐ View Starred</button>
 
-    <h3>Filters</h3>
+    <h3>Environment & Growth</h3>
     <div class="filter-grid">
-        <div class="row"><label>Plant Type</label><select id="type-filter" class="p-filter"><option value="all">All</option></select></div>
-        <div class="row"><label>Sunlight</label><select id="sun-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Type</label><select id="type-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Root</label><select id="root-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Sun</label><select id="sun-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Drought</label><select id="drought-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Fire</label><select id="fire-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Season</label><select id="season-filter" class="p-filter">
+        <option value="all">All</option>
+        <option value="Spring">Spring</option>
+        <option value="Fall">Fall</option>
+        <option value="Summer">Summer</option>
+        <option value="Winter">Winter</option>
+      </select></div>
     </div>
 
-    <input type="text" id="main-search-box" placeholder="Search plants..." />
-    <div id="results-count">Scanning...</div>
+    <h3>Soil Analysis</h3>
+    <div class="filter-grid">
+      <div class="row"><label>Moisture</label><select id="moisture-filter" class="p-filter"><option value="all">All</option></select></div>
+      <div class="row"><label>Clay</label><select id="clay-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="row"><label>Sand</label><select id="sand-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="row"><label>Gravel</label><select id="gravel-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="row"><label>Loam</label><select id="loam-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="row"><label>Silt</label><select id="silt-filter" class="p-filter"><option value="all">All</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+    </div>
+
+    <button class="reset-filters-btn" onclick="resetFilters()">Reset All Filters</button>
+
+    <input type="text" id="main-search-box" placeholder="Search Plant Names..." />
+
+    <div id="results-count" style="font-weight: 800; text-align: center; color: var(--accent-green); margin-bottom: 15px;">Scanning...</div>
     <div id="plant-list"></div>
-    <button id="show-more-btn" class="btn-standard" onclick="showMore()">Show More</button>
-  </div>
+    <button id="show-more-btn" class="btn-standard" style="background:var(--accent-green); color:white;" onclick="showMore()">Show More Results</button>
 
-  <div id="map-container">
-    <div id="map-toggle-container">
-      <button id="layer-toggle" class="toggle-map-btn" onclick="toggleMapLayer()">Satellite</button>
+    <div class="input-row" style="margin-top:20px;">
+      <button class="export-btn" style="flex:1; padding:12px;" onclick="exportXLSX()">Export XLSX</button>
+      <button class="export-btn" style="flex:1; padding:12px;" onclick="exportCSV()">Export CSV</button>
     </div>
-    <div id="map"></div>
   </div>
 </div>
 
 <script>
-  // ... Keep all your original Logic (init, PapaParse, Leaflet, syncLocation, etc.) ...
-  
-  // New UI Logic for Mobile Switching
-  function switchView(view) {
-    const sidebar = document.getElementById('sidebar');
-    const mapContainer = document.getElementById('map-container');
-    const navList = document.getElementById('nav-list');
-    const navMap = document.getElementById('nav-map');
+  /* ALL ORIGINAL DATA AND LOGIC RETAINED */
+  const ECO_URL = 'assets/us_eco_l3_state_boundaries.json';
+  const CSV_URL = 'assets/Database-Deleted-Categories.csv';
+  const vendorLinks = {
+    "native west": "https://nativewest.com/",
+    "prairie moon nursery": "https://www.prairiemoon.com/",
+    "praire nursery": "https://www.prairienursery.com/",
+    "ernst seeds": "https://www.ernstseed.com/",
+    "gbnp": "http://www.greatbearnativeplants.com/",
+    "mellow marsh farm": "https://mellowmarshfarm.com/",
+    "roots and shoots": "https://www.rootsandshootsnursery.com/",
+    "critsite_native_plants_full_list": "https://plantsman.com/"
+  };
 
-    if (view === 'list') {
-      sidebar.classList.add('active-view');
-      sidebar.classList.remove('hidden-view');
-      mapContainer.classList.remove('active-view');
-      navList.classList.add('active');
-      navMap.classList.remove('active');
-    } else {
-      sidebar.classList.add('hidden-view');
-      sidebar.classList.remove('active-view');
-      mapContainer.classList.add('active-view');
-      navMap.classList.add('active');
-      navList.classList.remove('active');
-      // Force leaflet to recalculate size when map becomes visible
-      setTimeout(() => { map.invalidateSize(); }, 200);
+  let plantData = [], geoLayer = null, map = null, currentFiltered = [];
+  let selectedL3 = null, displayLimit = 10, ecoregionCounts = {};
+  let starred = JSON.parse(localStorage.getItem('spade_starred') || '[]');
+
+  const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+  let isSatellite = false;
+
+  function sysLog(msg) {
+    const content = document.getElementById('debug-content');
+    if(content) { content.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`; content.scrollTop = content.scrollHeight; }
+  }
+
+  function toggleMapLayer() {
+    const btn = document.getElementById('layer-toggle');
+    if (isSatellite) { map.removeLayer(satelliteLayer); streetLayer.addTo(map); btn.textContent = "Satellite View"; } 
+    else { map.removeLayer(streetLayer); satelliteLayer.addTo(map); btn.textContent = "Map View"; }
+    isSatellite = !isSatellite;
+  }
+
+  function accessDebug() { if (prompt("Enter Password:") === "numpy") { document.getElementById('debug-overlay').style.display = 'block'; } }
+
+  function syncLocation(lat, lng, source) {
+    const results = leafletPip.pointInLayer([lng, lat], geoLayer);
+    if (results.length > 0) {
+      const feat = results[0].feature.properties;
+      selectedL3 = feat.L3_KEY;
+      document.getElementById('selected-region').textContent = `${feat.L3_KEY}: ${feat.US_L3NAME}`;
+      map.setView([lat, lng], 8);
+      highlightRegion(feat.L3_KEY);
+      renderResults(true);
+      // Scroll user to the results after selection
+      document.getElementById('results-count').scrollIntoView({ behavior: 'smooth' });
     }
   }
 
-  // Ensure you include the rest of your original functions here (loadGeoJSON, renderResults, etc.)
-  // I have omitted them here to keep the response concise, but they should be pasted back in!
+  function highlightRegion(key) {
+    geoLayer.eachLayer(layer => {
+      if (layer.feature.properties.L3_KEY === key) { layer.setStyle({ fillOpacity: 0.6, weight: 3, color: '#1a5d1a' }); } 
+      else { layer.setStyle({ fillOpacity: 0.05, weight: 1, color: '#cccccc' }); }
+    });
+  }
+
+  function useMyLocation() { navigator.geolocation.getCurrentPosition(pos => { syncLocation(pos.coords.latitude, pos.coords.longitude, "GPS"); }); }
+  async function useZipCode() {
+    const zip = document.getElementById('zip-input').value;
+    if (zip.length !== 5) return;
+    const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
+    const data = await res.json();
+    syncLocation(parseFloat(data.places[0].latitude), parseFloat(data.places[0].longitude), "Zip");
+  }
+  function useCoordinates() { syncLocation(parseFloat(document.getElementById('lat-input').value), parseFloat(document.getElementById('lng-input').value), "Coords"); }
+
+  function renderResults(resetLimit = true) {
+    if (resetLimit) displayLimit = 10;
+    const q = document.getElementById('main-search-box').value.toLowerCase();
+    const f = {
+      type: document.getElementById('type-filter').value, root: document.getElementById('root-filter').value,
+      sun: document.getElementById('sun-filter').value, drought: document.getElementById('drought-filter').value,
+      fire: document.getElementById('fire-filter').value, moisture: document.getElementById('moisture-filter').value,
+      clay: document.getElementById('clay-filter').value, sand: document.getElementById('sand-filter').value,
+      gravel: document.getElementById('gravel-filter').value, loam: document.getElementById('loam-filter').value,
+      silt: document.getElementById('silt-filter').value
+    };
+
+    currentFiltered = plantData.filter(p => {
+      if (selectedL3 && p.L3_KEY !== selectedL3) return false;
+      if (f.type !== 'all' && !(p['Plant Type'] || "").includes(f.type)) return false;
+      if (f.root !== 'all' && !(p['ROOT_TYPE'] || "").includes(f.root)) return false;
+      if (f.sun !== 'all' && !(p['SUN_EXPOSURE'] || "").includes(f.sun)) return false;
+      if (f.drought !== 'all' && !(p['Drought Tolerance'] || "").includes(f.drought)) return false;
+      if (f.fire !== 'all' && !(p['Fire Tolerance'] || "").includes(f.fire)) return false;
+      if (f.moisture !== 'all' && !(p['Soil Moisture'] || "").includes(f.moisture)) return false;
+      if (f.clay !== 'all' && p['CLAY_SOIL'] !== f.clay) return false;
+      if (f.sand !== 'all' && p['SAND_SOIL'] !== f.sand) return false;
+      if (f.gravel !== 'all' && p['GRAVEL_SOIL'] !== f.gravel) return false;
+      if (f.loam !== 'all' && p['LOAM_SOIL'] !== f.loam) return false;
+      if (f.silt !== 'all' && p['SILT_SOIL'] !== f.silt) return false;
+      if (q && !((p['Common Name'] || "").toLowerCase().includes(q) || (p['Scientific Name'] || "").toLowerCase().includes(q))) return false;
+      return true;
+    });
+
+    document.getElementById('results-count').textContent = `Matched ${currentFiltered.length} Species`;
+    const list = document.getElementById('plant-list'); list.innerHTML = "";
+    currentFiltered.slice(0, displayLimit).forEach((p, idx) => { list.appendChild(createPlantCard(p, `list-${idx}`)); });
+
+    const moreBtn = document.getElementById('show-more-btn');
+    moreBtn.style.display = (displayLimit >= currentFiltered.length) ? "none" : "block";
+  }
+
+  function createPlantCard(p, id) {
+    const card = document.createElement('div'); card.className = 'plant-card';
+    const starId = p['Scientific Name'] + '|' + (p['L3_KEY'] || 'Global');
+    const isStarred = starred.includes(starId);
+    let soils = []; ['CLAY','SAND','GRAVEL','LOAM','SILT'].forEach(s => { if (p[s+'_SOIL'] === 'Yes') soils.push(s); });
+    const vKey = (p['Vendor'] || "").toLowerCase().trim();
+    const vDisplay = vendorLinks[vKey] ? `<a href="${vendorLinks[vKey]}" target="_blank" style="color:var(--accent-green); text-decoration:none; font-weight:700;">${p['Vendor']}</a>` : "N/A";
+
+    let extraInfo = "";
+    Object.keys(p).forEach(k => { if (p[k] && p[k] !== '0') extraInfo += `<div style="font-size:0.8em;"><strong>${k}:</strong> ${p[k]}</div>`; });
+
+    card.innerHTML = `
+      <button class="star-toggle ${isStarred?'active':''}" onclick="toggleStar('${p['Scientific Name']}', '${p['L3_KEY']}')" style="background:none; border:none; color:${isStarred?'#f1c40f':'#ccc'}">★</button>
+      <h4>${p['Common Name'] || "Species"}</h4>
+      <div style="font-style:italic; font-size:0.8em; color:#666;">${p['Scientific Name']}</div>
+      <img id="img-${id}" class="plant-img" alt="Loading...">
+      <div style="font-size:0.85em;"><strong>Soil:</strong> ${soils.join(', ') || "Any"}</div>
+      <div style="font-size:0.85em;"><strong>Roots:</strong> ${p['ROOT_TYPE'] || "N/A"}</div>
+      <div style="font-size:0.85em;"><strong>Vendor:</strong> ${vDisplay}</div>
+      <div style="margin-top:10px;">
+        <button class="action-btn" style="padding:8px 12px; font-size:0.7em;" onclick="toggleDetails('${id}')">Details</button>
+        <a href="${p['SOURCE_LINK_1']}" target="_blank" style="font-size:0.7em; margin-left:10px; color:#3498db;">Source</a>
+      </div>
+      <div id="extra-${id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid #eee;">${extraInfo}</div>
+    `;
+    loadPhoto(p['Scientific Name'], `img-${id}`);
+    return card;
+  }
+
+  async function loadPhoto(sci, imgId) {
+    try {
+      const res = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(sci)}&rank=species`);
+      const data = await res.json();
+      const img = document.getElementById(imgId);
+      if (data.results?.[0]?.default_photo) img.src = data.results[0].default_photo.medium_url;
+      else img.style.display = 'none';
+    } catch(e) {}
+  }
+
+  function toggleDetails(id) {
+    const pane = document.getElementById(`extra-${id}`);
+    pane.style.display = pane.style.display === "none" ? "block" : "none";
+  }
+
+  function toggleStar(sci, l3) {
+    const starId = `${sci}|${l3 || 'Global'}`;
+    const idx = starred.indexOf(starId);
+    if (idx === -1) starred.push(starId); else starred.splice(idx, 1);
+    localStorage.setItem('spade_starred', JSON.stringify(starred));
+    renderResults(false);
+  }
+
+  function showMore() { displayLimit += 10; renderResults(false); }
+  function openStarred() {
+    const grid = document.getElementById('starred-grid'); grid.innerHTML = "";
+    plantData.filter(p => starred.includes(p['Scientific Name'] + '|' + (p['L3_KEY'] || 'Global'))).forEach((p, idx) => grid.appendChild(createPlantCard(p, `fav-${idx}`)));
+    document.getElementById('starred-overlay').style.display = 'block';
+  }
+  function closeStarred() { document.getElementById('starred-overlay').style.display = 'none'; }
+  function resetFilters() { document.querySelectorAll('.p-filter').forEach(s => s.value = 'all'); document.getElementById('main-search-box').value = ""; renderResults(true); }
+  function resetAllData() { selectedL3 = null; document.getElementById('selected-region').textContent = "None Selected"; resetFilters(); map.setView([37.8, -96], 4); if (geoLayer) geoLayer.eachLayer(l => l.setStyle({ fillOpacity: 0.1, weight: 1 })); }
+
+  function exportXLSX() { const ws = XLSX.utils.json_to_sheet(currentFiltered); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Plants"); XLSX.writeFile(wb, "SPADE_Mobile_Export.xlsx"); }
+  function exportCSV() { const csv = Papa.unparse(currentFiltered); const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "SPADE_Mobile_Export.csv"; a.click(); }
+
+  async function init() {
+    map = L.map('map', { zoomControl: false }).setView([37.8, -96], 3); 
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    streetLayer.addTo(map);
+    
+    Papa.parse(CSV_URL, {
+      download: true, header: true, complete: res => {
+        plantData = res.data;
+        plantData.forEach(p => { if (p.L3_KEY) ecoregionCounts[p.L3_KEY] = (ecoregionCounts[p.L3_KEY] || 0) + 1; });
+        const config = {'type-filter': 'Plant Type', 'root-filter': 'ROOT_TYPE', 'sun-filter': 'SUN_EXPOSURE', 'drought-filter': 'Drought Tolerance', 'fire-filter': 'Fire Tolerance', 'moisture-filter': 'Soil Moisture'};
+        Object.keys(config).forEach(id => {
+          const vals = new Set(); plantData.forEach(p => { if (p[config[id]]) p[config[id]].split(',').forEach(v => vals.add(v.trim())); });
+          const sel = document.getElementById(id);
+          Array.from(vals).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
+        });
+        loadGeoJSON();
+      }
+    });
+  }
+
+  async function loadGeoJSON() {
+    const res = await fetch(ECO_URL); const data = await res.json();
+    geoLayer = L.geoJSON(data, {
+      style: { color: '#27ae60', weight: 1, fillOpacity: 0.1 },
+      onEachFeature: (f, l) => {
+        const key = f.properties.L3_KEY;
+        l.on({
+          click: (e) => { 
+            L.DomEvent.stopPropagation(e);
+            selectedL3 = key; 
+            document.getElementById('selected-region').textContent = `${key}: ${f.properties.US_L3NAME}`; 
+            highlightRegion(key); 
+            renderResults(true); 
+            document.getElementById('results-count').scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      }
+    }).addTo(map);
+    renderResults(true);
+  }
+
+  document.querySelectorAll('.p-filter, #main-search-box').forEach(el => el.addEventListener('input', () => renderResults(true)));
+  window.onload = init;
 </script>
 </body>
 </html>
