@@ -183,18 +183,9 @@
 </div>
 
 <script>
+  // Updated URL to match the newly uploaded CSV filename
   const ECO_URL = 'assets/us_eco_l3_state_boundaries.json';
-  const CSV_URL = 'assets/Database-Deleted-Categories.csv';
-  const vendorLinks = {
-    "native west": "https://nativewest.com/",
-    "prairie moon nursery": "https://www.prairiemoon.com/",
-    "praire nursery": "https://www.prairienursery.com/",
-    "ernst seeds": "https://www.ernstseed.com/",
-    "gbnp": "http://www.greatbearnativeplants.com/",
-    "mellow marsh farm": "https://mellowmarshfarm.com/",
-    "roots and shoots": "https://www.rootsandshootsnursery.com/",
-    "critsite_native_plants_full_list": "https://plantsman.com/"
-  };
+  const CSV_URL = 'assets/Database-Deleted-Categories (1).csv';
 
   let plantData = [], geoLayer = null, map = null, currentFiltered = [];
   let selectedL3 = null, displayLimit = 10, ecoregionCounts = {};
@@ -299,8 +290,9 @@
     const starId = p['Scientific Name'] + '|' + (p['L3_KEY'] || 'Global');
     const isStarred = starred.includes(starId);
     let soils = []; ['CLAY','SAND','GRAVEL','LOAM','SILT','PEAT','CHALKY'].forEach(s => { if (p[s+'_SOIL'] === 'Yes') soils.push(s); });
-    const vKey = (p['Vendor'] || "").toLowerCase().trim();
-    const vDisplay = vendorLinks[vKey] ? `<a href="${vendorLinks[vKey]}" target="_blank" style="color:var(--accent-green); text-decoration:none; font-weight:700;">${p['Vendor']}</a>` : "N/A";
+    
+    // Vendor link now pulls the actual URL directly from 'website' column for both text and href [cite: 1]
+    const vDisplay = p['website'] ? `<a href="${p['website']}" target="_blank" style="color:var(--accent-green); text-decoration:none; font-weight:700; word-break: break-all;">${p['website']}</a>` : "N/A";
 
     let extraInfo = "";
     Object.keys(p).forEach(k => { if (p[k] && p[k] !== '0') extraInfo += `<div><strong>${k.replace(/_/g,' ')}:</strong> <span>${p[k]}</span></div>`; });
